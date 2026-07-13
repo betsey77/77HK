@@ -1,0 +1,27 @@
+Slice B remote migration — 2026-07-11
+
+Project: qiotocumkbwckiezuptr (77港话通社媒文案生成器)
+
+Applied
+- Command: npx supabase db push
+- Result: PASS
+- Remote migration: 20260711000000_slice_b_schema
+- Tables created: public.profiles, public.user_roles, public.audit_log
+- RLS enabled: true on all three tables
+- Initial row count: 0 on all three tables
+
+Post-apply advisors
+- Security: two WARN findings for authenticated-executable SECURITY DEFINER helpers in public schema.
+- Performance: unused-index INFO findings only; expected because all tables are new and empty.
+
+Security follow-up
+- Migration: 20260711170000_harden_role_helpers.sql
+- Purpose: move the required role helper to non-exposed private schema and remove public RPC helpers.
+- Dry run: PASS; would push only the follow-up migration.
+- Remote push: PASS.
+- Remote migration history contains both slice_b_schema and harden_role_helpers.
+- Only private.has_any_role remains; public has_role/has_any_role were removed.
+- Supabase security advisors after push: 0 findings.
+
+Remaining strict gate
+- Perform real Auth/User A-B isolation, role escalation denial, profile column restriction, and account deletion tests.

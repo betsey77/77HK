@@ -1,0 +1,44 @@
+
+ RUN  v4.1.10 D:/work/77港话通社媒文案/77/server
+
+ ✓ src/__tests__/generations.test.ts > POST /api/generations — auth gate > returns 401 when no Authorization header present 16ms
+ ✓ src/__tests__/generations.test.ts > POST /api/generations — auth gate > returns 401 for malformed Authorization header 4ms
+ ✓ src/__tests__/generations.test.ts > POST /api/generations — auth gate > returns 401 for empty Bearer token 3ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations — auth gate > returns 401 when no Authorization header present 3ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations/:id — auth gate > returns 401 when no Authorization header present 3ms
+ ✓ src/__tests__/generations.test.ts > DELETE /api/generations/:id — auth gate > returns 401 when no Authorization header present 3ms
+ ✓ src/__tests__/generations.test.ts > POST /api/generations — create job > creates a new job and returns 201 3ms
+ ✓ src/__tests__/generations.test.ts > POST /api/generations — create job > returns existing job (200) when idempotency key matches 2ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations — list jobs > returns list of user jobs 3ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations — list jobs > returns empty list when user has no jobs 3ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations/:id — detail > returns job detail 2ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations/:id — detail > returns 404 when job not found (or belongs to another user) 3ms
+ ✓ src/__tests__/generations.test.ts > PATCH /api/generations/:id — update job > updates job status and returns updated job 3ms
+ ✓ src/__tests__/generations.test.ts > PATCH /api/generations/:id — update job > returns 404 when job not found 3ms
+ ✓ src/__tests__/generations.test.ts > DELETE /api/generations/:id — soft delete > soft-deletes job and returns ok 3ms
+ ✓ src/__tests__/generations.test.ts > DELETE /api/generations/:id — soft delete > returns 404 when job not found (cannot delete another user job) 2ms
+ ✓ src/__tests__/generations.test.ts > Owner isolation > getJob returns null for different owner (simulated by service mock) 3ms
+ ✓ src/__tests__/generations.test.ts > Owner isolation > listJobs only returns jobs for authenticated user 2ms
+stderr | src/__tests__/me.test.ts > GET /api/me > returns 401 for obviously invalid JWT
+[TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo ENOTFOUND test.supabase.co
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:121:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'test.supabase.co'
+  }
+}
+
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 when no Authorization header present 14ms
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 for malformed Authorization header 4ms
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 for empty Bearer token 3ms
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 for obviously invalid JWT 49ms
+ ✓ src/__tests__/me.test.ts > GET /api/health > returns 200 with status ok 3ms
+ ✓ src/__tests__/me.test.ts > Server bootstrap > app is importable and is a function 0ms
+
+ Test Files  2 passed (2)
+      Tests  24 passed (24)
+   Start at  21:34:33
+   Duration  758ms (transform 480ms, setup 54ms, import 933ms, tests 140ms, environment 0ms)
+

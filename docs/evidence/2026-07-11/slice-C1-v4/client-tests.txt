@@ -1,0 +1,15 @@
+
+ RUN  v4.1.10 D:/work/77港话通社媒文案/77/client
+
+(node:2936) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1788) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34644) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  3 passed (3)
+      Tests  49 passed (49)
+   Start at  22:19:31
+   Duration  2.39s (transform 660ms, setup 299ms, import 1.17s, tests 2.24s, environment 2.09s)
+

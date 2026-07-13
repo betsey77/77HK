@@ -1,0 +1,21 @@
+
+ RUN  v4.1.10 D:/work/77港话通社媒文案/77/client
+
+ ✓ src/test/slice-a.test.tsx > AuthContext — mock auth behavior > signup creates account and sets authenticated session 740ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — mock auth behavior > login with wrong password shows error 655ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — mock auth behavior > resetPassword fails for nonexistent account 649ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — mock auth behavior > resetPassword succeeds for existing account and new password works 1285ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — mock auth behavior > logout clears session and prevents re-access 90ms
+ ✓ src/test/slice-a.test.tsx > ResetPasswordPage — rendered behavior > shows error message and stays on form when account not found 1310ms
+ ✓ src/test/slice-a.test.tsx > ResetPasswordPage — rendered behavior > shows success message after valid reset 1381ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > LoginPage has htmlFor labels matching input ids 14ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > SignupPage has htmlFor labels matching input ids 14ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > ForgotPasswordPage has htmlFor label matching input id 9ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — theme button colors > LoginPage submit button uses emerald in dark mode 20ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — theme button colors > LoginPage submit button uses orange in light mode 14ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  11:46:32
+   Duration  7.36s (transform 132ms, setup 95ms, import 285ms, tests 6.18s, environment 633ms)
+

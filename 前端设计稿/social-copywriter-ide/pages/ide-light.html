@@ -1,0 +1,2788 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>港话社媒文案器 - 亮色版</title>
+    <style id="theme-vars">
+/**
+ * Trae design library tokens
+ * Dark-only colors and typography tokens.
+ * Source references:
+ * - /workspace/.uploads/c7804cd9-3301-4b42-8895-bb409861b29a_trae.md
+ * - /workspace/.uploads/3164f329-b5a1-42ba-9dcb-5f1b36b48506_trae.css
+ *
+ * Notes:
+ * - Token values are preserved from the source files.
+ * - Grouping is preserved.
+ * - No alias layer is included.
+ * - Invalid source token names that contained spaces were normalized to kebab-case.
+ *   The original source names are kept in comments.
+ */
+
+/* @dark-only */
+/* @group-priority: brand-green, status, brand-blue, brand-purple, brand-yellow */
+
+:root {
+  /* radius */
+  --radius-2: 2px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-full: 9999px;
+
+  /* spacers */
+  --spacer-0: 0px;
+  --spacer-4: 4px;
+  --spacer-6: 6px;
+  --spacer-8: 8px;
+  --spacer-12: 12px;
+  --spacer-16: 16px;
+  --spacer-24: 24px;
+  --spacer-32: 32px;
+  --spacer-40: 40px;
+
+  /* font */
+  --font-family-default: SF Pro Text;
+  --font-family-heading: SF Pro;
+  --font-family-mono: JetBrains Mono;
+  --font-weight-default: 400;
+  --font-weight-code: 450;
+  --font-weight-medium: 500;
+  --font-weight-strong: 600;
+  --font-family-base: var(--font-family-default);
+  --font-family-heading-alias: var(--font-family-heading);
+  --font-family-mono-alias: var(--font-family-mono);
+
+  /* body */
+  --body-xs-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --body-xs-font-size: 10px;
+  --body-xs-font-weight: 400;
+  --body-xs-line-height: 14px;
+  --body-sm-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --body-sm-font-size: 11px;
+  --body-sm-font-weight: 400;
+  --body-sm-line-height: 16px;
+  --body-sm-strong-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --body-sm-strong-font-size: 11px;
+  --body-sm-strong-font-weight: 500;
+  --body-sm-strong-line-height: 16px;
+  --body-md-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --body-md-font-size: 12px;
+  --body-md-font-weight: 400;
+  --body-md-line-height: 18px;
+  --body-md-strong-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --body-md-strong-font-size: 12px;
+  --body-md-strong-font-weight: 500;
+  --body-md-strong-line-height: 18px;
+  --body-base-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --body-base-font-size: 13px;
+  --body-base-font-weight: 400;
+  --body-base-line-height: 20px;
+  --body-base-strong-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --body-base-strong-font-size: 13px;
+  --body-base-strong-font-weight: 500;
+  --body-base-strong-line-height: 20px;
+
+  /* heading */
+  --heading-3xs-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --heading-3xs-font-size: 11px;
+  --heading-3xs-font-weight: 600;
+  --heading-3xs-line-height: 16px;
+  --heading-2xs-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --heading-2xs-font-size: 12px;
+  --heading-2xs-font-weight: 600;
+  --heading-2xs-line-height: 18px;
+  --heading-xs-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --heading-xs-font-size: 13px;
+  --heading-xs-font-weight: 600;
+  --heading-xs-line-height: 20px;
+  --heading-sm-font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --heading-sm-font-size: 16px;
+  --heading-sm-font-weight: 600;
+  --heading-sm-line-height: 24px;
+  --heading-md-font-family: "SF Pro", system-ui, -apple-system, sans-serif;
+  --heading-md-font-size: 20px;
+  --heading-md-font-weight: 600;
+  --heading-md-line-height: 28px;
+  --heading-lg-font-family: "SF Pro", system-ui, -apple-system, sans-serif;
+  --heading-lg-font-size: 22px;
+  --heading-lg-font-weight: 600;
+  --heading-lg-line-height: 30px;
+  --heading-xl-font-family: "SF Pro", system-ui, -apple-system, sans-serif;
+  --heading-xl-font-size: 24px;
+  --heading-xl-font-weight: 600;
+  --heading-xl-line-height: 32px;
+  --heading-2xl-font-family: "SF Pro", system-ui, -apple-system, sans-serif;
+  --heading-2xl-font-size: 28px;
+  --heading-2xl-font-weight: 600;
+  --heading-2xl-line-height: 36px;
+  --heading-3xl-font-family: "SF Pro", system-ui, -apple-system, sans-serif;
+  --heading-3xl-font-size: 32px;
+  --heading-3xl-font-weight: 600;
+  --heading-3xl-line-height: 40px;
+
+  /* code */
+  --code-editor-font-family: "JetBrains Mono", system-ui, -apple-system, sans-serif;
+  --code-editor-font-size: 13px;
+  --code-editor-font-weight: 450;
+  --code-editor-line-height: 20px;
+  --code-terminal-font-family: "JetBrains Mono", system-ui, -apple-system, sans-serif;
+  --code-terminal-font-size: 12px;
+  --code-terminal-font-weight: 450;
+  --code-terminal-line-height: 18px;
+  --code-text: #E0E3EE;
+  --code-doc: #7F838C;
+  --code-link: #3C7EFF;
+  --code-number: #F48CCA;
+  --code-action: #B38CFF;
+  --code-instruction: #F0D8FF;
+  --code-function: #F29D79;
+  --code-constant: #80BBFF;
+  --code-parameter: #82D99F;
+  --code-attribute: #DED47E;
+  --code-tag: #F2858C;
+
+  /* bg */
+  --bg-base-default: #1A1B1D;
+  --bg-base-secondary: #222427;
+  --bg-base-tertiary: #2A2D31;
+  --bg-overlay-l1: rgba(224, 226, 242, 0.04);
+  --bg-overlay-l2: rgba(224, 226, 242, 0.06);
+  --bg-overlay-l3: rgba(224, 226, 242, 0.08);
+  --bg-overlay-l4: rgba(224, 226, 242, 0.12);
+  --bg-menu: #202123;
+  --bg-tooltip: #1A1B1D;
+  --bg-invert: #DADDE5;
+  --bg-invert-hover: #EDEFF2;
+  --bg-invert-active: #979AA4;
+  --bg-invert-disabled: rgba(224, 226, 242, 0.12);
+  --color-background: var(--bg-base-default);
+  --color-surface: var(--bg-base-secondary);
+  --color-surface-variant: var(--bg-base-tertiary);
+  --color-overlay-1: var(--bg-overlay-l1);
+  --color-overlay-2: var(--bg-overlay-l2);
+  --color-overlay-3: var(--bg-overlay-l3);
+  --color-overlay-4: var(--bg-overlay-l4);
+  --color-card: var(--bg-base-secondary);
+  --color-tooltip: var(--bg-tooltip);
+  --color-menu: var(--bg-menu);
+
+  /* bg-brand */
+  --bg-brand: #32F08C;
+  --bg-brand-hover: #0FDC78;
+  --bg-brand-disabled: rgba(50, 240, 140, 0.2);
+  --bg-brand-popup: rgba(50, 240, 140, 0.12);
+  --color-primary: var(--bg-brand);
+  --color-primary-hover: var(--bg-brand-hover);
+  --color-primary-disabled: var(--bg-brand-disabled);
+  --color-primary-soft: var(--bg-brand-popup);
+  --color-accent: var(--bg-brand);
+
+  /* text */
+  --text-default: #D1D3DB;
+  --text-default-hover: #F5F9FE;
+  --text-default-active: #F5F9FE;
+  --text-secondary: #9599A6;
+  --text-secondary-hover: #D1D3DB;
+  --text-secondary-active: #D1D3DB;
+  --text-tertiary: #666B75;
+  --text-disabled: #666B75;
+  --text-onbrand: #0C0C0D;
+  --text-onaccent: #0C0C0D;
+  --color-foreground: var(--text-default);
+  --color-foreground-hover: var(--text-default-hover);
+  --color-on-surface: var(--text-default);
+  --color-on-surface-variant: var(--text-secondary);
+  --color-muted-foreground: var(--text-secondary);
+  --color-disabled-foreground: var(--text-disabled);
+  --color-on-primary: var(--text-onbrand);
+
+  /* text-brand */
+  --text-brand: #32F08C;
+  --text-brand-hover: #0FDC78;
+
+  /* icon */
+  --icon-default: #D1D3DB;
+  --icon-default-hover: #F5F9FE;
+  --icon-default-active: #F5F9FE;
+  --icon-secondary: #9599A6;
+  --icon-secondary-hover: #D1D3DB;
+  --icon-secondary-active: #D1D3DB;
+  --icon-tertiary: #666B75;
+  --icon-disabled: #666B75;
+  --icon-onbrand: #0C0C0D;
+  --icon-onaccent: #0C0C0D;
+
+  /* icon-brand */
+  --icon-brand: #32F08C;
+  --icon-brand-hover: #0FDC78;
+
+  /* border */
+  --border-neutral-l1: rgba(224, 226, 242, 0.1);
+  --border-neutral-l2: rgba(224, 226, 242, 0.16);
+  --border-neutral-l3: rgba(224, 226, 242, 0.2);
+  --border-contrast: #FFFFFF;
+  --border-brand: #32F08C;
+  --color-border: var(--border-neutral-l1);
+  --color-border-strong: var(--border-neutral-l2);
+  --color-border-stronger: var(--border-neutral-l3);
+  --color-border-contrast: var(--border-contrast);
+  --color-outline: var(--border-neutral-l1);
+
+  /* accent */
+  --accent-teal: #2DD288;
+  --accent-coral: #FF9392;
+  --accent-amber: #DCB364;
+  --accent-lime: #8ACB3A;
+  --accent-cyan: #04CBE5;
+  --accent-blue: #7BB8FF;
+  --accent-magenta: #EC93FF;
+  --accent-violet: #BFA5FF;
+  --accent-slate: #AFB9CF;
+
+  /* status */
+  --status-primary-default: #387BFF;
+  --status-primary-hover: #4C88FF;
+  --status-primary-active: #1759DD;
+  --status-primary-surface-l1: rgba(53, 121, 255, 0.18);
+  --status-primary-surface-l2: rgba(53, 121, 255, 0.28);
+  --status-primary-surface-l3: rgba(53, 121, 255, 0.36);
+  --status-success-default: #33C192;
+  --status-success-hover: #5ED4AD;
+  --status-success-active: #27B082;
+  --status-success-surface-l1: rgba(0, 165, 110, 0.18);
+  --status-success-surface-l2: rgba(0, 165, 110, 0.28);
+  --status-success-surface-l3: rgba(0, 165, 110, 0.36);
+  --status-alert-default: #D29D00;
+  --status-alert-hover: #DFB949;
+  --status-alert-active: #AB8820;
+  --status-alert-surface-l1: rgba(210, 157, 0, 0.16);
+  --status-alert-surface-l2: rgba(210, 157, 0, 0.28);
+  --status-alert-surface-l3: rgba(210, 157, 0, 0.36);
+  --status-warning-default: #D27E24;
+  --status-warning-hover: #D78B28;
+  --status-warning-active: #B46510;
+  --status-warning-surface-l1: rgba(210, 126, 36, 0.16);
+  --status-warning-surface-l2: rgba(210, 126, 36, 0.28);
+  --status-warning-surface-l3: rgba(210, 126, 36, 0.36);
+  --status-error-default: #F65A5A;
+  --status-error-hover: #F86262;
+  --status-error-active: #B33636;
+  --status-error-surface-l1: rgba(246, 70, 70, 0.18);
+  --status-error-surface-l2: rgba(246, 70, 70, 0.28);
+  --status-error-surface-l3: rgba(246, 70, 70, 0.36);
+  --color-info: var(--status-primary-default);
+  --color-success: var(--status-success-default);
+  --color-warning: var(--status-warning-default);
+  --color-error: var(--status-error-default);
+  --color-error-soft: var(--status-error-surface-l1);
+
+  /* brand */
+  --brand-green-100: #E5FFF2;
+  --brand-green-200: #B4FDD9;
+  --brand-green-300: #85FABF;
+  --brand-green-400: #5CF5A8;
+  --brand-green-500: #32F08C;
+  --brand-green-600: #0FDC78;
+  --brand-green-700: #0AB861;
+  --brand-green-800: #05994F;
+  --brand-green-900: #02743B;
+  --brand-green-1000: #004D26;
+  --brand-red-100: #FFE5E5;
+  --brand-red-200: #FFCCCC;
+  --brand-red-300: #FFB2B2;
+  --brand-red-400: #FF9999;
+  --brand-red-500: #FF8080;
+  --brand-red-600: #FF6464;
+  --brand-red-700: #E63737;
+  --brand-red-800: #CB1010;
+  --brand-red-900: #8F0505;
+  --brand-red-1000: #4D0000;
+  --brand-yellow-100: #FFF6E5;
+  --brand-yellow-200: #FFECCC;
+  --brand-yellow-300: #FFE3B2;
+  --brand-yellow-400: #FFDA99;
+  --brand-yellow-500: #FFD080;
+  --brand-yellow-600: #FFC864;
+  --brand-yellow-700: #E6A637;
+  --brand-yellow-800: #CB8710;
+  --brand-yellow-900: #8F5C05;
+  --brand-yellow-1000: #4D3000;
+  --brand-blue-100: #E5F3FF;
+  --brand-blue-200: #CCE6FF;
+  --brand-blue-300: #B2DAFF;
+  --brand-blue-400: #99CEFF;
+  --brand-blue-500: #80C1FF;
+  --brand-blue-600: #64B4FF;
+  --brand-blue-700: #3792E6;
+  --brand-blue-800: #1071CB;
+  --brand-blue-900: #054C8F;
+  --brand-blue-1000: #00284D;
+  --brand-purple-100: #E8E5FF;
+  --brand-purple-200: #D2CCFF;
+  --brand-purple-300: #BBB2FF;
+  --brand-purple-400: #A599FF;
+  --brand-purple-500: #8E80FF;
+  --brand-purple-600: #7864FF;
+  --brand-purple-700: #4C37E6;
+  --brand-purple-800: #2610CB;
+  --brand-purple-900: #15058F;
+  --brand-purple-1000: #09004D;
+  /* original source token: --brand-neutral grey-100 */
+  --brand-neutral-grey-100: #F2F2F2;
+  /* original source token: --brand-neutral grey-200 */
+  --brand-neutral-grey-200: #E3E3E3;
+  /* original source token: --brand-neutral grey-300 */
+  --brand-neutral-grey-300: #D6D6D6;
+  /* original source token: --brand-neutral grey-400 */
+  --brand-neutral-grey-400: #C7C7C7;
+  /* original source token: --brand-neutral grey-500 */
+  --brand-neutral-grey-500: #BABABA;
+  /* original source token: --brand-neutral grey-600 */
+  --brand-neutral-grey-600: #ABABAB;
+  /* original source token: --brand-neutral grey-700 */
+  --brand-neutral-grey-700: #8A8A8A;
+  /* original source token: --brand-neutral grey-800 */
+  --brand-neutral-grey-800: #686868;
+  /* original source token: --brand-neutral grey-900 */
+  --brand-neutral-grey-900: #474747;
+  /* original source token: --brand-neutral grey-1000 */
+  --brand-neutral-grey-1000: #262626;
+  /* original source token: --brand-blue grey-100 */
+  --brand-blue-grey-100: #F1EFF4;
+  /* original source token: --brand-blue grey-200 */
+  --brand-blue-grey-200: #E0E1E6;
+  /* original source token: --brand-blue grey-300 */
+  --brand-blue-grey-300: #CFD3D8;
+  /* original source token: --brand-blue grey-400 */
+  --brand-blue-grey-400: #BFC5CA;
+  /* original source token: --brand-blue grey-500 */
+  --brand-blue-grey-500: #B0B5BA;
+  /* original source token: --brand-blue grey-600 */
+  --brand-blue-grey-600: #A0A6AB;
+  /* original source token: --brand-blue grey-700 */
+  --brand-blue-grey-700: #80898E;
+  /* original source token: --brand-blue grey-800 */
+  --brand-blue-grey-800: #5E696E;
+  /* original source token: --brand-blue grey-900 */
+  --brand-blue-grey-900: #404A4F;
+  /* original source token: --brand-blue grey-1000 */
+  --brand-blue-grey-1000: #21262B;
+  /* original source token: --brand-green grey-100 */
+  --brand-green-grey-100: #F1F4F4;
+  /* original source token: --brand-green grey-200 */
+  --brand-green-grey-200: #E0E6E6;
+  /* original source token: --brand-green grey-300 */
+  --brand-green-grey-300: #CFD8D8;
+  /* original source token: --brand-green grey-400 */
+  --brand-green-grey-400: #BFCACA;
+  /* original source token: --brand-green grey-500 */
+  --brand-green-grey-500: #B0BABA;
+  /* original source token: --brand-green grey-600 */
+  --brand-green-grey-600: #A0ABAB;
+  /* original source token: --brand-green grey-700 */
+  --brand-green-grey-700: #808E8E;
+  /* original source token: --brand-green grey-800 */
+  --brand-green-grey-800: #5E6E6E;
+  /* original source token: --brand-green grey-900 */
+  --brand-green-grey-900: #404F4F;
+  /* original source token: --brand-green grey-1000 */
+  --brand-green-grey-1000: #212B2B;
+
+  /* font (generic fallback — used by a few preview sections) */
+  --font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --font-size: 10px;
+  --font-weight: 400;
+  --line-height: 14px;
+
+  /* viz */
+  --viz-series-coral: #F87454;
+  --viz-series-amber: #EDAA45;
+  --viz-series-mint: #1DC981;
+  --viz-series-teal: #78F2F2;
+  --viz-series-sky: #22A5F7;
+  --viz-series-violet: #B655FC;
+  --viz-series-magenta: #FB9DD7;
+  --viz-series-indigo: #B6A3FF;
+  --viz-series-lime: #A6EA39;
+  --viz-series-slate: #859EAD;
+  --viz-ui-bg-chart: #202123;
+  --viz-ui-bg-tooltip: #1A1B1D;
+  --viz-ui-chart-title: #D1D3DB;
+  --viz-ui-chart-subtitle: #9599A6;
+  --viz-ui-chart-axis: rgba(224, 226, 242, 0.16);
+  --viz-ui-chart-tick: #9599A6;
+  --viz-ui-legend-label: #9599A6;
+  --viz-ui-legend-value: #D1D3DB;
+
+  /* special */
+  --special-white: #FFFFFF;
+  --special-black: #000000;
+  --special-bgtabsoverlay: rgba(0, 0, 0, 0.2);
+
+  /* layout aliases (originally fallback in _preview.css) */
+  --brand-1: #32f08c;
+  --brand-2: #3ee1a3;
+  --brand-3: #60f2bd;
+  --brand-4: #a0fde7;
+  --site-canvas: #1A1B1D;
+  --bg-layout-1: var(--bg-base-secondary);
+  --bg-layout-2: var(--bg-overlay-l1);
+  --border-1: var(--border-neutral-l1);
+}
+
+    </style>
+    <style id="component-vars">
+/* ═══════════════════════════════════════════════════════════════
+   components.css — Design System Component Definitions
+   Auto-extracted from preview/component-*.html
+   DO NOT EDIT MANUALLY — regenerate via extract-components-css.mjs
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Activity Rail ─────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Activity Rail</h1> <p>竖向活动栏：一列图标按钮，含选中态 .is-active（左侧 --bg-brand 指示条）和 --border-neutral-l2 分隔线。</p> </div>
+*/
+/* ===== Activity Rail ===== */
+    .ds-activityrail {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacer-4);
+      width: 48px;
+      padding: var(--spacer-8) 0;
+      background: var(--bg-base-secondary);
+      border-right: 1px solid var(--border-neutral-l1);
+    }
+    .ds-activityrail__btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-8);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    .ds-activityrail__btn:hover { background: var(--bg-overlay-l2); }
+    .ds-activityrail__btn.is-active {
+      background: var(--bg-overlay-l3);
+    }
+    .ds-activityrail__btn.is-active::before {
+      content: "";
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      border-radius: var(--radius-full);
+      background: var(--bg-brand);
+    }
+    .ds-activityrail__divider {
+      width: 24px;
+      height: 1px;
+      margin: var(--spacer-4) 0;
+      background: var(--border-neutral-l2);
+    }
+    .ds-activityrail__spacer { flex: 1; }
+
+/* ── Alert ─────────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Notifications</h1> <p>Two layouts (Simple, Complex) × four statuses (Error, Warning, Alert, Information). Status is conveyed by an <strong>outline</strong> icon color + tinted surface — never by a filled glyph.</p> </div>
+*/
+/* ===== Alert / Banner ===== */
+    .ds-alert {
+      display: flex; gap: var(--spacer-12);
+      padding: var(--spacer-12) var(--spacer-16);
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      color: var(--text-default);
+      align-items: flex-start;
+    }
+    .ds-alert__icon { flex-shrink: 0; margin-top: 1px; color: var(--icon-default); display: inline-flex; }
+    .ds-alert--success .ds-alert__icon { color: var(--status-success-default); }
+    .ds-alert--warning .ds-alert__icon { color: var(--status-warning-default); }
+    .ds-alert--danger  .ds-alert__icon { color: var(--status-error-default); }
+    .ds-alert--info    .ds-alert__icon { color: var(--status-primary-default); }
+    .ds-alert__title { font-weight: var(--font-weight-medium, 500); margin-bottom: var(--spacer-4); }
+    .ds-alert__desc { color: var(--text-secondary); font-size: var(--body-sm-font-size); }
+
+/* ── Avatar ────────────────────────────────────────────────── */
+/* @anatomy
+   <span class="ds-avatar ds-avatar--sm">A</span> <span class="ds-avatar">M</span> <span class="ds-avatar ds-avatar--lg">L</span> <div class="row" style="gap: -8px;"> <span class="ds-avatar" style="border: 2px solid var(--bg-base-default); margin-right: -10px; z-index: 3;">A</span> <span class="ds-avatar" style="border: 2px solid var(--bg-base-default); margin-right: -10px; z-index: 2;">M</span> <...
+*/
+/* ===== Avatar ===== */
+    .ds-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--bg-overlay-l3);
+      color: var(--text-default);
+      font-size: var(--body-sm-font-size); font-weight: var(--font-weight-strong);
+      flex-shrink: 0;
+    }
+    .ds-avatar--sm { width: 24px; height: 24px; font-size: var(--body-xs-font-size); }
+    .ds-avatar--lg { width: 40px; height: 40px; }
+    .ds-avatar--square { border-radius: var(--radius-4); }
+    .ds-avatar--accent { background: var(--bg-brand); color: var(--text-onbrand); }
+
+/* ── Buttons ───────────────────────────────────────────────── */
+/* @anatomy
+   <span class="size-tag" style="margin:0;">Brand · max 1 per page</span><button class="ds-btn ds-btn--brand"><img src="../assets/icons/dl_builtin_trae/zap.svg" width="14" height="14" alt="zap" class="icon"><span>Generate spec</span></button>
+*/
+/* ===== Buttons =====
+     * Hierarchy (one BRAND/green CTA per page max):
+     *   primary  → high-contrast neutral (white). Default "main action".
+     *   secondary→ neutral surface, used for any neighbour action.
+     *   tertiary → ghost (no fill, no border), used for dense toolbars / inline.
+     *   danger / danger-subtle / warning / brand / link.
+     * Sizes follow the Figma "Sm / Default / Large":  24 / 28 / 32 / 36
+     * Geek hard-edged — radii are tight (4 / 6 max).
+     */
+    .ds-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--spacer-6);
+      padding: 0 var(--spacer-12); height: 28px;
+      border-radius: var(--radius-4);
+      border: 1px solid transparent;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      font-family: var(--body-sm-strong-font-family);
+      font-size: var(--body-sm-strong-font-size);
+      line-height: 1;
+      font-weight: var(--body-sm-strong-font-weight);
+      transition: background .12s ease, color .12s ease, border-color .12s ease, opacity .12s ease;
+    }
+    .ds-btn .icon { color: currentColor; }
+    .ds-btn--sm { height: 24px; padding: 0 var(--spacer-8); border-radius: var(--radius-4); font-size: var(--body-xs-font-size); }
+    .ds-btn--md { height: 28px; padding: 0 var(--spacer-12); border-radius: var(--radius-4); }
+    .ds-btn--lg { height: 32px; padding: 0 var(--spacer-16); border-radius: var(--radius-4); font-size: var(--body-base-font-size); }
+
+    /* PRIMARY = high-contrast neutral (white). Use this when you don't need
+     * brand emphasis. Page rule: at most ONE brand button per page; every other
+     * "main" action falls back to this neutral primary. */
+    .ds-btn--primary { background: var(--text-default); color: var(--bg-base-default); border-color: var(--text-default); }
+    .ds-btn--primary:hover { background: var(--text-default-hover); }
+    .ds-btn--primary:active { background: var(--text-secondary); border-color: var(--text-secondary); }
+    .ds-btn--primary[disabled] { background: var(--bg-overlay-l3); color: var(--text-tertiary); border-color: var(--border-neutral-l1); cursor: not-allowed; }
+
+    /* SECONDARY = neutral surface */
+    .ds-btn--secondary { background: var(--bg-overlay-l2); color: var(--text-default); border-color: var(--border-neutral-l1); }
+    .ds-btn--secondary:hover { background: var(--bg-overlay-l3); border-color: var(--border-neutral-l2); }
+    .ds-btn--secondary:active { background: var(--bg-overlay-l1); }
+    .ds-btn--secondary[disabled] { color: var(--text-tertiary); cursor: not-allowed; opacity: .6; }
+
+    /* TERTIARY = ghost (no border, no fill) */
+    .ds-btn--tertiary,
+    .ds-btn--ghost { background: transparent; color: var(--text-default); border-color: transparent; }
+    .ds-btn--tertiary:hover,
+    .ds-btn--ghost:hover { background: var(--bg-overlay-l2); }
+    .ds-btn--tertiary:active,
+    .ds-btn--ghost:active { background: var(--bg-overlay-l1); }
+    .ds-btn--tertiary[disabled],
+    .ds-btn--ghost[disabled] { color: var(--text-tertiary); cursor: not-allowed; }
+
+    /* DANGER strong (filled) */
+    .ds-btn--danger,
+    .ds-btn--danger-strong {
+      background: var(--status-error-default); color: var(--special-white);
+      border-color: var(--status-error-default);
+    }
+    .ds-btn--danger:hover,
+    .ds-btn--danger-strong:hover { filter: brightness(0.92); }
+    .ds-btn--danger:active,
+    .ds-btn--danger-strong:active { filter: brightness(0.84); }
+    .ds-btn--danger[disabled],
+    .ds-btn--danger-strong[disabled] { opacity: .5; cursor: not-allowed; }
+
+    /* DANGER subtle (tinted surface) */
+    .ds-btn--danger-subtle {
+      background: var(--status-error-surface-l1);
+      color: var(--status-error-default);
+      border-color: var(--status-error-surface-l2);
+    }
+    .ds-btn--danger-subtle:hover { background: var(--status-error-surface-l2); }
+    .ds-btn--danger-subtle:active { background: var(--status-error-surface-l1); }
+    .ds-btn--danger-subtle[disabled] { opacity: .5; cursor: not-allowed; }
+
+    /* WARNING */
+    .ds-btn--warning {
+      background: var(--status-warning-default); color: var(--text-onbrand);
+      border-color: var(--status-warning-default);
+    }
+    .ds-btn--warning:hover { filter: brightness(0.94); }
+    .ds-btn--warning:active { filter: brightness(0.86); }
+    .ds-btn--warning[disabled] { opacity: .5; cursor: not-allowed; }
+
+    /* BRAND — exactly the Figma "Brand" row. Use AT MOST one per page. */
+    .ds-btn--brand { background: var(--bg-brand); color: var(--text-onbrand); border-color: var(--bg-brand); }
+    .ds-btn--brand:hover { background: var(--bg-brand-hover); border-color: var(--bg-brand-hover); }
+    .ds-btn--brand:active { filter: brightness(0.92); }
+    .ds-btn--brand[disabled] { background: var(--bg-brand-disabled, var(--bg-overlay-l3)); border-color: transparent; color: var(--text-tertiary); cursor: not-allowed; }
+
+    /* LINK */
+    .ds-btn--link { background: transparent; color: var(--text-default); border-color: transparent; padding: 0; height: auto; }
+    .ds-btn--link:hover { color: var(--text-default-hover); text-decoration: underline; }
+    .ds-btn--link[disabled] { color: var(--text-tertiary); text-decoration: none; cursor: not-allowed; }
+
+    /* ICON BUTTON — square */
+    .ds-btn--icon { padding: 0; width: 28px; justify-content: center; }
+    .ds-btn--icon.ds-btn--sm { width: 24px; }
+    .ds-btn--icon.ds-btn--lg { width: 32px; }
+
+    /* BUTTON GROUP — segmented, hard edged */
+    .ds-btn-group { display: inline-flex; }
+    .ds-btn-group > .ds-btn { border-radius: 0; margin-left: -1px; }
+    .ds-btn-group > .ds-btn:first-child { border-top-left-radius: var(--radius-4); border-bottom-left-radius: var(--radius-4); margin-left: 0; }
+    .ds-btn-group > .ds-btn:last-child  { border-top-right-radius: var(--radius-4); border-bottom-right-radius: var(--radius-4); }
+
+/* ── Cards ─────────────────────────────────────────────────── */
+/* @anatomy
+   <span class="ds-tag">New</span> <span class="text-tertiary" style="font-size: var(--body-xs-font-size);">2 min ago</span>
+*/
+/* ===== Card ===== */
+    .ds-card {
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      padding: var(--spacer-24);
+    }
+    .ds-card__title { font-size: var(--heading-xs-font-size); line-height: var(--heading-xs-line-height); font-weight: var(--heading-xs-font-weight); margin-bottom: var(--spacer-8); }
+    .ds-card__desc { font-size: var(--body-sm-font-size); line-height: var(--body-sm-line-height); color: var(--text-secondary); }
+
+/* ── Chat Composer ─────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Chat Composer</h1> <p>AI 对话输入器，含多行输入框、底部工具行与品牌色发送按钮。</p> </div>
+*/
+/* ===== Chat Composer ===== */
+    .ds-composer {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-8);
+      width: 100%;
+      max-width: 720px;
+      padding: var(--spacer-12);
+      background: var(--bg-overlay-l1);
+      border: 1px solid var(--border-neutral-l2);
+      border-radius: var(--radius-10);
+    }
+    .ds-composer:focus-within {
+      border-color: var(--border-brand);
+    }
+    .ds-composer__input {
+      width: 100%;
+      min-height: 56px;
+      max-height: 200px;
+      resize: vertical;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text-default);
+      font-size: var(--body-md-font-size);
+      line-height: var(--body-md-line-height);
+      font-weight: var(--body-md-font-weight);
+    }
+    .ds-composer__input::placeholder {
+      color: var(--text-tertiary);
+    }
+    .ds-composer__toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacer-8);
+    }
+    .ds-composer__tools {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-4);
+    }
+    .ds-composer__icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      border-radius: var(--radius-6);
+      background: transparent;
+      cursor: pointer;
+    }
+    .ds-composer__icon-btn:hover {
+      background: var(--bg-overlay-l2);
+    }
+    .ds-composer__model {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-4);
+      height: 28px;
+      padding: 0 var(--spacer-8);
+      border: 1px solid var(--border-neutral-l2);
+      border-radius: var(--radius-full);
+      background: var(--bg-overlay-l2);
+      color: var(--text-secondary);
+      font-size: var(--body-sm-font-size);
+      line-height: var(--body-sm-line-height);
+      cursor: pointer;
+    }
+    .ds-composer__model:hover {
+      background: var(--bg-overlay-l3);
+      color: var(--text-default);
+    }
+    .ds-composer__actions {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-8);
+    }
+    .ds-composer__send {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: none;
+      border-radius: var(--radius-8);
+      background: var(--bg-brand);
+      cursor: pointer;
+    }
+    .ds-composer__send:hover {
+      background: var(--bg-brand-hover);
+    }
+
+/* ── Dialog ────────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Dialog / Modal</h1> <p>Surface <code>--bg-base-secondary</code>, radius <code>--radius-4</code>. Width 360 / 420 / 560. Backdrop <code>rgba(0,0,0,.5)</code>.</p> </div>
+*/
+/* ===== Dialog / Modal ===== */
+    .ds-backdrop {
+      position: relative;
+      background: rgba(0,0,0,.5);
+      border: 1px solid var(--border-neutral-l1);
+      padding: var(--spacer-32) var(--spacer-24);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ds-dialog {
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      width: 100%; max-width: 420px;
+      overflow: hidden;
+    }
+    .ds-dialog__head {
+      padding: var(--spacer-16) var(--spacer-24);
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+    .ds-dialog__title { font-size: var(--heading-xs-font-size); font-weight: var(--heading-xs-font-weight); color: var(--text-default); }
+    .ds-dialog__close {
+      width: 24px; height: 24px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: none; color: var(--icon-secondary);
+      cursor: pointer; border-radius: var(--radius-4);
+    }
+    .ds-dialog__close:hover { background: var(--bg-overlay-l2); color: var(--icon-default); }
+    .ds-dialog__body { padding: var(--spacer-16) var(--spacer-24); color: var(--text-secondary); font-size: var(--body-sm-font-size); line-height: var(--body-sm-line-height); }
+    .ds-dialog__foot {
+      padding: var(--spacer-12) var(--spacer-24);
+      display: flex; justify-content: flex-end; gap: var(--spacer-8);
+      border-top: 1px solid var(--border-neutral-l1);
+    }
+
+    /* ===== Drawer ===== */
+    .ds-drawer {
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      width: 100%; max-width: 360px;
+      display: flex; flex-direction: column;
+    }
+    .ds-drawer__head { padding: var(--spacer-16) var(--spacer-24); border-bottom: 1px solid var(--border-neutral-l1); display: flex; justify-content: space-between; align-items: center; }
+    .ds-drawer__body { padding: var(--spacer-16) var(--spacer-24); flex: 1; }
+
+/* ── Editor Tabs ───────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Editor Tabs</h1> <p>IDE-style closable file tabs with a flex spacer pushing trailing layout/split icon buttons to the right. Active tab gets a 1px inset top indicator and a lifted <code>--bg-base-secondary</code> surface. Distinct from <code>.ds-tabs</code>, which is for content-section navigation.</p> </div>
+*/
+/* ===== Editor Tabs ===== */
+    .ds-editortabs {
+      display: flex;
+      align-items: stretch;
+      border-bottom: 1px solid var(--border-neutral-l1);
+      background-color: var(--bg-base-default);
+      background-image: linear-gradient(var(--special-bgtabsoverlay), var(--special-bgtabsoverlay));
+    }
+    .ds-editortab {
+      display: inline-flex;
+      align-items: center;
+      column-gap: 8px;
+      padding: 0 14px;
+      height: 40px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      border-right: 1px solid var(--border-neutral-l1);
+      cursor: pointer;
+      white-space: nowrap;
+      background: transparent;
+      min-width: 0;
+    }
+    .ds-editortab:hover {
+      color: var(--text-default);
+      background-image: linear-gradient(var(--bg-overlay-l1), var(--bg-overlay-l1));
+    }
+    .ds-editortab.is-active {
+      background: var(--bg-base-secondary);
+      color: var(--text-default);
+      box-shadow: inset 0 1px 0 0 var(--icon-default);
+    }
+    .ds-editortab.is-active:hover { background: var(--bg-base-secondary); }
+    .ds-editortab .ic {
+      width: 14px; height: 14px;
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .ds-editortab .close {
+      width: 16px; height: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--icon-tertiary);
+    }
+    .ds-editortab.is-active .close { color: var(--icon-secondary); }
+    .ds-editortabs__spacer { flex: 1; min-width: 0; border-right: 0; }
+    .ds-editortabs__actions {
+      display: inline-flex;
+      align-items: center;
+      column-gap: 4px;
+      padding: 0 8px;
+      color: var(--icon-secondary);
+    }
+    .ds-editortabs__actions button {
+      width: 24px; height: 24px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: 0;
+      color: inherit;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .ds-editortabs__actions button:hover {
+      color: var(--icon-default);
+      background: var(--bg-overlay-l1);
+    }
+
+/* ── File Tree ─────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>File Tree</h1> <p>文件树：多层级行 .ds-filetree__row（data-depth 控制缩进），含展开箭头 chevron、文件/文件夹图标、选中态 .is-active。</p> </div>
+*/
+/* ===== File Tree ===== */
+    .ds-filetree {
+      width: 260px;
+      padding: var(--spacer-4);
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-6);
+      font-size: var(--body-sm-font-size);
+      color: var(--text-default);
+    }
+    .ds-filetree__row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      height: 26px;
+      padding: 0 var(--spacer-6);
+      padding-left: var(--spacer-6);
+      border-radius: var(--radius-4);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .ds-filetree__row[data-depth="1"] { padding-left: calc(var(--spacer-6) + 16px); }
+    .ds-filetree__row[data-depth="2"] { padding-left: calc(var(--spacer-6) + 32px); }
+    .ds-filetree__row[data-depth="3"] { padding-left: calc(var(--spacer-6) + 48px); }
+    .ds-filetree__row:hover { background: var(--bg-overlay-l2); }
+    .ds-filetree__row.is-active {
+      background: var(--bg-overlay-l3);
+      color: var(--text-default-hover);
+    }
+    .ds-filetree__chevron {
+      display: inline-flex;
+      width: 14px;
+      height: 14px;
+      flex: 0 0 14px;
+    }
+    .ds-filetree__chevron--leaf { visibility: hidden; }
+    .ds-filetree__label { overflow: hidden; text-overflow: ellipsis; }
+    .ds-filetree__icon--folder { filter: none; }
+    .ds-filetree__icon--ts { color: var(--accent-blue); }
+    .ds-filetree__icon--css { color: var(--code-attribute); }
+    .ds-filetree__icon--json { color: var(--code-constant); }
+
+/* ── Forms ─────────────────────────────────────────────────── */
+/* @anatomy: dropdown with check-marked items */
+/* ===== Input / Search ===== */
+    .ds-input {
+      display: flex; align-items: center; gap: var(--spacer-8);
+      padding: 0 var(--spacer-12); height: 28px;
+      background: var(--bg-overlay-l1);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      color: var(--text-default);
+      width: 100%;
+      font-size: var(--body-sm-font-size); line-height: 1;
+    }
+    .ds-input:focus-within { border-color: var(--border-brand); background: var(--bg-overlay-l2); }
+    .ds-input input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: var(--text-default); font: inherit;
+    }
+    .ds-input input::placeholder { color: var(--text-tertiary); }
+    .ds-input__icon { color: var(--icon-secondary); display: inline-flex; }
+    .ds-search { position: relative; }
+
+    /* ===== Select =====
+     * Dropdown indicator is a linear chevron (Lucide-style SVG, 2px stroke) — never a
+     * filled triangle / caret. The svg is inlined as a data-uri using currentColor
+     * stand-in so it inherits via the --icon-tertiary fallback.
+     */
+    .ds-select {
+      width: 100%; height: 28px;
+      padding: 0 var(--spacer-32) 0 var(--spacer-12);
+      background: var(--bg-overlay-l1);
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa0aa' stroke-width='2' stroke-linecap='butt' stroke-linejoin='miter'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right var(--spacer-12) center;
+      background-size: 12px 12px;
+      color: var(--text-default);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      appearance: none; -webkit-appearance: none;
+      font: inherit; font-size: var(--body-sm-font-size);
+    }
+    .ds-select:focus { border-color: var(--border-brand); outline: none; }
+
+    /* ===== Textarea ===== */
+    .ds-textarea {
+      width: 100%; min-height: 96px; padding: var(--spacer-8) var(--spacer-12);
+      background: var(--bg-overlay-l1);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-sm-font-size);
+      line-height: var(--body-base-line-height);
+      resize: vertical;
+    }
+    .ds-textarea:focus { outline: none; border-color: var(--border-brand); }
+
+    /* ===== Slider ===== */
+    .ds-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: var(--bg-overlay-l3); border-radius: var(--radius-full); outline: none; }
+    .ds-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--text-default); border: 2px solid var(--bg-base-default); box-shadow: 0 0 0 1px var(--border-neutral-l2); cursor: pointer; }
+    .ds-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--text-default); border: 2px solid var(--bg-base-default); box-shadow: 0 0 0 1px var(--border-neutral-l2); cursor: pointer; }
+
+    /* ===== Checkbox / Radio / Switch ===== */
+    .ds-check, .ds-radio {
+      display: inline-flex; align-items: center; gap: var(--spacer-8);
+      font-size: var(--body-sm-font-size); color: var(--text-default);
+      cursor: pointer; user-select: none;
+    }
+    .ds-check__box {
+      width: 14px; height: 14px;
+      border: 1px solid var(--border-neutral-l2);
+      background: var(--bg-overlay-l1);
+      border-radius: var(--radius-2);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-onbrand);
+      transition: background .12s, border-color .12s;
+    }
+    .ds-check input { display: none; }
+    .ds-check input:checked + .ds-check__box {
+      background: var(--bg-brand);
+      border-color: var(--bg-brand);
+    }
+    .ds-check input:checked + .ds-check__box::after {
+      content: ''; width: 8px; height: 4px;
+      border-left: 2px solid var(--text-onbrand);
+      border-bottom: 2px solid var(--text-onbrand);
+      transform: rotate(-45deg) translate(1px, -1px);
+    }
+    .ds-check input:disabled + .ds-check__box { opacity: .5; cursor: not-allowed; }
+
+    .ds-radio__dot {
+      width: 16px; height: 16px;
+      border: 1px solid var(--border-neutral-l2);
+      background: var(--bg-overlay-l1);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .ds-radio input { display: none; }
+    .ds-radio input:checked + .ds-radio__dot {
+      border-color: var(--bg-brand);
+    }
+    .ds-radio input:checked + .ds-radio__dot::after {
+      content: ''; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--bg-brand);
+    }
+
+    .ds-switch {
+      position: relative; display: inline-flex;
+      width: 32px; height: 18px;
+      background: var(--bg-overlay-l3);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-full);
+      cursor: pointer; transition: background .15s, border-color .15s;
+    }
+    .ds-switch input { display: none; }
+    .ds-switch__thumb {
+      position: absolute; top: 2px; left: 2px;
+      width: 12px; height: 12px;
+      background: var(--text-default);
+      border-radius: 50%;
+      transition: left .15s, background .15s;
+    }
+    .ds-switch input:checked ~ .ds-switch__thumb { left: 16px; background: var(--text-onbrand); }
+    .ds-switch:has(input:checked) {
+      background: var(--bg-brand);
+      border-color: var(--bg-brand);
+    }
+
+    /* Small switch */
+    .ds-switch--sm { width: 26px; height: 14px; }
+    .ds-switch--sm .ds-switch__thumb { width: 10px; height: 10px; }
+    .ds-switch--sm input:checked ~ .ds-switch__thumb { left: 12px; }
+
+    /* Labelled switch row: description on the left, switch on the right */
+    .ds-switch-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--spacer-16); padding: var(--spacer-8) 0;
+      max-width: 480px;
+    }
+    .ds-switch-row__text { display: flex; flex-direction: column; gap: var(--spacer-4); }
+    .ds-switch-row__title { font-size: var(--body-sm-font-size); color: var(--text-default); }
+    .ds-switch-row__hint { font-size: var(--body-xs-font-size); color: var(--text-tertiary); }
+
+/* ── Kbd ───────────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Kbd</h1> <p>键盘快捷键提示，小圆角方块。</p> </div>
+*/
+/* ===== Kbd ===== */
+    .ds-kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 var(--spacer-6);
+      font-family: var(--code-editor-font-family);
+      font-size: var(--body-xs-font-size);
+      line-height: 1;
+      font-weight: var(--font-weight-medium);
+      color: var(--text-secondary);
+      background: var(--bg-overlay-l2);
+      border: 1px solid var(--border-neutral-l2);
+      border-bottom-width: 2px;
+      border-radius: var(--radius-4);
+    }
+    .ds-kbd__combo {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-4);
+    }
+    .ds-kbd__plus {
+      color: var(--text-tertiary);
+      font-size: var(--body-xs-font-size);
+    }
+    .ds-kbd__row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--spacer-16);
+    }
+
+/* ── Atoms ─────────────────────────────────────────────────── */
+/* @anatomy
+   <span class="ds-tooltip">Tooltip A</span> <span class="ds-tooltip">Tooltip B</span> <span class="ds-tooltip">Tooltip C</span>
+*/
+/* ===== Section / heading helpers ===== */
+    .h1 { font-family: var(--heading-2xl-font-family); font-size: var(--heading-2xl-font-size); line-height: var(--heading-2xl-line-height); font-weight: var(--heading-2xl-font-weight); color: var(--text-default); }
+    .h2 { font-family: var(--heading-md-font-family); font-size: var(--heading-md-font-size); line-height: var(--heading-md-line-height); font-weight: var(--heading-md-font-weight); color: var(--text-default); }
+    .h3 { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); color: var(--text-default); }
+    .eyebrow { font-size: var(--body-xs-font-size); line-height: var(--body-xs-line-height); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; }
+    .text-secondary { color: var(--text-secondary); }
+    .text-tertiary { color: var(--text-tertiary); }
+
+    /* ===== Hero / brand title ===== */
+    .ds-hero-title {
+      font-family: var(--heading-3xl-font-family);
+      font-size: clamp(40px, 6vw, 72px);
+      line-height: 1.04;
+      font-weight: var(--heading-3xl-font-weight, 600);
+      letter-spacing: -0.03em;
+      color: var(--text-default);
+    }
+    .ds-hero-title .brand1 { color: var(--bg-brand); }
+    .ds-hero-title .brand2 { color: var(--text-default); }
+    .ds-hero-title .brand3 { color: var(--bg-brand); }
+    .ds-hero-title .brand4 { color: var(--text-default); }
+    .ds-hero-title__sub {
+      display: block;
+      margin-top: var(--spacer-12);
+      font-size: clamp(28px, 4vw, 56px);
+      color: var(--text-secondary);
+      letter-spacing: -0.02em;
+    }
+
+    /* ===== Section title with mono index ===== */
+    .ds-section-title__index {
+      display: block;
+      font-family: var(--code-editor-font-family, 'JetBrains Mono', ui-monospace, monospace);
+      font-size: var(--body-sm-font-size, 14px);
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: var(--bg-brand);
+      margin-bottom: var(--spacer-16);
+    }
+    .ds-section-title {
+      font-family: var(--heading-xl-font-family, var(--heading-3xl-font-family));
+      font-size: clamp(24px, 2.4vw, 32px);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      color: var(--text-default);
+      font-weight: var(--font-weight-strong, 600);
+      margin: 0;
+    }
+
+    /* ===== Layout helpers ===== */
+    .ds-row { display: flex; gap: var(--spacer-12); flex-wrap: wrap; align-items: center; }
+    .ds-col { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .ds-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-16); }
+    .ds-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacer-16); }
+    .ds-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacer-16); }
+    .ds-stack-8 { display: flex; flex-direction: column; gap: var(--spacer-8); }
+    .ds-stack-12 { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .ds-stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    .ds-stack-24 { display: flex; flex-direction: column; gap: var(--spacer-24); }
+    .ds-stack-40 { display: flex; flex-direction: column; gap: var(--spacer-40); }
+    /* legacy aliases kept for preview/component-*.html markup */
+    .row { display: flex; gap: var(--spacer-12); flex-wrap: wrap; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-16); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacer-16); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacer-16); }
+    .stack-8 { display: flex; flex-direction: column; gap: var(--spacer-8); }
+    .stack-12 { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    .stack-24 { display: flex; flex-direction: column; gap: var(--spacer-24); }
+    .stack-40 { display: flex; flex-direction: column; gap: var(--spacer-40); }
+
+    /* ===== Tooltip / Popover ===== */
+    .ds-tooltip {
+      display: inline-flex; align-items: center; gap: var(--spacer-6);
+      padding: var(--spacer-4) var(--spacer-8);
+      background: var(--bg-tooltip);
+      color: var(--text-default);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      font-size: var(--body-xs-font-size); line-height: var(--body-xs-line-height);
+      box-shadow: 0 8px 24px rgba(0,0,0,.36);
+    }
+    .ds-popover {
+      background: var(--bg-overlay-l1);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      padding: var(--spacer-12);
+      box-shadow: 0 12px 32px rgba(0,0,0,.36);
+    }
+
+    /* ===== Empty state ===== */
+    .ds-empty {
+      display: flex; flex-direction: column; align-items: center;
+      padding: var(--spacer-40) var(--spacer-24);
+      color: var(--text-tertiary); text-align: center;
+      border: 1px dashed var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+    }
+    .ds-empty__icon {
+      width: 40px; height: 40px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border-neutral-l1); margin-bottom: var(--spacer-12);
+      color: var(--icon-secondary);
+    }
+    .ds-empty__title { color: var(--text-default); font-size: var(--body-base-font-size); font-weight: var(--font-weight-medium, 500); margin-bottom: var(--spacer-4); }
+    .ds-empty__desc { font-size: var(--body-sm-font-size); }
+
+    /* ===== Code block ===== */
+    .ds-code {
+      background: var(--bg-overlay-l1);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      padding: var(--spacer-12) var(--spacer-16);
+      color: var(--text-default);
+      font-family: var(--code-editor-font-family);
+      font-size: var(--code-editor-font-size);
+      line-height: var(--code-editor-line-height);
+      white-space: pre;
+      overflow: auto;
+    }
+
+    /* ===== Mono / Numeric utilities =====
+     * Anything code-like or numeric (counts, currencies, percentages, IDs,
+     * tabular cells, kbd, code) MUST use the mono token + tabular figures. */
+    .mono,
+    .num,
+    code, samp, pre {
+      font-family: var(--code-editor-font-family);
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+
+/* ── Menu ──────────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Menu</h1> <p>Context menus and sidebar menus. Background <code>--bg-menu</code>, item radius <code>--radius-4</code>, hover <code>--bg-overlay-l2</code>. Destructive items use <code>--status-error-default</code>.</p> </div>
+*/
+/* ===== Menu ===== */
+    .ds-menu {
+      background: var(--bg-menu);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      padding: var(--spacer-4);
+      min-width: 180px;
+    }
+    .ds-menu__item {
+      display: flex; align-items: center; gap: var(--spacer-8);
+      padding: var(--spacer-6) var(--spacer-8);
+      border-radius: var(--radius-2);
+      color: var(--text-default);
+      font-size: var(--body-sm-font-size);
+      cursor: pointer;
+    }
+    .ds-menu__item .icon { color: var(--icon-secondary); }
+    .ds-menu__item:hover { background: var(--bg-overlay-l2); }
+    .ds-menu__item--danger { color: var(--status-error-default); }
+    .ds-menu__item--danger .icon { color: var(--status-error-default); }
+    .ds-menu__divider { height: 1px; background: var(--border-neutral-l1); margin: var(--spacer-4) 0; }
+    .ds-menu__shortcut { margin-left: auto; color: var(--text-tertiary); font-size: var(--body-xs-font-size); font-family: var(--code-editor-font-family); }
+
+/* ── Nav List ──────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Nav list</h1> <p>侧栏导航菜单：分组标题 + 菜单项（图标 + 文字 + 选中态）。</p> </div>
+*/
+/* ===== Nav list ===== */
+    .ds-navlist {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-16);
+      width: 240px;
+      padding: var(--spacer-12);
+      background: var(--bg-menu);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-10);
+    }
+    .ds-navlist__group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .ds-navlist__group-title {
+      padding: var(--spacer-6) var(--spacer-8);
+      font-size: var(--body-xs-font-size);
+      line-height: var(--body-xs-line-height);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .ds-navlist__item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-8);
+      padding: var(--spacer-8);
+      border-radius: var(--radius-6);
+      font-size: var(--body-sm-font-size);
+      line-height: var(--body-sm-line-height);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .ds-navlist__item:hover {
+      background: var(--bg-overlay-l2);
+      color: var(--text-default);
+    }
+    .ds-navlist__item.is-active {
+      background: var(--bg-brand);
+      color: var(--text-onbrand);
+    }
+    .ds-navlist__label { flex: 1; min-width: 0; }
+    .ds-navlist__badge {
+      font-size: var(--body-xs-font-size);
+      font-variant-numeric: tabular-nums;
+      color: var(--text-tertiary);
+    }
+    .ds-navlist__item.is-active .ds-navlist__badge { color: var(--text-onbrand); }
+
+/* ── Page Header ───────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Page header</h1> <p>页头：左侧标题 + 副标题，右侧操作按钮区。</p> </div>
+*/
+/* ===== Page header ===== */
+    .ds-pagehead {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--spacer-24);
+      padding: var(--spacer-24) 0;
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+    .ds-pagehead__main {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-6);
+    }
+    .ds-pagehead__title {
+      font-size: var(--heading-lg-font-size);
+      line-height: var(--heading-lg-line-height);
+      font-weight: var(--font-weight-strong);
+      color: var(--text-default);
+    }
+    .ds-pagehead__subtitle {
+      font-size: var(--body-sm-font-size);
+      line-height: var(--body-sm-line-height);
+      color: var(--text-tertiary);
+    }
+    .ds-pagehead__actions {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-8);
+      flex-shrink: 0;
+    }
+    .ds-pagehead__btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      height: 32px;
+      padding: 0 var(--spacer-12);
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-default);
+      background: var(--bg-overlay-l2);
+      border: 1px solid var(--border-neutral-l2);
+      border-radius: var(--radius-6);
+      cursor: pointer;
+    }
+    .ds-pagehead__btn.is-primary {
+      color: var(--text-onbrand);
+      background: var(--bg-brand);
+      border-color: var(--border-brand);
+    }
+
+/* ── Pagination ────────────────────────────────────────────── */
+/* @anatomy
+   <div class="ds-pagination"> <button class="ds-pagination__item" aria-label="Previous"><img src="../assets/icons/dl_builtin_trae/chevron-right.svg" width="12" height="12" alt="chevron-right" class="icon" style="transform: rotate(180deg);"></button> <button class="ds-pagination__item is-active num">1</button> <button class="ds-pagination__item num">2</button> <button class="ds-pagination__item num">3</button> <b...
+*/
+/* ===== Pagination ===== */
+    .ds-pagination { display: inline-flex; gap: var(--spacer-4); }
+    .ds-pagination__item {
+      min-width: 24px; height: 24px; padding: 0 var(--spacer-6);
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-2);
+      font: inherit; font-size: var(--body-xs-font-size);
+      cursor: pointer;
+    }
+    .ds-pagination__item:hover { background: var(--bg-overlay-l2); color: var(--text-default); }
+    .ds-pagination__item.is-active { background: var(--bg-overlay-l3); color: var(--text-default); border-color: var(--border-neutral-l2); }
+    .ds-pagination__item[disabled] { opacity: .4; cursor: not-allowed; }
+
+/* ── Setting Row ───────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Setting row</h1> <p>配置行：左侧标题 + 描述，右侧控件。三个 control 变体：select / button / select-with-icon。多行堆叠到 .ds-settingrow__panel 中；多个 panel 用 .ds-settingrow__group 分组。</p> </div>
+*/
+/* ===== Setting row ===== */
+    .ds-settingrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacer-24);
+      padding: var(--spacer-16) var(--spacer-24);
+    }
+    .ds-settingrow__main {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-4);
+      min-width: 0;
+    }
+    .ds-settingrow__title {
+      font-size: var(--body-md-font-size);
+      line-height: var(--body-md-line-height);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-default);
+    }
+    .ds-settingrow__desc {
+      font-size: var(--body-sm-font-size);
+      line-height: var(--body-sm-line-height);
+      color: var(--text-tertiary);
+    }
+    .ds-settingrow__control {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-8);
+      flex-shrink: 0;
+    }
+
+    /* === Variant A: select === */
+    .ds-settingrow__select {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacer-12);
+      min-width: 200px;
+      height: 36px;
+      padding: 0 var(--spacer-12);
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-default);
+      background: var(--bg-overlay-l2);
+      border: 1px solid var(--border-neutral-l2);
+      border-radius: var(--radius-6);
+      cursor: pointer;
+    }
+    .ds-settingrow__select:hover { background: var(--bg-overlay-l3); }
+    .ds-settingrow__select .icon { color: var(--icon-tertiary); flex-shrink: 0; }
+
+    /* === Variant B: button === */
+    .ds-settingrow__btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      height: 36px;
+      padding: 0 var(--spacer-16);
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-default);
+      background: var(--bg-overlay-l2);
+      border: 1px solid var(--border-neutral-l2);
+      border-radius: var(--radius-6);
+      cursor: pointer;
+    }
+    .ds-settingrow__btn:hover { background: var(--bg-overlay-l3); }
+    .ds-settingrow__btn .icon { color: var(--icon-tertiary); }
+
+    /* danger text button (e.g. 清除 / Clear) */
+    .ds-settingrow__btn--danger {
+      color: var(--status-error-default);
+    }
+    .ds-settingrow__btn--danger:hover {
+      background: var(--status-error-surface-l1);
+      border-color: var(--status-error-surface-l2);
+    }
+
+    /* === Variant C: select-with-icon (select + trailing icon button) === */
+    .ds-settingrow__iconbtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      color: var(--icon-secondary);
+      background: transparent;
+      border: 1px solid var(--border-neutral-l2);
+      border-radius: var(--radius-6);
+      cursor: pointer;
+    }
+    .ds-settingrow__iconbtn:hover {
+      background: var(--bg-overlay-l2);
+      color: var(--icon-default);
+    }
+
+    /* === Panel container === */
+    .ds-settingrow__panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-10);
+      overflow: hidden;
+    }
+    .ds-settingrow__panel > .ds-settingrow + .ds-settingrow {
+      border-top: 1px solid var(--border-neutral-l1);
+    }
+
+    /* === Section group label (e.g. 基础设置 / 偏好设置 / 数据管理) === */
+    .ds-settingrow__group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-12);
+    }
+    .ds-settingrow__group + .ds-settingrow__group {
+      margin-top: var(--spacer-24);
+    }
+    .ds-settingrow__grouplabel {
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-secondary);
+      padding-left: var(--spacer-4);
+    }
+
+/* ── Stat Card ─────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Stat card</h1> <p>KPI 指标卡：大写小标签 + 等宽大数字 + 涨跌 delta。</p> </div>
+*/
+/* ===== Stat card ===== */
+    .ds-statcard {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-8);
+      padding: var(--spacer-16);
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-10);
+      min-width: 200px;
+    }
+    .ds-statcard__label {
+      font-size: var(--body-xs-font-size);
+      line-height: var(--body-xs-line-height);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .ds-statcard__value {
+      font-family: var(--code-editor-font-family);
+      font-variant-numeric: tabular-nums;
+      font-size: var(--heading-lg-font-size);
+      line-height: var(--heading-lg-line-height);
+      font-weight: var(--font-weight-strong);
+      color: var(--text-default);
+    }
+    .ds-statcard__delta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-4);
+      font-size: var(--body-sm-font-size);
+      line-height: var(--body-sm-line-height);
+      font-weight: var(--font-weight-medium);
+      font-variant-numeric: tabular-nums;
+    }
+    .ds-statcard__delta.is-up { color: var(--status-success-default); }
+    .ds-statcard__delta.is-down { color: var(--status-error-default); }
+    .ds-statcard__delta .ds-statcard__caption {
+      color: var(--text-tertiary);
+      font-weight: var(--font-weight-default);
+    }
+    .ds-statcard__grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacer-16);
+    }
+
+/* ── Status Bar ────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Status Bar</h1> <p>底部状态栏：左右两组 status-item（图标+文字），含彩色 dot（--status-success/warning/error-default）。背景 --bg-base-secondary。</p> </div>
+*/
+/* ===== Status Bar ===== */
+    .ds-statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 24px;
+      padding: 0 var(--spacer-8);
+      background: var(--bg-base-secondary);
+      border-top: 1px solid var(--border-neutral-l1);
+      font-size: var(--body-xs-font-size);
+      color: var(--text-secondary);
+    }
+    .ds-statusbar__group {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-4);
+    }
+    .ds-statusbar__item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      height: 20px;
+      padding: 0 var(--spacer-6);
+      border-radius: var(--radius-4);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .ds-statusbar__item:hover {
+      background: var(--bg-overlay-l2);
+      color: var(--text-default);
+    }
+    .ds-statusbar__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+    }
+    .ds-statusbar__dot--success { background: var(--status-success-default); }
+    .ds-statusbar__dot--warning { background: var(--status-warning-default); }
+    .ds-statusbar__dot--error { background: var(--status-error-default); }
+
+/* ── Table Panel ───────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Table Panel</h1> <p>Dashboard table container with rounded foot only. Pair it with an external header/toolbar (with its own top-rounded corners) above. Use this when the surrounding card already owns the title; for self-contained tables use <code>.ds-table-wrap</code>.</p> </div>
+*/
+/* ===== Table Panel ===== */
+    .ds-tablepanel {
+      background: var(--bg-layout-1);
+      border: 1px solid var(--border-1);
+      border-radius: 0 0 var(--radius-4) var(--radius-4);
+      border-top: none;
+      overflow: hidden;
+    }
+    .ds-tablepanel table { width: 100%; border-collapse: collapse; }
+    .ds-tablepanel th, .ds-tablepanel td {
+      padding: var(--spacer-12) var(--spacer-16);
+      border-bottom: 1px solid var(--border-1);
+      font-size: var(--body-sm-font-size);
+      text-align: left;
+    }
+    .ds-tablepanel th {
+      color: var(--text-tertiary);
+      font-weight: var(--font-weight-default);
+      font-size: var(--body-xs-font-size);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--bg-overlay-l1);
+    }
+    .ds-tablepanel td { color: var(--text-default); }
+    .ds-tablepanel tr:last-child td { border-bottom: none; }
+    .ds-tablepanel td.num, .ds-tablepanel th.num {
+      text-align: right;
+      font-family: var(--code-editor-font-family);
+      font-variant-numeric: tabular-nums;
+    }
+    .ds-tablepanel__foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacer-8) var(--spacer-16);
+      border-top: 1px solid var(--border-1);
+      color: var(--text-tertiary);
+      font-size: var(--body-xs-font-size);
+      gap: var(--spacer-12);
+    }
+
+    /* Local-only header bar to demonstrate the "external header above the panel" usage pattern */
+    .pv-tp-header {
+      background: var(--bg-layout-1);
+      border: 1px solid var(--border-1);
+      border-bottom: none;
+      border-radius: var(--radius-4) var(--radius-4) 0 0;
+      padding: var(--spacer-12) var(--spacer-16);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--spacer-12);
+    }
+    .pv-tp-header h3 { margin: 0; font-size: var(--body-md-font-size, 14px); color: var(--text-default); }
+    .pv-tp-header .meta { color: var(--text-tertiary); font-size: var(--body-xs-font-size); }
+
+/* ── Table ─────────────────────────────────────────────────── */
+/* @anatomy
+   <span class="ds-avatar ds-avatar--sm">A</span> <div> <div>Avery Chen
+*/
+/* ===== Table ===== */
+    .ds-table { width: 100%; border-collapse: collapse; }
+    .ds-table th, .ds-table td { text-align: left; padding: var(--spacer-12) var(--spacer-8); border-bottom: 1px solid var(--border-neutral-l1); font-size: var(--body-sm-font-size); }
+    .ds-table th { color: var(--text-tertiary); font-weight: var(--font-weight-default, 400); font-size: var(--body-xs-font-size); text-transform: uppercase; letter-spacing: 0.04em; }
+    .ds-table td { color: var(--text-default); }
+    .ds-table tr:last-child td { border-bottom: none; }
+    /* Numeric cells in tables default to mono for column alignment */
+    .ds-table td.num,
+    .ds-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Table wrapper: rounded, bordered container */
+    .ds-table-wrap {
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-8);
+      overflow: hidden;
+      background: var(--bg-base-secondary);
+    }
+    /* Toolbar: search on the left, actions on the right */
+    .ds-table__toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--spacer-12);
+      padding: var(--spacer-12);
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+    .ds-table__toolbar-actions { display: flex; align-items: center; gap: var(--spacer-8); }
+    /* Footer: row count on the left, pagination on the right */
+    .ds-table__footer {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--spacer-12);
+      padding: var(--spacer-12);
+      border-top: 1px solid var(--border-neutral-l1);
+      font-size: var(--body-xs-font-size); color: var(--text-tertiary);
+    }
+    .ds-table__pagination { display: flex; align-items: center; gap: var(--spacer-8); }
+
+/* ── Tabs ──────────────────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Tabs</h1> <p>Underline tabs only. Inactive uses <code>--text-tertiary</code>; active uses <code>--text-default</code> with a 2px neutral underline (never brand fill).</p> </div>
+*/
+/* ===== Tabs ===== */
+    .ds-tabs { display: flex; gap: var(--spacer-24); border-bottom: 1px solid var(--border-neutral-l1); }
+    .ds-tab {
+      padding: var(--spacer-12) 0;
+      background: transparent; border: none;
+      color: var(--text-tertiary); cursor: pointer;
+      font: inherit; font-size: var(--body-sm-font-size);
+      position: relative;
+    }
+    .ds-tab:hover { color: var(--text-default); }
+    .ds-tab.is-active { color: var(--text-default); }
+    .ds-tab.is-active::after {
+      content: ''; position: absolute;
+      left: 0; right: 0; bottom: -1px; height: 2px;
+      background: var(--icon-default);
+    }
+
+    /* Filled tabs: selected item gets a filled background + radius, no underline */
+    .ds-tabs--filled { border-bottom: none; gap: var(--spacer-4); }
+    .ds-tabs--filled .ds-tab {
+      padding: var(--spacer-6) var(--spacer-12);
+      border-radius: var(--radius-4);
+    }
+    .ds-tabs--filled .ds-tab.is-active::after { display: none; }
+    .ds-tabs--filled .ds-tab.is-active {
+      background: var(--bg-overlay-l3);
+      color: var(--text-default);
+    }
+
+    /* Closable tabs: each tab carries an inline close button on the right */
+    .ds-tabs--closable .ds-tab {
+      display: inline-flex; align-items: center; gap: var(--spacer-8);
+    }
+    .ds-tab__close {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px;
+      border-radius: var(--radius-2);
+      color: var(--icon-secondary);
+    }
+    .ds-tab__close:hover { background: var(--bg-overlay-l3); color: var(--icon-default); }
+
+/* ── Tag ───────────────────────────────────────────────────── */
+/* @anatomy
+   <span class="ds-tag">Default</span> <span class="ds-tag ds-tag--success">Active</span> <span class="ds-tag ds-tag--warning">Pending</span> <span class="ds-tag ds-tag--danger">Failed</span> <span class="ds-tag ds-tag--brand"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;margin-right:6px;"></span>Live</span>
+*/
+/* ===== Tag / Badge ===== */
+    .ds-tag {
+      display: inline-flex; align-items: center;
+      padding: 0 var(--spacer-6); height: 18px;
+      border-radius: var(--radius-2);
+      font-size: var(--body-xs-font-size); line-height: 1;
+      background: var(--bg-overlay-l2); color: var(--text-secondary);
+      border: 1px solid var(--border-neutral-l1);
+    }
+    .ds-tag--brand { background: var(--bg-brand-popup); color: var(--text-brand); }
+    .ds-tag--success { background: var(--status-success-surface-l1); color: var(--status-success-default); }
+    .ds-tag--warning { background: var(--status-warning-surface-l1); color: var(--status-warning-default); }
+    .ds-tag--danger  { background: var(--status-error-surface-l1); color: var(--status-error-default); }
+    /* Count badge: numeric pill for list counts */
+    .ds-tag--count {
+      justify-content: center;
+      min-width: 18px; padding: 0 var(--spacer-6);
+      border-radius: var(--radius-full);
+      background: var(--bg-overlay-l3); color: var(--text-secondary);
+      border: none;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Neutral strong: plan-style emphasis badge */
+    .ds-tag--neutral-strong {
+      background: var(--bg-overlay-l4); color: var(--text-default);
+      border: none; font-weight: var(--font-weight-medium);
+    }
+
+/* ── Workbench Titlebar ────────────────────────────────────── */
+/* @anatomy
+   <div class="pv-header"> <h1>Workbench Titlebar</h1> <p>IDE/Agent 工作台顶栏：左侧窗口控制点 + 产品模式胶囊 + 项目选择器，右侧图标按钮组。背景用 --bg-base-secondary，分隔用 --border-neutral-l1。</p> </div>
+*/
+/* ===== Workbench Titlebar ===== */
+    .ds-wbtitlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacer-12);
+      height: 40px;
+      padding: 0 var(--spacer-12);
+      background: var(--bg-base-secondary);
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+    .ds-wbtitlebar__left,
+    .ds-wbtitlebar__right {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-8);
+    }
+    .ds-wbtitlebar__lights {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-8);
+      margin-right: var(--spacer-8);
+    }
+    .ds-wbtitlebar__light {
+      width: 12px;
+      height: 12px;
+      border-radius: var(--radius-full);
+    }
+    .ds-wbtitlebar__light--close { background: var(--status-error-default); }
+    .ds-wbtitlebar__light--min { background: var(--status-alert-default); }
+    .ds-wbtitlebar__light--max { background: var(--status-success-default); }
+    .ds-wbtitlebar__mode-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      height: 24px;
+      padding: 0 var(--spacer-8);
+      background: var(--bg-brand);
+      color: var(--text-onbrand);
+      border-radius: var(--radius-full);
+      font-size: var(--body-xs-font-size);
+      font-weight: var(--font-weight-medium);
+    }
+    .ds-wbtitlebar__project-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      height: 24px;
+      padding: 0 var(--spacer-8);
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+      border: 1px solid var(--border-neutral-l2);
+      border-radius: var(--radius-6);
+      font-size: var(--body-sm-font-size);
+      cursor: pointer;
+    }
+    .ds-wbtitlebar__project-selector:hover {
+      background: var(--bg-overlay-l2);
+      color: var(--text-default-hover);
+    }
+    .ds-wbtitlebar__iconbtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-6);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    .ds-wbtitlebar__iconbtn:hover { background: var(--bg-overlay-l2); }
+    .ds-wbtitlebar .icon { display: block; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--color-background);
+    --color-foreground: var(--color-foreground);
+    --color-card: var(--color-card);
+    --color-primary: var(--color-primary);
+    --color-muted-foreground: var(--color-muted-foreground);
+    --color-accent: var(--color-accent);
+    --color-border: var(--color-border);
+  }
+  @layer base {
+    body { background: var(--color-background); color: var(--color-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+<style>
+/* ═══ Light Theme Overrides ═══ */
+:root {
+  /* Warm stone-gray backgrounds (green-tinted, not pure gray) */
+  --bg-base-default: #F6F7F4;
+  --bg-base-secondary: #FFFFFF;
+  --bg-base-tertiary: #ECEEE9;
+  --bg-overlay-l1: rgba(28, 30, 25, 0.03);
+  --bg-overlay-l2: rgba(28, 30, 25, 0.05);
+  --bg-overlay-l3: rgba(28, 30, 25, 0.08);
+  --bg-overlay-l4: rgba(28, 30, 25, 0.10);
+  --bg-menu: #FFFFFF;
+  --bg-tooltip: #1A1B1D;
+  --bg-invert: #1C1E19;
+  --bg-invert-hover: #333530;
+  --bg-invert-active: #5A5D56;
+  --bg-invert-disabled: rgba(28, 30, 25, 0.10);
+  --color-background: var(--bg-base-default);
+  --color-surface: var(--bg-base-secondary);
+  --color-surface-variant: var(--bg-base-tertiary);
+  --color-card: var(--bg-base-secondary);
+
+  /* Brand orange for light theme */
+  --bg-brand: #E86A17;
+  --bg-brand-hover: #D45F10;
+  --bg-brand-disabled: rgba(232, 106, 23, 0.15);
+  --bg-brand-popup: rgba(232, 106, 23, 0.08);
+  --color-primary: var(--bg-brand);
+  --color-primary-hover: var(--bg-brand-hover);
+
+  /* Text hierarchy on light */
+  --text-default: #1C1E19;
+  --text-secondary: #5C5F58;
+  --text-tertiary: #8C8F87;
+  --text-quaternary: #B5B8B1;
+  --text-brand: #E86A17;
+  --text-onbrand: #FFFFFF;
+  --text-invert: #F6F7F4;
+
+  /* Icon colors */
+  --icon-primary: #1C1E19;
+  --icon-secondary: #5C5F58;
+  --icon-tertiary: #8C8F87;
+  --icon-brand: #E86A17;
+  --icon-onbrand: #FFFFFF;
+
+  /* Borders — subtle on light */
+  --border-neutral-l1: #DDE0D8;
+  --border-neutral-l2: #E8EAE3;
+  --border-neutral-l3: #F0F1EC;
+  --border-brand: rgba(232, 106, 23, 0.3);
+
+  /* Status — adjusted for light bg */
+  --status-error-default: #C8483A;
+  --status-error-hover: #B5403A;
+  --status-error-surface-l1: rgba(200, 72, 58, 0.06);
+  --status-error-surface-l2: rgba(200, 72, 58, 0.10);
+  --status-warning-default: #B8860B;
+  --status-warning-hover: #A07800;
+  --status-warning-surface-l1: rgba(184, 134, 11, 0.06);
+  --status-warning-surface-l2: rgba(184, 134, 11, 0.10);
+  --status-success-default: #E86A17;
+  --status-success-hover: #D45F10;
+  --status-success-surface-l1: rgba(232, 106, 23, 0.06);
+  --status-success-surface-l2: rgba(232, 106, 23, 0.10);
+  --status-alert-default: #B8860B;
+  --status-alert-hover: #A07800;
+  --status-alert-surface-l1: rgba(184, 134, 11, 0.06);
+  --status-alert-surface-l2: rgba(184, 134, 11, 0.10);
+
+  /* Primary status (blue) */
+  --status-primary-default: #2B6CB0;
+  --status-primary-surface-l1: rgba(43, 108, 176, 0.06);
+
+  /* Code syntax — darker for light bg */
+  --code-text: #1C1E19;
+  --code-doc: #8C8F87;
+  --code-link: #2B6CB0;
+  --code-number: #C8483A;
+  --code-action: #7C3AED;
+  --code-instruction: #A78BFA;
+  --code-function: #C8483A;
+  --code-constant: #2B6CB0;
+  --code-parameter: #E86A17;
+  --code-attribute: #B8860B;
+  --code-tag: #C8483A;
+}
+
+/* Light-specific adjustments */
+.shell__header { background: var(--bg-base-secondary); box-shadow: 0 1px 0 var(--border-neutral-l1); }
+.shell__footer { background: var(--bg-base-secondary); box-shadow: 0 -1px 0 var(--border-neutral-l1); }
+.sticky-generate { background: var(--bg-base-secondary); }
+.input-text, .textarea-input, .select-dropdown { background: var(--bg-base-tertiary); border-color: var(--border-neutral-l1); color: var(--text-default); }
+.input-text:focus, .textarea-input:focus, .select-dropdown:focus { border-color: rgba(232,106,23,0.4); box-shadow: 0 0 0 2px rgba(232,106,23,0.1); }
+.textarea-redline:focus { border-color: rgba(200,72,58,0.4); box-shadow: 0 0 0 2px rgba(200,72,58,0.1); }
+.card, .feedback-card, .suggestion-card, .persona-card { background: var(--bg-base-secondary); border-color: var(--border-neutral-l1); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.card-flat, .result-content-box { background: var(--bg-base-tertiary); border-color: var(--border-neutral-l1); }
+.seg-control { background: var(--bg-base-tertiary); border-color: var(--border-neutral-l1); }
+.seg-option.active { background: var(--bg-base-secondary); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.api-chip { background: var(--bg-base-tertiary); }
+.toggle-track { background: var(--bg-base-tertiary); border: 1px solid var(--border-neutral-l1); }
+.diagnosis-header { background: var(--bg-base-tertiary); }
+.alert-compliance { background: rgba(200,72,58,0.05); }
+.alert-warning, .alert-amber-bg { background: rgba(184,134,11,0.05); }
+.alert-green-border { border-color: var(--bg-brand); background: rgba(232,106,23,0.03); }
+.replacement-row { background: var(--bg-base-tertiary); }
+.btn-generate { background: var(--bg-brand); color: var(--text-onbrand); }
+.btn-refresh { border-color: var(--status-alert-default); color: var(--status-alert-default); }
+.slider-track-wrap { background: var(--bg-base-tertiary); }
+.slider-fill, .slider-thumb { background: var(--bg-brand); }
+.slider-thumb { border-color: var(--bg-base-secondary); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+.tag { background: var(--bg-base-tertiary); border-color: var(--border-neutral-l1); color: var(--text-secondary); }
+.tag-green, .tag-emerald { background: rgba(232,106,23,0.06); border-color: rgba(232,106,23,0.2); color: var(--text-brand); }
+.tag-red { background: rgba(200,72,58,0.06); border-color: rgba(200,72,58,0.2); color: var(--status-error-default); }
+.tag-amber { background: rgba(184,134,11,0.06); border-color: rgba(184,134,11,0.2); color: var(--status-alert-default); }
+.tag-blue { background: rgba(43,108,176,0.06); border-color: rgba(43,108,176,0.2); color: var(--status-primary-default); }
+.collapsible-badge { background: rgba(232,106,23,0.08); color: var(--text-brand); }
+.score-total { color: var(--bg-brand); }
+.score-badge { background: rgba(232,106,23,0.08); color: var(--text-brand); }
+.delta-change.positive { color: var(--text-brand); }
+.gauge-score { color: var(--text-default); }
+.btn-green-outline { border-color: var(--bg-brand); color: var(--text-brand); }
+.btn-save-dashed { border-color: var(--border-neutral-l1); color: var(--text-secondary); }
+.badge-amber { background: rgba(184,134,11,0.08); color: var(--status-alert-default); }
+.diagnosis-badge-red { background: rgba(200,72,58,0.08); color: var(--status-error-default); }
+.diagnosis-badge-amber { background: rgba(184,134,11,0.08); color: var(--status-alert-default); }
+.severity-high { background: var(--status-error-default); color: var(--text-onbrand); }
+.severity-med { background: var(--status-alert-default); color: var(--text-onbrand); }
+.dimension-bar-fill.lime, .dimension-bar-fill.emerald { background: var(--bg-brand); }
+.dimension-bar-fill.yellow { background: var(--status-warning-default); }
+.dimension-bar-fill.amber { background: var(--status-alert-default); }
+</style>
+<style>
+/* ═══ Shell Layout ═══ */
+.shell { display: flex; flex-direction: column; width: 100%; height: 100vh; background: var(--bg-base-default); color: var(--text-default); overflow: hidden; }
+.shell__header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border-neutral-l1); background: var(--bg-base-default); flex-shrink: 0; }
+.shell__body { flex: 1; display: grid; grid-template-columns: minmax(260px,30%) 1fr minmax(260px,30%); overflow: hidden; min-height: 0; }
+.shell__body > .panel-left { overflow: hidden; background: var(--bg-base-secondary); border-right: 1px solid var(--border-neutral-l1); }
+.shell__body > .panel-center { overflow: hidden; background: var(--color-background); padding: 16px; border-right: 1px solid var(--border-neutral-l1); }
+.shell__body > .panel-right { overflow: hidden; background: var(--bg-base-secondary); }
+.shell__footer { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; border-top: 1px solid var(--border-neutral-l1); background: var(--bg-base-default); flex-shrink: 0; }
+
+/* ═══ Typography ═══ */
+.font-xs { font: 400 10px/14px var(--font-family-base); }
+.font-sm { font: 400 11px/16px var(--font-family-base); }
+.font-md { font: 400 12px/18px var(--font-family-base); }
+.font-base { font: 400 13px/20px var(--font-family-base); }
+.font-sm-bold { font: 500 11px/16px var(--font-family-base); }
+.font-md-bold { font: 500 12px/18px var(--font-family-base); }
+.font-h3xs { font: 600 11px/16px var(--font-family-base); }
+.font-h2xs { font: 600 12px/18px var(--font-family-base); }
+.font-hxs { font: 600 13px/20px var(--font-family-base); }
+
+/* ═══ Scrollable panels ═══ */
+.scroll-panel { overflow-y: auto; height: 100%; }
+
+/* ═══ Header ═══ */
+.header-left { display: flex; align-items: center; gap: 8px; }
+.header-logo { font-size: 18px; line-height: 1; }
+.header-title { font: 600 13px/16px var(--font-family-base); color: var(--text-default); letter-spacing: -0.02em; }
+.header-subtitle { font: 400 10px/12px var(--font-family-base); color: var(--text-tertiary); margin-top: -2px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.icon-btn-header { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-4); background: transparent; border: none; color: var(--icon-secondary); cursor: pointer; }
+.api-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: var(--radius-full); background: var(--bg-overlay-l2); font: 400 10px/14px var(--font-family-base); color: var(--text-secondary); white-space: nowrap; }
+.api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--status-success-default); flex-shrink: 0; }
+
+/* ═══ Footer ═══ */
+.footer-text { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); }
+
+/* ═══ Form Controls ═══ */
+.field-label { font: 500 12px/18px var(--font-family-base); color: var(--text-secondary); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.input-text { width: 100%; padding: 6px 10px; border: 1px solid var(--border-neutral-l2); border-radius: var(--radius-6); background: var(--bg-base-secondary); color: var(--text-default); font: 400 12px/18px var(--font-family-base); outline: none; box-sizing: border-box; }
+.input-text::placeholder { color: var(--text-tertiary); }
+.input-text:focus { border-color: rgba(232,106,23,0.4); box-shadow: 0 0 0 2px rgba(232,106,23,0.1); }
+.textarea-input { width: 100%; padding: 6px 10px; border: 1px solid var(--border-neutral-l2); border-radius: var(--radius-6); background: var(--bg-base-secondary); color: var(--text-default); font: 400 12px/18px var(--font-family-base); outline: none; resize: none; box-sizing: border-box; }
+.textarea-input::placeholder { color: var(--text-tertiary); }
+.textarea-input:focus { border-color: rgba(232,106,23,0.4); box-shadow: 0 0 0 2px rgba(232,106,23,0.1); }
+.textarea-redline:focus { border-color: rgba(246,90,90,0.5); box-shadow: 0 0 0 2px rgba(246,90,90,0.2); }
+.char-counter { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); text-align: right; margin-top: 2px; }
+.input-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.helper-text { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); margin-top: 2px; }
+
+/* ═══ Segmented Control ═══ */
+.seg-control { display: flex; border-radius: var(--radius-6); border: 1px solid var(--border-neutral-l1); overflow: hidden; }
+.seg-option { flex: 1; padding: 6px 10px; text-align: center; font: 400 11px/16px var(--font-family-base); color: var(--text-tertiary); background: transparent; border: none; cursor: pointer; white-space: nowrap; }
+.seg-option.active { background: var(--bg-brand-popup); color: var(--text-brand); border: 1px solid rgba(232,106,23,0.3); }
+.seg-option-hint { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); margin-top: 2px; }
+
+/* ═══ Tags ═══ */
+.tag-group { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-full); font: 400 10px/14px var(--font-family-base); white-space: nowrap; border: 1px solid var(--border-neutral-l2); background: var(--bg-overlay-l2); color: var(--text-secondary); }
+.tag-red { background: var(--status-error-surface-l1); color: var(--status-error-default); border-color: rgba(246,90,90,0.3); }
+.tag-amber { background: var(--status-alert-surface-l1); color: var(--status-alert-default); border-color: rgba(210,157,0,0.3); }
+.tag-blue { background: var(--status-primary-surface-l1); color: var(--status-primary-default); border-color: rgba(53,121,255,0.3); }
+.tag-green { background: var(--bg-brand-popup); color: var(--text-brand); border-color: rgba(232,106,23,0.3); }
+.tag-emerald { background: var(--bg-brand-popup); color: var(--text-brand); border-color: rgba(232,106,23,0.3); }
+
+/* ═══ Toggle Switch ═══ */
+.toggle-track { width: 32px; height: 18px; border-radius: var(--radius-full); background: var(--bg-overlay-l3); position: relative; cursor: pointer; flex-shrink: 0; border: none; padding: 0; }
+.toggle-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--text-secondary); position: absolute; top: 2px; left: 2px; transition: all 0.15s; }
+.toggle-track.on { background: var(--bg-brand); }
+.toggle-track.on .toggle-thumb { left: 16px; background: var(--text-onbrand); }
+
+/* ═══ Sliders ═══ */
+.slider-container { display: flex; flex-direction: column; gap: 6px; }
+.slider-track-wrap { position: relative; height: 4px; border-radius: 2px; background: var(--bg-overlay-l3); cursor: pointer; }
+.slider-fill { height: 100%; border-radius: 2px; background: var(--bg-brand); }
+.slider-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--bg-brand); border: 2px solid var(--bg-base-default); position: absolute; top: 50%; transform: translate(-50%, -50%); cursor: pointer; box-shadow: 0 0 0 1px rgba(232,106,23,0.4); }
+.slider-labels { display: flex; justify-content: space-between; font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); }
+.slider-sublabel { font: 400 10px/14px var(--font-family-base); color: var(--text-brand); }
+.slider-value-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: var(--radius-full); background: var(--bg-brand-popup); color: var(--text-brand); font: 600 10px/14px var(--font-family-base); }
+
+/* ═══ Select Dropdown ═══ */
+.select-dropdown { width: 100%; padding: 6px 10px; border: 1px solid var(--border-neutral-l2); border-radius: var(--radius-6); background: var(--bg-base-secondary); color: var(--text-default); font: 400 12px/18px var(--font-family-base); outline: none; appearance: none; cursor: pointer; box-sizing: border-box; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239599A6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+.select-dropdown:focus { border-color: rgba(232,106,23,0.4); box-shadow: 0 0 0 2px rgba(232,106,23,0.1); }
+
+/* ═══ Buttons ═══ */
+.btn-generate { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 16px; border-radius: var(--radius-6); background: var(--bg-brand); color: var(--text-onbrand); font: 600 13px/20px var(--font-family-base); border: none; cursor: pointer; }
+.btn-refresh { display: inline-flex; align-items: center; justify-content: center; padding: 10px 12px; border-radius: var(--radius-6); background: transparent; border: 1px solid var(--status-alert-default); color: var(--status-alert-default); cursor: pointer; }
+.btn-small { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--radius-6); border: 1px solid var(--border-neutral-l2); background: var(--bg-overlay-l2); color: var(--text-secondary); font: 400 10px/14px var(--font-family-base); cursor: pointer; white-space: nowrap; }
+.btn-green-outline { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 16px; border-radius: var(--radius-6); background: transparent; border: 1px solid var(--bg-brand); color: var(--text-brand); font: 500 12px/18px var(--font-family-base); cursor: pointer; white-space: nowrap; }
+
+/* ═══ Card / Container ═══ */
+.card { border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-6); background: var(--bg-base-secondary); padding: 12px; }
+.card-flat { padding: 12px; border: 1px solid var(--border-neutral-l1); background: var(--bg-overlay-l1); border-radius: var(--radius-6); }
+
+/* ═══ Alert Boxes ═══ */
+.alert-compliance { background: var(--status-error-surface-l1); border: 1px solid rgba(246,90,90,0.3); border-radius: var(--radius-6); padding: 10px 12px; }
+.alert-warning { background: var(--status-warning-surface-l1); border: 1px solid rgba(210,126,36,0.3); border-radius: var(--radius-6); padding: 10px 12px; }
+.alert-amber-bg { background: var(--status-alert-surface-l1); border: 1px solid rgba(210,157,0,0.3); border-radius: var(--radius-6); padding: 10px 12px; }
+.alert-green-border { border: 1px solid var(--bg-brand); border-radius: var(--radius-6); padding: 10px 12px; background: transparent; }
+
+/* ═══ Tabs ═══ */
+.tab-bar { display: flex; align-items: center; border-bottom: 1px solid var(--border-neutral-l1); gap: 0; margin-bottom: 12px; }
+.tab-item { padding: 8px 14px; font: 400 12px/18px var(--font-family-base); color: var(--text-tertiary); border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; }
+.tab-item.active { color: var(--text-brand); border-bottom-color: var(--text-brand); font-weight: 500; }
+
+/* ═══ Diagnosis Alert ═══ */
+.diagnosis-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--status-alert-surface-l1); border: 1px solid rgba(210,157,0,0.3); border-radius: var(--radius-6); cursor: pointer; margin-bottom: 12px; }
+.diagnosis-title { font: 500 12px/18px var(--font-family-base); color: var(--text-default); flex: 1; }
+.diagnosis-badge-red { padding: 1px 6px; border-radius: var(--radius-full); font: 500 10px/14px var(--font-family-base); background: var(--status-error-surface-l1); color: var(--status-error-default); }
+.diagnosis-badge-amber { padding: 1px 6px; border-radius: var(--radius-full); font: 500 10px/14px var(--font-family-base); background: var(--status-alert-surface-l1); color: var(--status-alert-default); }
+.severity-high { padding: 1px 6px; border-radius: var(--radius-full); font: 600 9px/12px var(--font-family-base); background: var(--status-error-default); color: var(--bg-invert); text-transform: uppercase; }
+.severity-med { padding: 1px 6px; border-radius: var(--radius-full); font: 600 9px/12px var(--font-family-base); background: var(--status-alert-default); color: var(--text-onbrand); text-transform: uppercase; }
+
+/* ═══ Result Card ═══ */
+.result-content-box { background: var(--bg-overlay-l1); border-radius: var(--radius-6); padding: 12px; }
+.diff-red { color: var(--status-error-default); text-decoration: underline; text-decoration-color: rgba(246,90,90,0.3); text-underline-offset: 2px; }
+.diff-indicator { display: inline-flex; align-items: center; gap: 4px; font: 400 10px/14px var(--font-family-base); color: var(--status-error-default); margin-top: 8px; }
+.diff-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--status-error-default); flex-shrink: 0; }
+
+/* ═══ Alt Headlines ═══ */
+.alt-headline { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--radius-full); background: var(--bg-overlay-l2); border: 1px solid var(--border-neutral-l1); font: 400 11px/16px var(--font-family-base); color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+
+/* ═══ Persona Card ═══ */
+.persona-card { background: var(--bg-base-secondary); border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-6); padding: 10px 12px; }
+.persona-name { font: 600 12px/18px var(--font-family-base); color: var(--text-default); }
+.persona-meta { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); }
+.persona-field { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); margin-top: 4px; }
+.persona-field-label { font: 500 10px/14px var(--font-family-base); color: var(--text-secondary); }
+
+/* ═══ Config Manager ═══ */
+.btn-save-dashed { width: 100%; padding: 6px 12px; border: 1px dashed var(--border-neutral-l2); border-radius: var(--radius-6); background: transparent; color: var(--text-secondary); font: 400 11px/16px var(--font-family-base); cursor: pointer; }
+.badge-amber { padding: 1px 6px; border-radius: var(--radius-full); font: 500 10px/14px var(--font-family-base); background: var(--status-alert-surface-l1); color: var(--status-alert-default); }
+
+/* ═══ Right Panel - Gauge ═══ */
+.gauge-container { display: flex; flex-direction: column; align-items: center; padding: 16px; }
+.gauge-score { font: 600 36px/40px var(--font-family-heading); color: var(--text-default); }
+.gauge-label { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); }
+.dimension-bar-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.dimension-label { font: 400 10px/14px var(--font-family-base); color: var(--text-secondary); width: 52px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dimension-bar-track { flex: 1; height: 4px; border-radius: 2px; background: var(--bg-overlay-l3); }
+.dimension-bar-fill { height: 100%; border-radius: 2px; }
+.dimension-bar-fill.lime { background: var(--status-success-default); }
+.dimension-bar-fill.yellow { background: var(--status-warning-default); }
+.dimension-bar-fill.emerald { background: var(--bg-brand); }
+.dimension-bar-fill.amber { background: var(--status-alert-default); }
+.dimension-value { font: 500 10px/14px var(--font-family-base); color: var(--text-tertiary); width: 24px; text-align: right; flex-shrink: 0; }
+
+/* ═══ Score Display ═══ */
+.score-total { font: 600 24px/28px var(--font-family-heading); color: var(--bg-brand); }
+.score-badge { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: var(--radius-full); font: 500 10px/14px var(--font-family-base); background: var(--bg-brand-popup); color: var(--text-brand); }
+.delta-row { display: flex; align-items: center; padding: 3px 0; font: 400 11px/16px var(--font-family-base); color: var(--text-secondary); }
+.delta-label { flex: 1; min-width: 0; }
+.delta-value { font-weight: 500; color: var(--text-default); }
+.delta-was { color: var(--text-tertiary); font-size: 10px; margin-left: 4px; }
+.delta-change { font-weight: 500; margin-left: 4px; }
+.delta-change.positive { color: var(--text-brand); }
+.delta-change.neutral { color: var(--text-tertiary); }
+
+/* ═══ Risk Notes ═══ */
+.risk-item { display: flex; gap: 8px; padding: 4px 0; font: 400 11px/16px var(--font-family-base); color: var(--text-secondary); }
+.risk-icon-red { color: var(--status-error-default); flex-shrink: 0; font-size: 11px; }
+.risk-icon-amber { color: var(--status-alert-default); flex-shrink: 0; font-size: 11px; }
+
+/* ═══ Feedback Card ═══ */
+.feedback-card { background: var(--bg-base-secondary); border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-6); padding: 10px 12px; }
+.feedback-persona { font: 500 11px/16px var(--font-family-base); color: var(--text-default); }
+.feedback-stars { color: var(--status-alert-default); font-size: 11px; letter-spacing: 1px; }
+.feedback-text { font: 400 11px/16px var(--font-family-base); color: var(--text-secondary); margin-top: 6px; line-height: 1.5; }
+
+/* ═══ Suggestion Card ═══ */
+.suggestion-card { background: var(--bg-base-secondary); border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-6); padding: 10px 12px; }
+.suggestion-title { font: 600 12px/18px var(--font-family-base); color: var(--text-default); }
+.suggestion-source { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); }
+.suggestion-text { font: 400 11px/16px var(--font-family-base); color: var(--text-secondary); margin-top: 6px; }
+.suggestion-insight { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); margin-top: 4px; font-style: italic; }
+
+/* ═══ Replacement Card ═══ */
+.replacement-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-overlay-l1); border-radius: var(--radius-4); margin-bottom: 4px; }
+.replacement-from { font: 400 11px/16px var(--font-family-base); color: var(--status-error-default); text-decoration: line-through; flex-shrink: 0; }
+.replacement-arrow { color: var(--text-tertiary); flex-shrink: 0; font-size: 10px; }
+.replacement-to { font: 500 11px/16px var(--font-family-base); color: var(--text-brand); flex-shrink: 0; }
+.replacement-reason { font: 400 10px/14px var(--font-family-base); color: var(--text-tertiary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ═══ Sticky Generate ═══ */
+.sticky-generate { position: sticky; bottom: 0; background: var(--bg-base-default); padding: 12px 16px; border-top: 1px solid var(--border-neutral-l1); display: flex; gap: 8px; }
+
+/* ═══ Collapsible Section ═══ */
+.collapsible-header { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 0; }
+.collapsible-badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: var(--radius-full); background: var(--bg-brand-popup); color: var(--text-brand); font: 600 10px/14px var(--font-family-base); }
+.collapsible-chevron { color: var(--text-tertiary); font-size: 12px; flex-shrink: 0; }
+
+/* ═══ Section Spacing ═══ */
+.section { margin-bottom: 16px; }
+.section:last-child { margin-bottom: 0; }
+</style>
+
+<div class="shell">
+  <!-- ═══════ HEADER ═══════ -->
+  <header class="shell__header">
+    <div class="header-left">
+      <span class="header-logo">&#x1F38B;</span>
+      <div>
+        <div class="header-title">港话社媒文案器</div>
+        <div class="header-subtitle">HK Cantonese Social Copywriter</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn-header" title="切换主题">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <div class="api-chip">
+        <span class="api-dot"></span>
+        <span>CantoneseLLMChat 32B</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════ THREE-PANEL BODY ═══════ -->
+  <div class="shell__body">
+
+    <!-- ═══════ LEFT PANEL ═══════ -->
+    <div class="panel-left">
+      <div class="scroll-panel" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+
+        <!-- 1. SourceEditor -->
+        <div class="section">
+          <div class="field-label">原文输入</div>
+          <textarea class="textarea-input" rows="8" placeholder="喺度贴上普通话/简体中文/英文嘅社媒文案或 campaign brief..."></textarea>
+          <div class="char-counter">368 / 4000 字</div>
+        </div>
+
+        <!-- 2. LanguageToggle -->
+        <div class="section">
+          <div class="field-label">原文语言</div>
+          <div class="seg-control">
+            <div class="seg-option active">普通话/书面语</div>
+            <div class="seg-option">粤语/白话</div>
+          </div>
+          <div class="seg-option-hint">将原文转译为地道香港粤语</div>
+        </div>
+
+        <!-- 3. BrandInput -->
+        <div class="section">
+          <div class="field-label">&#x1F3F7;&#xFE0F; 品牌 / 产品名称（可选）</div>
+          <div class="input-grid-2">
+            <input class="input-text" type="text" value="美心月饼" placeholder="品牌名，如：小米">
+            <input class="input-text" type="text" value="流心奶黄月饼" placeholder="产品名，如：SU7">
+          </div>
+          <div class="helper-text">输入品牌和产品名，避免模型错误翻译或改写</div>
+        </div>
+
+        <!-- 4. BrandRedLinesInput -->
+        <div class="section">
+          <div class="field-label">&#x1F6AB; 品牌表达红线</div>
+          <textarea class="textarea-input textarea-redline" rows="3" placeholder="&#x2022; 禁止使用的用语或表达&#xA;&#x2022; 必须保留的品牌术语&#xA;&#x2022; 需要避开的敏感话题"></textarea>
+        </div>
+
+        <!-- 5. TargetDatePicker -->
+        <div class="section">
+          <div class="field-label">&#x1F4C5; 目标发布日期（可选）</div>
+          <input class="input-text" type="date" value="2026-09-15">
+        </div>
+
+        <!-- 6. CompetitorSearchInput -->
+        <div class="section">
+          <div class="field-label">&#x1F50D; 竞品追踪（可选）</div>
+          <div class="tag-group">
+            <span class="tag">奇华饼家</span>
+            <span class="tag">大班面包西饼</span>
+          </div>
+          <div class="helper-text">添加竞品可让 AI 参考竞品文案风格差异</div>
+        </div>
+
+        <!-- 7. StructuredBriefToggle -->
+        <div class="section">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div class="field-label" style="margin-bottom:0;">&#x1F4CB; 结构化写作简报</div>
+            <button class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </button>
+          </div>
+          <div style="font:400 10px/14px var(--font-family-base); color:var(--text-tertiary); margin-top:4px;">启用后将要求你按结构化格式填写写作需求</div>
+          <div class="alert-amber-bg" style="margin-top:8px;">
+            <div style="font:400 11px/16px var(--font-family-base); color:var(--status-alert-default);">&#x1F4A1; 这条文案包含产品信息（品牌、产品名），建议启用结构化简报以获得更精准的生成结果。</div>
+          </div>
+        </div>
+
+        <!-- 8. CreativitySlider -->
+        <div class="section">
+          <div class="field-label">&#x1F3A8; 创作自由度</div>
+          <div class="slider-container">
+            <div class="slider-track-wrap">
+              <div class="slider-fill" style="width:50%;"></div>
+              <div class="slider-thumb" style="left:50%;"></div>
+            </div>
+            <div class="slider-labels">
+              <span>紧贴原文</span>
+              <span>自由创作</span>
+            </div>
+          </div>
+          <div class="slider-sublabel">平衡：适度调整结构同表达方式</div>
+        </div>
+
+        <!-- 9. PlatformSelector -->
+        <div class="section">
+          <div class="field-label">目标平台</div>
+          <div class="seg-control">
+            <div class="seg-option active">全部平台</div>
+            <div class="seg-option">IG</div>
+            <div class="seg-option">Facebook</div>
+            <div class="seg-option">Shorts</div>
+          </div>
+        </div>
+
+        <!-- 10. ToneSelector -->
+        <div class="section">
+          <div class="field-label">品牌语气</div>
+          <select class="select-dropdown">
+            <option selected>穩妥 — 适合官方品牌内容、新闻稿、付费广告</option>
+            <option>活潑 — 适合社交互动、UGC 引导、品牌人格化</option>
+            <option>高級 — 适合奢侈品、精品、高端生活方式</option>
+            <option>街坊 — 适合社区经营、本地生活、亲切感</option>
+            <option>年輕 — 适合 Z 世代、潮流、校园及年轻社群</option>
+          </select>
+        </div>
+
+        <!-- 11. CantoneseSlider -->
+        <div class="section">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div class="field-label" style="margin-bottom:0;">粤语程度</div>
+            <span class="slider-value-badge">3</span>
+          </div>
+          <div class="slider-container">
+            <div class="slider-track-wrap">
+              <div class="slider-fill" style="width:60%;"></div>
+              <div class="slider-thumb" style="left:60%;"></div>
+            </div>
+            <div class="slider-labels">
+              <span>0 标准繁中</span>
+              <span>5 地道粤语</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 12. EnglishMixingSlider -->
+        <div class="section">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div class="field-label" style="margin-bottom:0;">中英夹杂</div>
+            <span class="slider-value-badge">1</span>
+          </div>
+          <div class="slider-container">
+            <div class="slider-track-wrap">
+              <div class="slider-fill" style="width:20%;"></div>
+              <div class="slider-thumb" style="left:20%;"></div>
+            </div>
+            <div class="slider-labels">
+              <span>0 纯中文</span>
+              <span>5 自然夹杂</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 13. PersonaManager -->
+        <div class="section">
+          <div class="collapsible-header">
+            <span class="collapsible-badge">1</span>
+            <span style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary);">&#x1F9D1;&#x200D;&#x1F91D;&#x200D;&#x1F9D1; 目标消费者画像（可选）</span>
+            <span class="collapsible-chevron">&#x25BC;</span>
+          </div>
+          <div class="persona-card">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span class="persona-name">斜杠青年Chris</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+            </div>
+            <div class="persona-meta">18-25 &middot; 大学生/freelance designer</div>
+            <div class="persona-field"><span class="persona-field-label">习惯：</span>IG 重度用户，钟意打卡 cafes 同探店，对新奇食品有兴趣</div>
+            <div class="persona-field"><span class="persona-field-label">常用 App：</span>IG, Threads, 小红书</div>
+            <div class="persona-field"><span class="persona-field-label">备注：</span>注重性价比但愿意为体验买单</div>
+          </div>
+        </div>
+
+        <!-- 14. ConfigManager -->
+        <div class="section">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary);">&#x1F4BE; 配置管理</span>
+            <span class="badge-amber">未储存</span>
+          </div>
+          <button class="btn-save-dashed">+ 储存当前配置</button>
+        </div>
+
+        <!-- 15. Generate Button (sticky) -->
+        <div class="sticky-generate">
+          <button class="btn-generate">&#x1F680; 生成文案</button>
+          <button class="btn-refresh" title="刷新">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════ CENTER PANEL ═══════ -->
+    <div class="panel-center">
+      <div class="scroll-panel" style="display:flex; flex-direction:column; gap:12px;">
+
+        <!-- 1. DiagnosisSummary -->
+        <div>
+          <div class="diagnosis-header">
+            <span class="diagnosis-title">原文诊断：检测到 5 个问题（含 2 项合规风险）</span>
+            <span class="diagnosis-badge-red">简体</span>
+            <span class="diagnosis-badge-red">2 红线</span>
+            <span style="color:var(--text-tertiary); font-size:12px; flex-shrink:0;">&#x25BC;</span>
+          </div>
+          <!-- Expanded state -->
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+            <!-- Red compliance box -->
+            <div class="alert-compliance">
+              <div style="font:500 12px/18px var(--font-family-base); color:var(--status-error-default); margin-bottom:8px;">&#x1F6AB; 合规红线违规（2 项）</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span class="severity-high">HIGH</span>
+                <span style="font:400 11px/16px var(--font-family-base); color:var(--text-secondary);">标题含「最强」可能违反《广告条例》绝对化用语限制</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="severity-med">MED</span>
+                <span style="font:400 11px/16px var(--font-family-base); color:var(--text-secondary);">「销量冠军」缺乏数据支撑，有夸大宣传风险</span>
+              </div>
+            </div>
+            <!-- Warning: simplified Chinese -->
+            <div class="alert-warning">
+              <div style="font:400 11px/16px var(--font-family-base); color:var(--status-warning-default);">&#x26A0;&#xFE0F; 原文包含简体中文字，需转换为繁体中文以适配香港受众</div>
+            </div>
+            <!-- Mainland phrase replacements -->
+            <div style="font:400 11px/16px var(--font-family-base); color:var(--text-secondary);">
+              <div style="margin-bottom:4px;">建议用词替换：</div>
+              <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                <span><span style="color:var(--status-error-default); text-decoration:line-through;">营销</span> &#x2192; <span style="color:var(--text-brand);">宣傳</span></span>
+                <span><span style="color:var(--status-error-default); text-decoration:line-through;">给力</span> &#x2192; <span style="color:var(--text-brand);">正</span></span>
+                <span><span style="color:var(--status-error-default); text-decoration:line-through;">App</span> &#x2192; <span style="color:var(--text-brand);">App</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Tab bar + translate button -->
+        <div style="display:flex; align-items:center; gap:0;">
+          <div class="tab-bar" style="flex:1; margin-bottom:0;">
+            <div class="tab-item">标准繁中</div>
+            <div class="tab-item">轻粤语</div>
+            <div class="tab-item active">IG</div>
+            <div class="tab-item">Facebook</div>
+            <div class="tab-item">Shorts</div>
+          </div>
+          <button class="btn-small" style="margin-left:8px;">&#x1F524; 译普</button>
+        </div>
+
+        <!-- 3. ResultCard -->
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span class="tag-emerald">IG</span>
+            <div style="display:flex; gap:4px;">
+              <button class="btn-small" style="padding:4px 8px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+              </button>
+              <button class="btn-small" style="padding:4px 8px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Content area with Cantonese copy -->
+          <div class="result-content-box">
+            <div style="font:400 13px/22px var(--font-family-base); color:var(--text-default);">
+              喂等等——你睇下呢款<span class="diff-red">流心奶黃</span>月饼 &#x1F35E;&#x2728; 傻啦，真係一見就想咬落去。层层奶黃<span class="diff-red">够晒</span>滑，咬落去<span class="diff-red">嗰陣</span>——哗，奶黃<span class="diff-red">爆晒出嚟</span>，<span class="diff-red">淨係</span>闻住都已經攞命。<span class="diff-red">呢款</span>绝对系中秋<span class="diff-red">必扫</span>之选，送人自用都<span class="diff-red">啱</span>！
+            </div>
+            <div class="diff-indicator">
+              <span class="diff-dot"></span>
+              <span>红色标记为修改内容</span>
+            </div>
+          </div>
+          <!-- Alt headlines -->
+          <div style="margin-top:12px;">
+            <div style="font:500 10px/14px var(--font-family-base); color:var(--text-tertiary); margin-bottom:6px;">&#x1F4CB; 备选标题</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              <span class="alt-headline">&#x1F4AC; 靚到呢，一見就鍾意咗 &#x1F498;</span>
+              <span class="alt-headline">&#x1F4A1; 呢款奶黃月餅，靚得令人一見難忘</span>
+            </div>
+          </div>
+          <!-- Value prop statement -->
+          <div style="margin-top:12px; font:400 11px/16px var(--font-family-base); color:var(--text-tertiary); font-style:italic;">
+            &#x1F4A1; 选用优质法国牛油制作的流心奶黄馅料，入口即溶的奢华口感
+          </div>
+        </div>
+
+        <!-- 4. InspirationPanel (collapsed) -->
+        <div>
+          <div class="collapsible-header" style="padding:6px 0;">
+            <span style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary);">&#x1F4A1; 灵感参考（展开）</span>
+            <span class="collapsible-chevron">&#x25BC;</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════ RIGHT PANEL ═══════ -->
+    <div class="panel-right">
+      <div class="scroll-panel" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+
+        <!-- 1. ThermometerGauge -->
+        <div class="card">
+          <div style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary); margin-bottom:12px;">&#x1F321;&#xFE0F; 港味温度计</div>
+          <div class="gauge-container">
+            <!-- Semi-circular gauge SVG -->
+            <svg width="160" height="88" viewBox="0 0 160 88">
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:var(--status-error-default)"/>
+                  <stop offset="30%" style="stop-color:var(--status-warning-default)"/>
+                  <stop offset="55%" style="stop-color:var(--status-success-default)"/>
+                  <stop offset="80%" style="stop-color:var(--bg-brand)"/>
+                </linearGradient>
+              </defs>
+              <!-- Track -->
+              <path d="M 16 80 A 64 64 0 0 1 144 80" fill="none" stroke="var(--bg-overlay-l3)" stroke-width="10" stroke-linecap="round"/>
+              <!-- Fill (72% - from left to 72% of the arc) -->
+              <path d="M 16 80 A 64 64 0 0 1 144 80" fill="none" stroke="url(#gaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="201.06" stroke-dashoffset="56.3"/>
+              <!-- Score text -->
+              <text x="80" y="68" text-anchor="middle" fill="var(--text-default)" font-size="32" font-weight="600" font-family="var(--font-family-heading)">72</text>
+            </svg>
+            <div class="gauge-label">港味指数</div>
+          </div>
+          <!-- 8 dimension bars -->
+          <div style="display:flex; flex-direction:column; gap:5px; margin-top:12px;">
+            <div class="dimension-bar-row">
+              <span class="dimension-label">香港语感</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill lime" style="width:80%;"></div></div>
+              <span class="dimension-value">4/5</span>
+            </div>
+            <div class="dimension-bar-row">
+              <span class="dimension-label">文化贴地</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill yellow" style="width:60%;"></div></div>
+              <span class="dimension-value">3/5</span>
+            </div>
+            <div class="dimension-bar-row">
+              <span class="dimension-label">平台适配</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill lime" style="width:80%;"></div></div>
+              <span class="dimension-value">4/5</span>
+            </div>
+            <div class="dimension-bar-row">
+              <span class="dimension-label">品牌安全</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill emerald" style="width:100%;"></div></div>
+              <span class="dimension-value">5/5</span>
+            </div>
+            <div class="dimension-bar-row">
+              <span class="dimension-label">繁体一致</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill emerald" style="width:100%;"></div></div>
+              <span class="dimension-value">5/5</span>
+            </div>
+            <div class="dimension-bar-row">
+              <span class="dimension-label">Hook强度</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill yellow" style="width:60%;"></div></div>
+              <span class="dimension-value">3/5</span>
+            </div>
+            <div class="dimension-bar-row">
+              <span class="dimension-label">Emoji策略</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill lime" style="width:80%;"></div></div>
+              <span class="dimension-value">4/5</span>
+            </div>
+            <div class="dimension-bar-row">
+              <span class="dimension-label">互动引导</span>
+              <div class="dimension-bar-track"><div class="dimension-bar-fill amber" style="width:40%;"></div></div>
+              <span class="dimension-value">2/5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ScoreDisplay -->
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <span style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary);">&#x1F4CA; 五维评分</span>
+            <span class="score-badge">+5 vs 原文</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:4px;">
+            <span class="score-total">68</span>
+            <span style="font:400 12px/18px var(--font-family-base); color:var(--text-tertiary);">/100</span>
+          </div>
+          <div style="font:400 10px/14px var(--font-family-base); color:var(--text-tertiary); margin-bottom:12px;">原文参考分 63/100</div>
+          <!-- 8 delta rows -->
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <div class="delta-row">
+              <span class="delta-label">港味纯正度</span>
+              <span class="delta-value">72</span>
+              <span class="delta-was">(was 65)</span>
+              <span class="delta-change positive">+7</span>
+            </div>
+            <div class="delta-row">
+              <span class="delta-label">品牌安全度</span>
+              <span class="delta-value">85</span>
+              <span class="delta-was">(was 80)</span>
+              <span class="delta-change positive">+5</span>
+            </div>
+            <div class="delta-row">
+              <span class="delta-label">平台适配度</span>
+              <span class="delta-value">70</span>
+              <span class="delta-was">(was 62)</span>
+              <span class="delta-change positive">+8</span>
+            </div>
+            <div class="delta-row">
+              <span class="delta-label">可读性</span>
+              <span class="delta-value">78</span>
+              <span class="delta-was">(was 75)</span>
+              <span class="delta-change neutral">+3</span>
+            </div>
+            <div class="delta-row">
+              <span class="delta-label">创意/吸引力</span>
+              <span class="delta-value">55</span>
+              <span class="delta-was">(was 50)</span>
+              <span class="delta-change neutral">+5</span>
+            </div>
+            <div class="delta-row">
+              <span class="delta-label">Hook强度</span>
+              <span class="delta-value">60</span>
+              <span class="delta-was">(was 58)</span>
+              <span class="delta-change neutral">+2</span>
+            </div>
+            <div class="delta-row">
+              <span class="delta-label">Emoji/Hashtag</span>
+              <span class="delta-value">65</span>
+              <span class="delta-was">(was 52)</span>
+              <span class="delta-change positive">+13</span>
+            </div>
+            <div class="delta-row">
+              <span class="delta-label">互动引导</span>
+              <span class="delta-value">42</span>
+              <span class="delta-was">(was 40)</span>
+              <span class="delta-change neutral">+2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. IssueChips -->
+        <div class="card">
+          <div style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary); margin-bottom:8px;">问题标签</div>
+          <div class="tag-group">
+            <span class="tag tag-red">简体混入</span>
+            <span class="tag tag-amber">内地用语</span>
+            <span class="tag tag-amber">过长</span>
+            <span class="tag tag-blue">CTA缺失</span>
+            <span class="tag tag-blue">hashtag不足</span>
+          </div>
+        </div>
+
+        <!-- 4. ReplacementCard -->
+        <div class="card">
+          <div style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary); margin-bottom:8px;">建议替换</div>
+          <div class="replacement-row">
+            <span class="replacement-from">营销</span>
+            <span class="replacement-arrow">&#x2192;</span>
+            <span class="replacement-to">宣傳</span>
+            <span class="replacement-reason">香港惯用「宣傳」</span>
+          </div>
+          <div class="replacement-row">
+            <span class="replacement-from">给力</span>
+            <span class="replacement-arrow">&#x2192;</span>
+            <span class="replacement-to">正</span>
+            <span class="replacement-reason">香港口语表达</span>
+          </div>
+        </div>
+
+        <!-- 5. RiskNotes -->
+        <div class="card">
+          <div style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary); margin-bottom:8px;">风险提示</div>
+          <div class="risk-item">
+            <span class="risk-icon-red">&#x1F534;</span>
+            <span>标题含「最强」可能违反《广告条例》</span>
+          </div>
+          <div class="risk-item">
+            <span class="risk-icon-amber">&#x26A0;&#xFE0F;</span>
+            <span>缺少 CTA，用户可能不知道下一步</span>
+          </div>
+        </div>
+
+        <!-- 6. ConsumerFeedbackSection -->
+        <div class="card">
+          <!-- Score Tracker -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <span style="font:500 12px/18px var(--font-family-base); color:var(--text-secondary);">&#x1F4CA; 生成文案总分</span>
+            <span style="font:600 16px/20px var(--font-family-heading); color:var(--bg-brand);">68/100</span>
+          </div>
+          <div style="font:400 10px/14px var(--font-family-base); color:var(--text-tertiary); margin-bottom:12px;">第1輪優化</div>
+          <!-- Section header -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span style="font:600 12px/18px var(--font-family-base); color:var(--text-default);">&#x1F4F0; 目標消費者反饋</span>
+            <button class="btn-small">&#x1F504; 一鍵翻譯普通話</button>
+          </div>
+          <!-- FeedbackCard 1 -->
+          <div class="feedback-card" style="margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="feedback-persona">&#x1F441; 斜杠青年Chris</span>
+              <span class="feedback-stars">&#x2605;&#x2605;&#x2605;&#x2605;&#x2606;</span>
+            </div>
+            <div class="feedback-text">「呢條文案整體OK，hashtag 用得幾有心思，不過開頭嗰句「喂等等」有點突兀，同 high-end 月饼嘅品牌調性唔太配。design 方面就真係靚。」</div>
+          </div>
+        </div>
+
+        <!-- 7. SuggestionCard -->
+        <div class="card">
+          <div style="font:500 10px/14px var(--font-family-base); color:var(--text-tertiary); margin-bottom:4px;">&#x1F3AF; 建議（1 条）</div>
+          <div class="suggestion-card">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+              <span class="suggestion-title">开头语气</span>
+              <span class="tag-emerald" style="font-size:9px; padding:1px 6px;">&#x1F3AF; 高度相關</span>
+            </div>
+            <div class="suggestion-source">斜杠青年Chris 的建議</div>
+            <div class="suggestion-text">建議將「喂等等」改為更符合品牌調性嘅開場白</div>
+            <div class="suggestion-insight">&#x1F4A1; 開頭語氣影響第一印象</div>
+            <div style="margin-top:8px;">
+              <button class="btn-small" style="color:var(--text-brand); border-color:rgba(232,106,23,0.3);">&#x270F;&#xFE0F; 一鍵修改 (IG)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. Re-evaluate section -->
+        <div class="alert-green-border" style="text-align:center;">
+          <button class="btn-green-outline" style="width:100%; justify-content:center;">&#x1F527; 重新評分及消費者反饋 (第2輪)</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════ FOOTER ═══════ -->
+  <footer class="shell__footer">
+    <span class="footer-text">Powered by CantoneseLLMChat 32B (Featherless.ai)</span>
+    <span class="footer-text">v0.3.0</span>
+  </footer>
+</div>
+
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

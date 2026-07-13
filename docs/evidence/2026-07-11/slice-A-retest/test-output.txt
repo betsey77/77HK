@@ -1,0 +1,24 @@
+Slice A independent retest — 2026-07-11
+
+Automated checks
+- client: npx vitest run — PASS, 12/12 tests, 7.48s
+- client: npx tsc --noEmit — PASS
+- client: npm run build — PASS, Vite 6.4.3, 1640 modules, 2.41s
+- server: npx tsc --noEmit — PASS
+
+Browser checks (actual 77 dev server: http://localhost:5175)
+- /login opens and theme toggle applies the light theme — PASS
+- light-mode auth primary action uses orange brand styling — PASS
+- protected /app is reachable after a mock session is created — PASS
+- light-mode workbench CTA uses orange brand styling — PASS
+- reset-password for a missing mock account shows an error instead of success — PASS
+
+Scope notes
+- Authentication is still a localStorage mock (hk-cantonese-mock-auth).
+- There is no real email delivery, confirmation link, email verification, Supabase Auth, or RLS in Slice A.
+- Real email verification belongs to Slice B and requires explicit approval for Supabase connection and database migration.
+- client/package.json does not yet expose a test script; the current stable command is npx vitest run.
+
+Environment note
+- Port 5173 is occupied by an older D:/work/思念/client process in this environment.
+- Always use the port printed by the 77 Vite terminal; during this retest it was 5175.

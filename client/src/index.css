@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@custom-variant light (&:where(.light, .light *));
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang HK", "Microsoft YaHei", sans-serif;
+}
+
+/* ============================================================
+   Auth background — CSS-only DarkVeil approximation (dark mode only)
+   ============================================================ */
+
+@keyframes authGradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.auth-bg-animate {
+  background: linear-gradient(
+    135deg,
+    #0a0f0a 0%,
+    #0d1a12 25%,
+    #0a150f 50%,
+    #0c1810 75%,
+    #0a0f0a 100%
+  );
+  background-size: 400% 400%;
+  animation: authGradientShift 20s ease infinite;
+}

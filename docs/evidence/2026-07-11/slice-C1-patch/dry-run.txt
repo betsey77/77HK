@@ -1,0 +1,6 @@
+Initialising login role...
+DRY RUN: migrations will *not* be pushed to the database.
+Connecting to remote database...
+Would push these migrations:
+ • 20260711223000_fix_generation_soft_delete.sql
+Finished supabase db push.

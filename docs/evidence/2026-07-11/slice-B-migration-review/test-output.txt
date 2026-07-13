@@ -1,0 +1,26 @@
+Slice B migration security review — 2026-07-11
+
+Scope
+- Local migration only; no remote database changes were made.
+- Reviewed: supabase/migrations/20260711000000_slice_b_schema.sql
+
+Security fixes
+- Removed undeclared support role; roles are user/admin/super_admin.
+- Removed authenticated role mutation policy; browser clients cannot insert, update, or delete user_roles.
+- Removed authenticated audit inserts and the generic SECURITY DEFINER record_audit RPC.
+- Changed audit_log.actor foreign key to ON DELETE SET NULL.
+- Changed role helper functions to inspect only auth.uid(), not arbitrary user IDs.
+- Removed profiles self-insert policy.
+- Restricted profile browser updates to display_name and avatar_url columns.
+- Added explicit least-privilege table/type/function grants and revokes.
+- Included super_admin in administrative read checks.
+
+Verification
+Command: npx supabase db push --dry-run
+Result: PASS
+Output: Would push 20260711000000_slice_b_schema.sql
+Remote mutation: NONE (dry run)
+
+Remaining strict gate
+- The migration has not been applied remotely.
+- User A/User B isolation, role escalation denial, append-only audit behavior, and account deletion must be tested after application.

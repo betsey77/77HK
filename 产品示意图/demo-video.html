@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920,height=1080">
+<title>港話社媒文案器 · 產品演示</title>
+<style>
+  :root {
+    --brand-red: #c02020;
+    --brand-dark: #202020;
+    --brand-light: #e0e0e0;
+    --app-bg: #0a0a0a;
+    --panel-bg: rgba(30,30,40,0.6);
+    --border: rgba(255,255,255,0.08);
+    --text-primary: #e5e5e5;
+    --text-secondary: #888;
+    --accent-green: #10b981;
+    --accent-purple: #8b5cf6;
+    --accent-blue: #3b82f6;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    width: 1920px; height: 1080px;
+    background: var(--app-bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans HK', 'PingFang HK', sans-serif;
+    overflow: hidden;
+    position: relative;
+    color: var(--text-primary);
+  }
+
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.8s ease;
+    pointer-events: none;
+  }
+  .scene.active { opacity: 1; pointer-events: auto; }
+
+  /* ── Scene 1: Brand Title ── */
+  .brand-hero {
+    background: radial-gradient(ellipse at center, #1a1010 0%, var(--app-bg) 70%);
+    flex-direction: column; gap: 32px;
+  }
+  .brand-hero .logo-area {
+    display: flex; align-items: center; gap: 24px;
+  }
+  .brand-hero .logo-circle {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: var(--brand-red);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; font-weight: 900; color: #fff;
+    box-shadow: 0 0 80px rgba(192,32,32,0.3);
+    animation: pulse-logo 2s ease-in-out infinite;
+  }
+  @keyframes pulse-logo {
+    0%,100% { box-shadow: 0 0 80px rgba(192,32,32,0.3); }
+    50% { box-shadow: 0 0 140px rgba(192,32,32,0.5); }
+  }
+  .brand-hero .title-main {
+    font-size: 56px; font-weight: 800; color: #fff;
+    letter-spacing: 0.05em;
+    text-shadow: 0 2px 40px rgba(192,32,32,0.2);
+  }
+  .brand-hero .title-sub {
+    font-size: 22px; color: var(--text-secondary);
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .brand-hero .divider {
+    width: 80px; height: 3px; background: var(--brand-red);
+    border-radius: 2px;
+  }
+
+  /* ── Scene 2: Problem ── */
+  .problem-scene {
+    flex-direction: column; gap: 40px;
+    background: var(--app-bg);
+  }
+  .problem-scene .before-after {
+    display: flex; gap: 60px; align-items: center;
+  }
+  .problem-scene .ba-card {
+    width: 500px; padding: 40px;
+    border-radius: 16px; text-align: center;
+  }
+  .problem-scene .ba-card.before {
+    background: rgba(220,38,38,0.08);
+    border: 2px dashed rgba(220,38,38,0.25);
+  }
+  .problem-scene .ba-card.after {
+    background: rgba(16,185,129,0.08);
+    border: 2px solid rgba(16,185,129,0.3);
+  }
+  .problem-scene .ba-label {
+    font-size: 14px; font-weight: 700; letter-spacing: 0.15em;
+    margin-bottom: 20px; text-transform: uppercase;
+  }
+  .problem-scene .ba-text {
+    font-size: 26px; line-height: 1.6; font-weight: 600;
+  }
+
+  /* ── Scene 3-7: App UI ── */
+  .app-scene {
+    background: var(--app-bg);
+    flex-direction: column; gap: 16px;
+  }
+  .app-scene .scene-label {
+    font-size: 20px; font-weight: 700; color: var(--brand-red);
+    letter-spacing: 0.1em;
+  }
+  .app-scene .scene-desc {
+    font-size: 15px; color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  /* App mockup container */
+  .app-mockup {
+    width: 1400px; background: var(--app-bg);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  }
+  .app-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(20,20,30,0.8);
+  }
+  .app-header .header-left {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .app-header .header-title {
+    font-size: 17px; font-weight: 700; color: #fff;
+  }
+  .app-header .header-sub {
+    font-size: 11px; color: var(--text-secondary);
+  }
+  .app-header .engine-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 5px 12px;
+    border-radius: 20px; font-weight: 600;
+  }
+  .engine-canto {
+    background: rgba(16,185,129,0.12);
+    color: var(--accent-green);
+    border: 1px solid rgba(16,185,129,0.25);
+  }
+  .engine-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .app-body {
+    display: grid; grid-template-columns: 340px 1fr 340px;
+    min-height: 520px;
+  }
+  .app-panel {
+    padding: 20px; overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+  .app-panel:last-child { border-right: none; }
+  .panel-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; color: #6b7280; margin-bottom: 14px;
+  }
+
+  /* Input panel elements */
+  .input-textarea {
+    width: 100%; min-height: 120px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; color: var(--text-primary);
+    font-size: 13px; line-height: 1.6; resize: none;
+    font-family: inherit;
+  }
+  .char-count {
+    text-align: right; font-size: 11px; color: var(--text-secondary);
+    margin-top: 6px;
+  }
+  .setting-group {
+    margin-top: 14px;
+  }
+  .setting-label {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 6px; display: block;
+  }
+  .segmented {
+    display: flex; gap: 2px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px; padding: 3px;
+  }
+  .seg-btn {
+    flex:1; padding: 7px 8px; text-align: center;
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    border-radius: 8px; cursor: pointer;
+    border: none; background: transparent;
+    transition: all 0.2s;
+  }
+  .seg-btn.active {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+  .slider-row {
+    display: flex; align-items: center; gap: 10px; margin-top: 8px;
+  }
+  .slider-val {
+    font-size: 14px; font-weight: 700; color: var(--accent-green);
+    min-width: 28px; text-align: center;
+  }
+  .slider-bar {
+    flex:1; height: 5px; background: rgba(255,255,255,0.08);
+    border-radius: 3px; position: relative; overflow: visible;
+  }
+  .slider-fill {
+    height: 100%; background: var(--accent-green);
+    border-radius: 3px;
+  }
+  .generate-btn {
+    width: 100%; margin-top: 18px;
+    padding: 13px; border-radius: 12px;
+    background: var(--brand-red);
+    color: #fff; font-size: 15px; font-weight: 700;
+    border: none; cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .generate-btn:hover { filter: brightness(1.15); }
+
+  /* Results panel */
+  .tabs-row {
+    display: flex; gap: 2px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .tab-item {
+    padding: 9px 14px; font-size: 12px; font-weight: 600;
+    color: var(--text-secondary); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab-item.active {
+    color: #fff;
+    border-bottom-color: var(--accent-green);
+  }
+  .result-content {
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px; padding: 20px;
+    font-size: 14px; line-height: 1.8; color: var(--text-primary);
+    min-height: 200px;
+    border: 1px solid var(--border);
+  }
+  .diag-banner {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 12px; color: #f59e0b;
+    margin-bottom: 14px;
+  }
+
+  /* Audit panel */
+  .thermo-gauge {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 0;
+  }
+  .thermo-circle {
+    width: 130px; height: 65px;
+    border-radius: 130px 130px 0 0;
+    background: conic-gradient(from 180deg, #ef4444 0deg, #f59e0b 60deg, #eab308 90deg, #10b981 150deg, #22c55e 180deg);
+    position: relative; overflow: hidden;
+  }
+  .thermo-circle::after {
+    content: ''; position: absolute;
+    bottom: 0; left: 10%; width: 80%; height: 60%;
+    background: var(--app-bg);
+    border-radius: 120px 120px 0 0;
+  }
+  .thermo-score {
+    position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+    font-size: 28px; font-weight: 900; z-index: 2;
+  }
+  .dim-bars { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+  .dim-row { display: flex; align-items: center; gap: 8px; }
+  .dim-label { font-size: 10px; color: var(--text-secondary); width: 60px; text-align: right; }
+  .dim-bar-bg { flex:1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; }
+  .dim-bar-fill { height: 100%; border-radius: 3px; }
+  .issue-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .chip {
+    padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  }
+  .chip.medium { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+  .chip.low { background: rgba(59,130,246,0.1); color: #60a5fa; border: 1px solid rgba(59,130,246,0.15); }
+  .replacement-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .repl-old { color: #ef4444; text-decoration: line-through; }
+  .repl-arrow { color: var(--text-secondary); }
+  .repl-new { color: var(--accent-green); font-weight: 600; }
+  .comment-card {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 11px; line-height: 1.5; margin-top: 6px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Scene 8: Tech Architecture ── */
+  .tech-scene {
+    background: var(--app-bg);
+    flex-direction: column; gap: 24px;
+  }
+  .tech-flow {
+    display: flex; align-items: center; gap: 20px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .tech-node {
+    padding: 16px 24px; border-radius: 12px;
+    font-size: 14px; font-weight: 700; text-align: center;
+  }
+  .tech-node.start {
+    background: rgba(192,32,32,0.1); color: var(--brand-red);
+    border: 2px solid rgba(192,32,32,0.3);
+  }
+  .tech-node.primary {
+    background: rgba(139,92,246,0.12); color: var(--accent-purple);
+    border: 2px solid rgba(139,92,246,0.3);
+  }
+  .tech-node.fallback {
+    background: rgba(100,116,139,0.1); color: #94a3b8;
+    border: 2px dashed rgba(100,116,139,0.25);
+  }
+  .tech-node.audit {
+    background: rgba(59,130,246,0.1); color: var(--accent-blue);
+    border: 2px solid rgba(59,130,246,0.25);
+  }
+  .tech-node.output {
+    background: rgba(16,185,129,0.08); color: var(--accent-green);
+    border: 2px solid rgba(16,185,129,0.25);
+  }
+  .tech-arrow {
+    font-size: 20px; color: var(--text-secondary);
+  }
+
+  /* ── Scene 9: CTA ── */
+  .cta-scene {
+    background: radial-gradient(ellipse at center, #1a1010 0%, var(--app-bg) 70%);
+    flex-direction: column; gap: 28px;
+  }
+  .cta-scene .cta-title {
+    font-size: 42px; font-weight: 800; color: #fff;
+    text-align: center; line-height: 1.4;
+  }
+  .cta-scene .cta-highlight {
+    color: var(--brand-red);
+  }
+
+  /* Watermark */
+  .watermark {
+    position: absolute; bottom: 24px; right: 32px;
+    font-size: 11px; color: rgba(255,255,255,0.25);
+    letter-spacing: 0.15em; z-index: 100;
+    pointer-events: none;
+  }
+
+  /* Scene highlight animation */
+  .highlight-box {
+    position: absolute;
+    border: 2px solid var(--brand-red);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(192,32,32,0.25);
+    opacity: 0; transition: opacity 0.5s;
+    pointer-events: none; z-index: 10;
+  }
+  .highlight-box.on { opacity: 1; }
+
+  /* Pulse indicator for loading */
+  .pulse-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--brand-red);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Scene 1: Brand Title (0-5s) -->
+<div class="scene active" id="scene1" data-start="0" data-end="5">
+  <div class="brand-hero" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:32px;">
+    <div class="logo-circle">思</div>
+    <div class="title-main">港話社媒文案器</div>
+    <div class="divider"></div>
+    <div class="title-sub">HK Cantonese Social Copywriter</div>
+  </div>
+</div>
+
+<!-- Scene 2: Problem (5-13s) -->
+<div class="scene" id="scene2" data-start="5" data-end="13">
+  <div class="problem-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;">
+    <div style="font-size:18px;color:var(--text-secondary);letter-spacing:0.15em;text-transform:uppercase;">The Problem</div>
+    <div style="font-size:38px;font-weight:800;text-align:center;line-height:1.5;">
+      內地社媒文案<br>直接投放香港市場？
+    </div>
+    <div class="before-after">
+      <div class="ba-card before">
+        <div class="ba-label" style="color:#ef4444;">普通話原文</div>
+        <div class="ba-text" style="color:#fca5a5;">「端午限定！<br>思念湯圓買二送一，<br>爆款來襲速搶！」</div>
+      </div>
+      <div style="font-size:32px;color:var(--text-secondary);">→</div>
+      <div class="ba-card after">
+        <div class="ba-label" style="color:#10b981;">港式粵語</div>
+        <div class="ba-text" style="color:#6ee7b7;">「端午節限定！<br>思念湯圓買二送一，<br>人氣之選，快啲入手！」</div>
+      </div>
+    </div>
+    <div style="font-size:14px;color:#ef4444;margin-top:8px;">
+      ⚠ 普通話直譯 · 簡體字 · 內地腔 · AI腔 → 港人睇唔明、冇共鳴
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: App Overview (13-23s) -->
+<div class="scene" id="scene3" data-start="13" data-end="23">
+  <div class="app-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:30px;">
+    <div class="scene-label">◆ 三欄式儀表板</div>
+    <div class="scene-desc">一站式輸入、生成、審核流程</div>
+    <div class="app-mockup" style="transform:scale(0.9);">
+      <div class="app-header">
+        <div class="header-left">
+          <span style="font-size:20px;">🎋</span>
+          <div>
+            <div class="header-title">港話社媒文案器</div>
+            <div class="header-sub">HK Cantonese Social Copywriter</div>
+          </div>
+        </div>
+        <div class="engine-badge engine-canto">
+          <span class="engine-dot"></span> CantoneseLLMChat 32B
+        </div>
+      </div>
+      <div class="app-body">
+        <div class="app-panel">
+          <div class="panel-title">📝 輸入面板 InputPanel</div>
+          <div class="input-textarea" style="opacity:0.6;">端午節限定！思念湯圓買二送一...</div>
+          <div class="char-count">16 / 4000</div>
+          <div class="setting-group">
+            <span class="setting-label">目標平台</span>
+            <div class="segmented">
+              <span class="seg-btn active">全部</span>
+              <span class="seg-btn">IG</span>
+              <span class="seg-btn">FB</span>
+              <span class="seg-btn">Shorts</span>
+            </div>
+          </div>
+          <div class="setting-group">
+            <span class="setting-label">品牌語氣</span>
+            <div style="font-size:12px;color:#fff;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;">活潑 — 適合社交媒體輕鬆內容</div>
+          </div>
+          <div class="setting-group">
+            <span class="setting-label">粵語程度 · 2/5</span>
+            <div class="slider-row">
+              <div class="slider-bar"><div class="slider-fill" style="width:40%;"></div></div>
+              <div class="slider-val">2</div>
+            </div>
+          </div>
+          <button class="generate-btn">⚡ 生成文案</button>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title">📄 生成結果 ResultsPanel</div>
+          <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:8px;padding:10px 14px;font-size:11px;color:#f59e0b;margin-bottom:12px;">
+            ⚠ 檢測到 3 個問題 · 含簡體字 · 內地詞彙
+          </div>
+          <div class="tabs-row">
+            <span class="tab-item active">標準繁中</span>
+            <span class="tab-item">輕粵語</span>
+            <span class="tab-item">IG</span>
+            <span class="tab-item">Facebook</span>
+            <span class="tab-item">Shorts</span>
+          </div>
+          <div class="result-content" style="opacity:0.7;">
+            【端午節限定】思念湯圓買二送一優惠！<br><br>
+            傳統手工製作，皮薄餡靚，<br>
+            芝麻、花生、紅豆三款經典口味，<br>
+            即日起至端午節期間限定優惠...
+          </div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title">🔍 審核面板 AuditPanel</div>
+          <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px;">港味溫度計</div>
+          <div class="thermo-gauge">
+            <div class="thermo-circle"></div>
+          </div>
+          <div style="text-align:center;font-size:28px;font-weight:900;color:#10b981;margin-top:-16px;">85</div>
+          <div class="dim-bars">
+            <div class="dim-row"><span class="dim-label">香港語感</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:80%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">4</span></div>
+            <div class="dim-row"><span class="dim-label">文化貼地</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:80%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">4</span></div>
+            <div class="dim-row"><span class="dim-label">品牌安全</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:100%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">5</span></div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#6b7280;margin-top:14px;margin-bottom:6px;">問題標籤</div>
+          <div class="issue-chips">
+            <span class="chip medium">內地腔</span>
+            <span class="chip low">輕微AI腔</span>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#6b7280;margin-top:14px;margin-bottom:6px;">替換建議</div>
+          <div class="replacement-item">
+            <span class="repl-old">爆款來襲</span><span class="repl-arrow">→</span><span class="repl-new">人氣之選</span>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#6b7280;margin-top:14px;margin-bottom:6px;">街坊留言模擬</div>
+          <div class="comment-card" style="opacity:0.7;">💬 「$79 兩盒幾抵喎！買返去試下先」</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 4: Input & Settings Focus (23-35s) -->
+<div class="scene" id="scene4" data-start="23" data-end="35">
+  <div class="app-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:30px;">
+    <div class="scene-label">STEP 1 — 貼上原文，設定參數</div>
+    <div class="scene-desc">支援簡體中文、普通話、英文社媒文案，5 檔粵語/英語水平調節</div>
+    <div class="app-mockup" style="width:900px;">
+      <div class="app-header">
+        <div class="header-left">
+          <span style="font-size:20px;">🎋</span>
+          <div class="header-title">港話社媒文案器</div>
+        </div>
+        <div class="engine-badge engine-canto"><span class="engine-dot"></span> 待命</div>
+      </div>
+      <div class="app-body" style="grid-template-columns:1fr;">
+        <div class="app-panel" style="border-right:none;padding:28px 40px;">
+          <div class="panel-title">📝 輸入原文</div>
+          <textarea class="input-textarea" style="min-height:140px;font-size:15px;">端午節限定！思念湯圓買二送一，爆款來襲速搶！
+全場冷鏈配送，全國包郵，庫存有限賣完即止！</textarea>
+          <div class="char-count">56 / 4000</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+            <div class="setting-group">
+              <span class="setting-label">目標平台</span>
+              <div class="segmented">
+                <span class="seg-btn active">全部平台</span>
+                <span class="seg-btn">IG</span>
+                <span class="seg-btn">FB</span>
+                <span class="seg-btn">Shorts</span>
+              </div>
+            </div>
+            <div class="setting-group">
+              <span class="setting-label">品牌語氣</span>
+              <div style="font-size:13px;color:#fff;padding:9px;background:rgba(255,255,255,0.04);border-radius:8px;">活潑 — 適合社交媒體輕鬆內容</div>
+            </div>
+            <div class="setting-group">
+              <span class="setting-label">粵語程度</span>
+              <div class="slider-row">
+                <span style="font-size:10px;color:var(--text-secondary);">標準繁中</span>
+                <div class="slider-bar"><div class="slider-fill" style="width:40%;"></div></div>
+                <span style="font-size:10px;color:var(--text-secondary);">地道粵語</span>
+                <div class="slider-val">2</div>
+              </div>
+            </div>
+            <div class="setting-group">
+              <span class="setting-label">英語夾雜</span>
+              <div class="slider-row">
+                <span style="font-size:10px;color:var(--text-secondary);">純中文</span>
+                <div class="slider-bar"><div class="slider-fill" style="width:20%;"></div></div>
+                <span style="font-size:10px;color:var(--text-secondary);">自然夾雜</span>
+                <div class="slider-val">1</div>
+              </div>
+            </div>
+          </div>
+          <button class="generate-btn" style="width:300px;margin:20px auto 0;display:block;">
+            ⚡ 生成文案
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: Generation Loading (35-45s) -->
+<div class="scene" id="scene5" data-start="35" data-end="45">
+  <div class="app-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;padding:30px;">
+    <div class="scene-label">STEP 2 — AI 引擎級聯生成</div>
+    <div class="scene-desc">CantoneseLLMChat-v1.0-32B 主引擎 → DeepSeek 後備（自動容錯）</div>
+    <div class="tech-flow">
+      <div class="tech-node start">POST /api/generate</div>
+      <div class="tech-arrow">→</div>
+      <div class="tech-node primary">
+        ★ CantoneseLLMChat<br>v1.0-32B<br><span style="font-size:10px;opacity:0.7;">Featherless.ai</span>
+      </div>
+      <div class="tech-arrow">→</div>
+      <div style="font-size:28px;font-weight:900;color:var(--text-secondary);">?</div>
+      <div class="tech-arrow">→</div>
+      <div class="tech-node fallback">
+        ◈ DeepSeek<br>deepseek-chat<br><span style="font-size:10px;opacity:0.7;">後備引擎</span>
+      </div>
+      <div class="tech-arrow">→</div>
+      <div class="tech-node audit">Audit 審核<br><span style="font-size:10px;opacity:0.7;">一律 DeepSeek</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:16px;">
+      <span class="pulse-dot"></span>
+      <span style="font-size:15px;color:var(--text-secondary);">生成中，請稍候...</span>
+    </div>
+    <div style="font-size:12px;color:var(--accent-green);margin-top:4px;">
+      🟢 當前引擎: CantoneseLLMChat 32B (Featherless.ai)
+    </div>
+  </div>
+</div>
+
+<!-- Scene 6: Results (45-57s) -->
+<div class="scene" id="scene6" data-start="45" data-end="57">
+  <div class="app-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:30px;">
+    <div class="scene-label">STEP 3 — 查看 5 種變體文案</div>
+    <div class="scene-desc">標準繁中 · 輕粵語 · IG Caption · Facebook 貼文 · YouTube Shorts</div>
+    <div class="app-mockup" style="width:1100px;">
+      <div class="app-header">
+        <div class="header-left">
+          <span style="font-size:20px;">🎋</span>
+          <div class="header-title">港話社媒文案器</div>
+        </div>
+        <div class="engine-badge engine-canto"><span class="engine-dot"></span> CantoneseLLMChat 32B</div>
+      </div>
+      <div class="app-body" style="grid-template-columns:1fr;">
+        <div class="app-panel" style="border-right:none;padding:24px 36px;">
+          <div class="diag-banner" style="margin-bottom:16px;">
+            ⚠ 檢測到 3 個問題 · 原文含簡體字「买」「卖」· 內地詞彙「爆款來襲」→「人氣之選」· 語氣偏正式
+          </div>
+          <div class="tabs-row">
+            <span class="tab-item active">標準繁中</span>
+            <span class="tab-item">輕粵語</span>
+            <span class="tab-item">IG</span>
+            <span class="tab-item">Facebook</span>
+            <span class="tab-item">Shorts</span>
+          </div>
+          <div class="result-content" style="font-size:15px;min-height:180px;">
+            <strong>【端午節限定】思念湯圓買二送一優惠</strong><br><br>
+            傳統手工製作，皮薄餡靚，<br>
+            精選芝麻、花生、紅豆三款經典口味，<br>
+            即日起至端午節期間限定優惠，<br>
+            全線門市及網店同步發售。<br><br>
+            <span style="color:var(--text-secondary);">#思念湯圓 #端午節 #香港限定</span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+            <span style="font-size:12px;color:var(--accent-green);padding:6px 14px;background:rgba(16,185,129,0.1);border-radius:6px;cursor:pointer;">📋 複製</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 7: Audit (57-69s) -->
+<div class="scene" id="scene7" data-start="57" data-end="69">
+  <div class="app-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;">
+    <div class="scene-label">STEP 4 — AI 審核評估（DeepSeek 驅動）</div>
+    <div class="scene-desc">港味溫度計 · 問題標籤 · 詞彙替換 · 風險提示 · 街坊留言模擬</div>
+    <div class="app-mockup" style="width:1200px;">
+      <div class="app-body" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="app-panel">
+          <div class="panel-title">🌡 港味溫度計</div>
+          <div class="thermo-gauge"><div class="thermo-circle"></div></div>
+          <div style="text-align:center;font-size:32px;font-weight:900;color:#10b981;margin-top:-20px;">85/100</div>
+          <div class="dim-bars">
+            <div class="dim-row"><span class="dim-label">香港語感</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:80%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">4/5</span></div>
+            <div class="dim-row"><span class="dim-label">文化貼地</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:80%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">4/5</span></div>
+            <div class="dim-row"><span class="dim-label">平台適配</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:80%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">4/5</span></div>
+            <div class="dim-row"><span class="dim-label">品牌安全</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:100%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">5/5</span></div>
+            <div class="dim-row"><span class="dim-label">繁體一致</span><div class="dim-bar-bg"><div class="dim-bar-fill" style="width:100%;background:#10b981;"></div></div><span style="font-size:10px;color:#10b981;">5/5</span></div>
+          </div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title">🏷 問題標籤</div>
+          <div class="issue-chips" style="margin-bottom:16px;">
+            <span class="chip medium">內地腔</span>
+            <span class="chip low">輕微AI腔</span>
+            <span class="chip low">簡繁混用</span>
+          </div>
+          <div class="panel-title" style="margin-top:16px;">🔄 替換建議</div>
+          <div class="replacement-item">
+            <span class="repl-old">爆款來襲</span><span class="repl-arrow">→</span><span class="repl-new">人氣之選</span>
+          </div>
+          <div class="replacement-item">
+            <span class="repl-old">速搶</span><span class="repl-arrow">→</span><span class="repl-new">快啲入手</span>
+          </div>
+          <div class="replacement-item">
+            <span class="repl-old">全國包郵</span><span class="repl-arrow">→</span><span class="repl-new">全港免費送貨</span>
+          </div>
+          <div class="panel-title" style="margin-top:16px;">⚠ 風險提示</div>
+          <div style="font-size:11px;color:#f59e0b;line-height:1.6;">
+            🟡 語氣偏正式，IG 可能唔夠輕鬆<br>
+            🟡 「庫存有限賣完即止」略帶壓力感
+          </div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title">💬 街坊留言模擬</div>
+          <div class="comment-card">❤️ 「$79 兩盒幾抵喎！買返去試下先」<br><span style="color:var(--text-secondary);font-size:10px;">— 興趣型</span></div>
+          <div class="comment-card">❓ 「芝麻味同花生味邊隻好食啲？」<br><span style="color:var(--text-secondary);font-size:10px;">— 提問型</span></div>
+          <div class="comment-card">💡 「如果出芋頭味就正啦」<br><span style="color:var(--text-secondary);font-size:10px;">— 好奇型</span></div>
+          <div class="comment-card">😄 「阿媽實會買幾盒返屋企」<br><span style="color:var(--text-secondary);font-size:10px;">— 共鳴型</span></div>
+          <div style="margin-top:14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
+            <div style="font-size:10px;color:var(--text-secondary);">生成引擎</div>
+            <div style="font-size:12px;font-weight:700;color:var(--accent-green);">✨ CantoneseLLMChat 32B</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 8: Tech Architecture (69-80s) -->
+<div class="scene" id="scene8" data-start="69" data-end="80">
+  <div class="tech-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+    <div class="scene-label">技術架構 — 雙引擎級聯</div>
+    <div class="scene-desc">CantoneseLLMChat 專業粵語模型為主，DeepSeek 自動後備 + 審核</div>
+    <div style="display:flex;flex-direction:column;gap:16px;align-items:center;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="tech-node primary" style="min-width:200px;">
+          ★ PRIMARY<br>CantoneseLLMChat<br>v1.0-32B<br><span style="font-size:10px;opacity:0.7;">Featherless.ai 託管</span>
+        </div>
+        <div style="font-size:14px;color:var(--text-secondary);">生成文案<br>+ 診斷</div>
+        <div class="tech-arrow" style="font-size:28px;">↘</div>
+      </div>
+      <div style="font-size:18px;color:var(--text-secondary);">失敗自動 fallback ↓</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="tech-node fallback" style="min-width:200px;">
+          ◈ FALLBACK<br>DeepSeek<br>deepseek-chat<br><span style="font-size:10px;opacity:0.7;">完整版 prompt</span>
+        </div>
+        <div style="font-size:14px;color:var(--text-secondary);">同結構輸出</div>
+        <div class="tech-arrow" style="font-size:28px;">→</div>
+        <div class="tech-node audit" style="min-width:200px;">
+          AUDIT<br>DeepSeek 審核<br>temperature 0.5<br><span style="font-size:10px;opacity:0.7;">5 維度分析</span>
+        </div>
+        <div class="tech-arrow" style="font-size:28px;">→</div>
+        <div class="tech-node output" style="min-width:200px;">
+          RESPONSE<br>diagnosis + 5 variants<br>+ audit<br>+ generationEngine
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;margin-top:12px;">
+      <div style="text-align:center;">
+        <div style="font-size:28px;font-weight:900;color:var(--accent-purple);">32B</div>
+        <div style="font-size:10px;color:var(--text-secondary);">專業粵語參數</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px;font-weight:900;color:var(--accent-green);">5</div>
+        <div style="font-size:10px;color:var(--text-secondary);">變體風格</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px;font-weight:900;color:var(--accent-blue);">5</div>
+        <div style="font-size:10px;color:var(--text-secondary);">審核維度</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px;font-weight:900;color:var(--brand-red);">0-5</div>
+        <div style="font-size:10px;color:var(--text-secondary);">粵語/英語水平檔</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 9: CTA (80-88s) -->
+<div class="scene" id="scene9" data-start="80" data-end="88">
+  <div class="cta-scene" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;">
+    <div class="logo-circle" style="width:80px;height:80px;font-size:32px;">思</div>
+    <div class="cta-title">
+      讓<span class="cta-highlight">思念</span>文案<br>
+      講出<span class="cta-highlight">香港人</span>聽得明嘅話
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:18px;color:var(--text-secondary);text-align:center;line-height:1.6;">
+      CantoneseLLMChat-v1.0-32B 專業粵語引擎<br>
+      5 種社媒變體 · AI 審核評估 · 一鍵複製
+    </div>
+    <div style="display:flex;gap:16px;margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-secondary);padding:6px 14px;background:rgba(255,255,255,0.04);border-radius:20px;">🟢 Featherless.ai</span>
+      <span style="font-size:13px;color:var(--text-secondary);padding:6px 14px;background:rgba(255,255,255,0.04);border-radius:20px;">🔵 DeepSeek</span>
+      <span style="font-size:13px;color:var(--text-secondary);padding:6px 14px;background:rgba(255,255,255,0.04);border-radius:20px;">⚛️ React 19</span>
+    </div>
+  </div>
+</div>
+
+<div class="watermark">Created by Huashu-Design</div>
+
+<script>
+(function() {
+  const scenes = document.querySelectorAll('.scene');
+  const totalDuration = 88;
+  const startTime = performance.now();
+  let firstFrame = true;
+
+  function updateScene() {
+    const elapsed = (performance.now() - startTime) / 1000;
+    const loopTime = elapsed % totalDuration;
+
+    scenes.forEach(s => {
+      const start = parseFloat(s.dataset.start);
+      const end = parseFloat(s.dataset.end);
+      if (loopTime >= start && loopTime < end) {
+        s.classList.add('active');
+      } else {
+        s.classList.remove('active');
+      }
+    });
+
+    if (firstFrame) {
+      firstFrame = false;
+      document.fonts.ready.then(() => {
+        requestAnimationFrame(() => { window.__ready = true; });
+      });
+    }
+
+    requestAnimationFrame(updateScene);
+  }
+
+  requestAnimationFrame(updateScene);
+
+  // __seek support for trim correction
+  window.__seek = function(t) {
+    // Reset the startTime so elapsed becomes t
+    // Not needed for simple scene-based animation
+  };
+})();
+</script>
+
+</body>
+</html>

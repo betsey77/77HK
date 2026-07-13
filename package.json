@@ -1,0 +1,22 @@
+{
+  "name": "hk-cantonese-copywriter",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n client,server -c blue,green \"cd client && npm run dev\" \"cd server && npm run dev\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "dev:local": "concurrently -n client,server,model -c blue,green,yellow \"cd client && npm run dev\" \"cd server && npm run dev\" \"python server_4b_api.py\"",
+    "build": "cd client && npm ci && npm run build && cd ../server && npm ci && npm run build"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "supabase": "^2.109.1",
+    "vitest": "^4.1.10"
+  }
+}

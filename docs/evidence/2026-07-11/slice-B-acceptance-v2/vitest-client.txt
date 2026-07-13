@@ -1,0 +1,40 @@
+
+ RUN  v4.1.10 D:/work/77港话通社媒文案/77/client
+
+(node:9544) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41656) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > LoginPage does NOT show [MOCK] badge 95ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > SignupPage does NOT show [MOCK] badge 14ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > ForgotPasswordPage does NOT show [MOCK] badge 8ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > ResetPasswordPage does NOT show [MOCK] badge 8ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > LoginPage renders 13ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > SignupPage renders 6ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > ForgotPasswordPage renders 5ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > ResetPasswordPage renders 4ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — real Supabase auth behavior > signup creates account via Supabase and sets authenticated session 145ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Theme regression on auth pages > LoginPage submit button uses emerald in dark mode 57ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Theme regression on auth pages > LoginPage submit button uses orange in light mode 11ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Label-input a11y regression > LoginPage labels match inputs 7ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Label-input a11y regression > SignupPage labels match inputs 7ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Label-input a11y regression > ForgotPasswordPage labels match inputs 6ms
+ ✓ src/test/slice-b.test.tsx > Slice B — resetPassword behavior > resetPassword success sets isLoading=false and shows success message 53ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — real Supabase auth behavior > login with wrong password shows error 87ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — real Supabase auth behavior > logout clears session 83ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > LoginPage has htmlFor labels matching input ids 50ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > SignupPage has htmlFor labels matching input ids 8ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > ForgotPasswordPage has htmlFor label matching input id 13ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — theme button colors > LoginPage submit button uses emerald in dark mode 22ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — theme button colors > LoginPage submit button uses orange in light mode 14ms
+ ✓ src/test/slice-b.test.tsx > Slice B — resetPassword behavior > resetPassword failure does NOT show success message 342ms
+ ✓ src/test/slice-b.test.tsx > Slice B — updatePassword behavior > updatePassword failure does NOT show "密码已重置" 345ms
+ ✓ src/test/slice-b.test.tsx > Slice B — ResetPasswordPage PASSWORD_RECOVERY gate > normal SIGNED_IN session shows "链接已过期或无效" 6ms
+ ✓ src/test/slice-b.test.tsx > Slice B — ResetPasswordPage PASSWORD_RECOVERY gate > PASSWORD_RECOVERY session shows the reset form 4ms
+ ✓ src/test/slice-b.test.tsx > Slice B — AuthCallback existing confirmed session > already-existing confirmed session shows success and redirects 4ms
+
+ Test Files  2 passed (2)
+      Tests  27 passed (27)
+   Start at  20:45:41
+   Duration  2.28s (transform 349ms, setup 205ms, import 652ms, tests 1.42s, environment 1.33s)
+

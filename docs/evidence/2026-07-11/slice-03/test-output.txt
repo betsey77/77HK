@@ -1,0 +1,8 @@
+Command: C:\Program Files\nodejs\npx.CMD tsc --noEmit -p client/tsconfig.json
+Working directory: D:\work\77港话通社媒文案\77
+Exit code: 0
+
+STDOUT:
+
+
+STDERR:

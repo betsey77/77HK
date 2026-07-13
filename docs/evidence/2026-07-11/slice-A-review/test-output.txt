@@ -1,0 +1,19 @@
+Slice A independent review
+Date: 2026-07-11
+Base URL: http://localhost:5175
+
+PASS client: npx tsc --noEmit
+PASS client: npm run build (1639 modules transformed)
+PASS server: npx tsc --noEmit
+PASS server: npm run build
+PASS unauthenticated /app redirects to /login
+PASS Mock banner is visible
+PASS signup writes hk-cantonese-mock-auth and opens workbench
+
+FAIL reset password for a missing account displays success
+FAIL light-mode brand accent is not consistently orange
+FAIL auth form labels are not associated with inputs (htmlFor/id)
+FAIL TDD gate: no behavior test files exist
+
+ENVIRONMENT: port 5173 belongs to D:\work\思念\client; 77 was reviewed on port 5175.
+

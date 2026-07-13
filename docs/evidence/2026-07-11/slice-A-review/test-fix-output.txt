@@ -1,0 +1,40 @@
+# Slice A — Fix Verification
+
+Date: 2026-07-11
+Fix: 验收修复单 6 个问题全部修复
+
+## Test Results (Vitest)
+
+- Test files: 1 passed
+- Tests: 12 passed, 0 failed
+- Duration: 7.60s
+
+### Passing tests:
+1. signup creates account and sets authenticated session
+2. login with wrong password shows error
+3. resetPassword fails for nonexistent account
+4. resetPassword succeeds for existing account and new password works
+5. logout clears session and prevents re-access
+6. ResetPasswordPage shows error and stays on form when account not found
+7. ResetPasswordPage shows success after valid reset
+8. LoginPage has htmlFor labels matching input ids
+9. SignupPage has htmlFor labels matching input ids
+10. ForgotPasswordPage has htmlFor label matching input id
+11. LoginPage submit button uses emerald in dark mode
+12. LoginPage submit button uses orange in light mode
+
+## Build
+
+- Client: tsc + vite build PASS (1640 modules, 2.28s)
+- Server: tsc PASS
+
+## Fixes Applied
+
+| # | Issue | Fix |
+|---|-------|-----|
+| 1 | ResetPasswordPage false success | mockResetPassword returns boolean; page checks return value |
+| 2 | Theme state not unified | ThemeContext created; all pages use useTheme() |
+| 3 | Light mode brand colors | Tabs, SegmentedControl, Slider, Spinner, Badge, InputPanel: added light:orange-* |
+| 4 | Auth form a11y | All inputs have id, labels have htmlFor, errors have role=alert + aria-describedby |
+| 5 | Login title orphan | max-w-md → max-w-xl, clamp reduced, text-wrap:balance added |
+| 6 | No behavior tests | 12 Vitest tests added using React Testing Library + user-event + jsdom |

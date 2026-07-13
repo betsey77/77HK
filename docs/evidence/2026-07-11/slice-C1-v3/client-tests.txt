@@ -1,0 +1,47 @@
+
+ RUN  v4.1.10 D:/work/77港话通社媒文案/77/client
+
+ ✓ src/test/slice-c1.test.tsx > HistoryPage — loading state > shows loading spinner while fetching 30ms
+ ✓ src/test/slice-c1.test.tsx > HistoryPage — empty state > shows empty message when no jobs 14ms
+ ✓ src/test/slice-c1.test.tsx > HistoryPage — error state > shows error message and retry button 16ms
+ ✓ src/test/slice-c1.test.tsx > HistoryPage — populated list > renders job list with correct items 34ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — real Supabase auth behavior > signup creates account via Supabase and sets authenticated session 131ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — real Supabase auth behavior > login with wrong password shows error 67ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > LoginPage does NOT show [MOCK] badge 104ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > SignupPage does NOT show [MOCK] badge 12ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > ForgotPasswordPage does NOT show [MOCK] badge 7ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages no longer show [MOCK] badges > ResetPasswordPage does NOT show [MOCK] badge 7ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > LoginPage renders 8ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > SignupPage renders 6ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > ForgotPasswordPage renders 5ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Auth pages render without crash > ResetPasswordPage renders 5ms
+ ✓ src/test/slice-c1.test.tsx > HistoryPage — delete > removes job from list after successful delete 129ms
+ ✓ src/test/slice-c1.test.tsx > HistoryDetailPage > shows loading state initially 4ms
+ ✓ src/test/slice-c1.test.tsx > HistoryDetailPage > shows error state with retry button 12ms
+ ✓ src/test/slice-c1.test.tsx > HistoryDetailPage > renders job detail with variants, diagnosis, audit, scores 25ms
+ ✓ src/test/slice-c1.test.tsx > HistoryDetailPage > shows back link to history list 21ms
+ ✓ src/test/slice-a.test.tsx > AuthContext — real Supabase auth behavior > logout clears session 58ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > LoginPage has htmlFor labels matching input ids 51ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > SignupPage has htmlFor labels matching input ids 8ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — label-input a11y > ForgotPasswordPage has htmlFor label matching input id 7ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — theme button colors > LoginPage submit button uses emerald in dark mode 21ms
+ ✓ src/test/slice-a.test.tsx > Auth pages — theme button colors > LoginPage submit button uses orange in light mode 10ms
+ ✓ src/test/slice-c1.test.tsx > HistoryDetailPage > shows delete button and can delete 73ms
+ ✓ src/test/slice-c1.test.tsx > HistoryDetailPage > renders failed job with error message 11ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Theme regression on auth pages > LoginPage submit button uses emerald in dark mode 63ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Theme regression on auth pages > LoginPage submit button uses orange in light mode 14ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Label-input a11y regression > LoginPage labels match inputs 8ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Label-input a11y regression > SignupPage labels match inputs 6ms
+ ✓ src/test/slice-b.test.tsx > Slice B — Label-input a11y regression > ForgotPasswordPage labels match inputs 4ms
+ ✓ src/test/slice-b.test.tsx > Slice B — resetPassword behavior > resetPassword success sets isLoading=false and shows success message 70ms
+ ✓ src/test/slice-b.test.tsx > Slice B — resetPassword behavior > resetPassword failure does NOT show success message 333ms
+ ✓ src/test/slice-b.test.tsx > Slice B — updatePassword behavior > updatePassword failure does NOT show "密码已重置" 309ms
+ ✓ src/test/slice-b.test.tsx > Slice B — ResetPasswordPage PASSWORD_RECOVERY gate > normal SIGNED_IN session shows "链接已过期或无效" 5ms
+ ✓ src/test/slice-b.test.tsx > Slice B — ResetPasswordPage PASSWORD_RECOVERY gate > PASSWORD_RECOVERY session shows the reset form 7ms
+ ✓ src/test/slice-b.test.tsx > Slice B — AuthCallback existing confirmed session > already-existing confirmed session shows success and redirects 6ms
+
+ Test Files  3 passed (3)
+      Tests  38 passed (38)
+   Start at  21:57:17
+   Duration  2.39s (transform 565ms, setup 297ms, import 1.08s, tests 1.71s, environment 2.13s)
+

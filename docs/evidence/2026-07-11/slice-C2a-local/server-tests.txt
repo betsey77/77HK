@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 D:/work/77港话通社媒文案/77/server
+
+
+ Test Files  3 passed (3)
+      Tests  127 passed (127)
+   Start at  23:22:17
+   Duration  888ms (transform 637ms, setup 71ms, import 1.20s, tests 300ms, environment 0ms)
+

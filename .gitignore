@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.env
+.env.local
+*.local.env
+.local_model_key
+models/
+*.log
+__pycache__/
+cloudflared.exe
+cloudflared_stdout.log
+cloudflared_stderr.log
+local_model_stdout.log
+local_model_stderr.log
+server_4b_api.log
+
+# Local Netlify folder
+.netlify

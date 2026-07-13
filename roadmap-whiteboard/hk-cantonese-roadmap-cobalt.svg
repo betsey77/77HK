@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1080" viewBox="0 0 1680 1080">
+  <rect x="0" y="0" width="1680" height="1080" fill="#ECECEC"/>
+
+  <rect x="52" y="48" width="1576" height="210" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <rect x="52" y="48" width="18" height="210" fill="#185DB7"/>
+  <text x="100" y="120" font-size="52" font-weight="800" fill="#0D4FA8">港話社媒文案器 Roadmap</text>
+  <text x="104" y="166" font-size="24" font-weight="600" fill="#0D4FA8">A calmer path from MVP to Hong Kong-localized social copy platform</text>
+
+  <rect x="104" y="195" width="184" height="38" rx="19" fill="#185DB7"/>
+  <text x="132" y="220" font-size="18" font-weight="700" fill="#F4F2EE">Live product</text>
+  <rect x="312" y="195" width="230" height="38" rx="19" fill="#F4F2EE" stroke="#185DB7" stroke-width="2"/>
+  <text x="340" y="220" font-size="18" font-weight="700" fill="#0D4FA8">Model cascade</text>
+  <rect x="566" y="195" width="214" height="38" rx="19" fill="#F4F2EE" stroke="#185DB7" stroke-width="2"/>
+  <text x="594" y="220" font-size="18" font-weight="700" fill="#0D4FA8">Audit workflow</text>
+
+  <rect x="1450" y="82" width="24" height="24" fill="#185DB7"/>
+  <rect x="1484" y="82" width="24" height="24" fill="#8E9179"/>
+  <rect x="1518" y="82" width="24" height="24" fill="#185DB7"/>
+  <rect x="1450" y="116" width="24" height="24" fill="#8E9179"/>
+  <rect x="1484" y="116" width="24" height="24" fill="#185DB7"/>
+  <rect x="1518" y="116" width="24" height="24" fill="#8E9179"/>
+  <rect x="1450" y="150" width="24" height="24" fill="#185DB7"/>
+  <rect x="1484" y="150" width="24" height="24" fill="#8E9179"/>
+  <rect x="1518" y="150" width="24" height="24" fill="#185DB7"/>
+
+  <line x1="165" y1="340" x2="1515" y2="340" stroke="#0D4FA8" stroke-width="4"/>
+  <circle cx="190" cy="340" r="18" fill="#185DB7"/>
+  <circle cx="515" cy="340" r="18" fill="#185DB7"/>
+  <circle cx="840" cy="340" r="18" fill="#185DB7"/>
+  <circle cx="1165" cy="340" r="18" fill="#185DB7"/>
+  <circle cx="1490" cy="340" r="18" fill="#185DB7"/>
+
+  <rect x="70" y="395" width="285" height="430" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <rect x="70" y="395" width="285" height="74" rx="4" fill="#185DB7"/>
+  <text x="100" y="443" font-size="30" font-weight="800" fill="#F4F2EE">V0.2 已上线</text>
+  <text x="100" y="515" font-size="22" font-weight="800" fill="#0D4FA8">核心可用 MVP</text>
+  <text x="100" y="562" font-size="18" font-weight="600" fill="#0D4FA8">• 三平台文案生成</text>
+  <text x="100" y="600" font-size="18" font-weight="600" fill="#0D4FA8">• 港味温度计与风险提示</text>
+  <text x="100" y="638" font-size="18" font-weight="600" fill="#0D4FA8">• CantoLLM 优先</text>
+  <text x="100" y="676" font-size="17" font-weight="600" fill="#0D4FA8">• DeepSeek 后备/审核</text>
+  <text x="100" y="714" font-size="18" font-weight="600" fill="#0D4FA8">• 规则兜底避免空白</text>
+  <rect x="100" y="762" width="96" height="34" rx="17" fill="#185DB7"/>
+  <text x="126" y="785" font-size="17" font-weight="800" fill="#F4F2EE">LIVE</text>
+
+  <rect x="395" y="395" width="285" height="430" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <rect x="395" y="395" width="285" height="74" rx="4" fill="#185DB7"/>
+  <text x="425" y="443" font-size="30" font-weight="800" fill="#F4F2EE">V0.3 稳定性</text>
+  <text x="425" y="515" font-size="22" font-weight="800" fill="#0D4FA8">让生成稳定可预期</text>
+  <text x="425" y="562" font-size="18" font-weight="600" fill="#0D4FA8">• 异步任务与轮询结果</text>
+  <text x="425" y="600" font-size="18" font-weight="600" fill="#0D4FA8">• 模型超时状态可视化</text>
+  <text x="425" y="638" font-size="18" font-weight="600" fill="#0D4FA8">• 重试 / 取消 / 继续生成</text>
+  <text x="425" y="676" font-size="18" font-weight="600" fill="#0D4FA8">• 日志与错误原因展示</text>
+  <text x="425" y="714" font-size="18" font-weight="600" fill="#0D4FA8">• API key 安全治理</text>
+  <rect x="425" y="762" width="134" height="34" rx="17" fill="#F4F2EE" stroke="#185DB7" stroke-width="2"/>
+  <text x="452" y="785" font-size="17" font-weight="800" fill="#0D4FA8">Next</text>
+
+  <rect x="720" y="395" width="285" height="430" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <rect x="720" y="395" width="285" height="74" rx="4" fill="#185DB7"/>
+  <text x="750" y="443" font-size="30" font-weight="800" fill="#F4F2EE">V0.4 港式语感</text>
+  <text x="750" y="515" font-size="22" font-weight="800" fill="#0D4FA8">提升香港本地化质量</text>
+  <text x="750" y="562" font-size="18" font-weight="600" fill="#0D4FA8">• 品牌词库与禁用词库</text>
+  <text x="750" y="600" font-size="18" font-weight="600" fill="#0D4FA8">• Words.hk / 粤典参考层</text>
+  <text x="750" y="638" font-size="18" font-weight="600" fill="#0D4FA8">• 港英夹杂控制器优化</text>
+  <text x="750" y="676" font-size="18" font-weight="600" fill="#0D4FA8">• Shorts 粤语口播节奏</text>
+  <text x="750" y="714" font-size="18" font-weight="600" fill="#0D4FA8">• HK reviewer 打分样本</text>
+  <rect x="750" y="762" width="122" height="34" rx="17" fill="#F4F2EE" stroke="#185DB7" stroke-width="2"/>
+  <text x="777" y="785" font-size="17" font-weight="800" fill="#0D4FA8">Quality</text>
+
+  <rect x="1045" y="395" width="285" height="430" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <rect x="1045" y="395" width="285" height="74" rx="4" fill="#185DB7"/>
+  <text x="1075" y="443" font-size="30" font-weight="800" fill="#F4F2EE">V0.5 团队流程</text>
+  <text x="1075" y="515" font-size="22" font-weight="800" fill="#0D4FA8">进入真实社媒工作流</text>
+  <text x="1075" y="562" font-size="18" font-weight="600" fill="#0D4FA8">• 内容日历批量生成</text>
+  <text x="1075" y="600" font-size="18" font-weight="600" fill="#0D4FA8">• 飞书紫色修订模式</text>
+  <text x="1075" y="638" font-size="18" font-weight="600" fill="#0D4FA8">• KOL brief 一键改写</text>
+  <text x="1075" y="676" font-size="18" font-weight="600" fill="#0D4FA8">• 街坊留言模拟器增强</text>
+  <text x="1075" y="714" font-size="18" font-weight="600" fill="#0D4FA8">• 审核意见导出</text>
+  <rect x="1075" y="762" width="132" height="34" rx="17" fill="#F4F2EE" stroke="#185DB7" stroke-width="2"/>
+  <text x="1101" y="785" font-size="17" font-weight="800" fill="#0D4FA8">Workflow</text>
+
+  <rect x="1370" y="395" width="240" height="430" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <rect x="1370" y="395" width="240" height="74" rx="4" fill="#185DB7"/>
+  <text x="1400" y="443" font-size="30" font-weight="800" fill="#F4F2EE">V1.0 规模化</text>
+  <text x="1400" y="515" font-size="22" font-weight="800" fill="#0D4FA8">从工具到平台</text>
+  <text x="1400" y="562" font-size="18" font-weight="600" fill="#0D4FA8">• 多品牌工作区</text>
+  <text x="1400" y="600" font-size="18" font-weight="600" fill="#0D4FA8">• 版本历史与审批</text>
+  <text x="1400" y="638" font-size="18" font-weight="600" fill="#0D4FA8">• API / 自动化接入</text>
+  <text x="1400" y="676" font-size="18" font-weight="600" fill="#0D4FA8">• 质量评分报表</text>
+  <text x="1400" y="714" font-size="18" font-weight="600" fill="#0D4FA8">• 付费团队版</text>
+  <rect x="1400" y="762" width="94" height="34" rx="17" fill="#F4F2EE" stroke="#185DB7" stroke-width="2"/>
+  <text x="1426" y="785" font-size="17" font-weight="800" fill="#0D4FA8">Scale</text>
+
+  <rect x="72" y="888" width="460" height="145" rx="4" fill="#185DB7"/>
+  <text x="102" y="928" font-size="24" font-weight="800" fill="#F4F2EE">North Star</text>
+  <text x="102" y="968" font-size="19" font-weight="700" fill="#F4F2EE">把普通中文/英文 brief 稳定转成</text>
+  <text x="102" y="996" font-size="19" font-weight="700" fill="#F4F2EE">香港消费者觉得自然、可信、</text>
+  <text x="102" y="1024" font-size="19" font-weight="700" fill="#F4F2EE">愿意互动的社媒内容。</text>
+
+  <rect x="610" y="888" width="440" height="145" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <text x="640" y="928" font-size="24" font-weight="800" fill="#0D4FA8">Key Metrics</text>
+  <text x="640" y="968" font-size="19" font-weight="700" fill="#0D4FA8">生成成功率 · 首次可用率</text>
+  <text x="640" y="996" font-size="19" font-weight="700" fill="#0D4FA8">香港语感 4/5+ · 生成耗时</text>
+  <text x="640" y="1024" font-size="19" font-weight="700" fill="#0D4FA8">人工改动率 · 复制/导出率</text>
+
+  <rect x="1128" y="888" width="480" height="145" rx="4" fill="#F4F2EE" stroke="#0D4FA8" stroke-width="3"/>
+  <text x="1158" y="928" font-size="24" font-weight="800" fill="#0D4FA8">Critical Decision</text>
+  <text x="1158" y="968" font-size="19" font-weight="700" fill="#0D4FA8">是否引入异步生成 / 自托管粤语模型，</text>
+  <text x="1158" y="996" font-size="19" font-weight="700" fill="#0D4FA8">决定能否稳定使用 CantoneseLLMChat</text>
+  <text x="1158" y="1024" font-size="19" font-weight="700" fill="#0D4FA8">作为产品主引擎。</text>
+</svg>

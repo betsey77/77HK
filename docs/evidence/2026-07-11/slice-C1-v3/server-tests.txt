@@ -1,0 +1,63 @@
+
+ RUN  v4.1.10 D:/work/77港话通社媒文案/77/server
+
+stdout | src/__tests__/generations.test.ts > Atomic idempotency > returns existing completed job without regenerating (idempotent hit)
+[Generate] Idempotent hit: job 00000000-0000-4000-a000-000000000001 (status=completed)
+
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 when no Authorization header present 15ms
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 for malformed Authorization header 6ms
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 for empty Bearer token 5ms
+ ✓ src/__tests__/me.test.ts > GET /api/me > returns 401 for obviously invalid JWT 48ms
+ ✓ src/__tests__/me.test.ts > GET /api/health > returns 200 with status ok 3ms
+ ✓ src/__tests__/me.test.ts > Server bootstrap > app is importable and is a function 0ms
+stdout | src/__tests__/generations.test.ts > Atomic idempotency > returns failed job with retryHint
+[Generate] Idempotent hit: job 00000000-0000-4000-a000-000000000001 (status=failed)
+
+stdout | src/__tests__/generations.test.ts > Atomic idempotency > returns 202 for pending/processing job
+[Generate] Idempotent hit: job 00000000-0000-4000-a000-000000000001 (status=processing)
+
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > RLS is enabled on generation_jobs 1ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > SELECT policy scopes to owner + deleted_at IS NULL 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > INSERT policy checks owner_id = auth.uid() 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > UPDATE policy scoped to owner 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > has UNIQUE(owner_id, idempotency_key) 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > no DELETE policy (soft delete only) 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > migration version 20260711213000 is after last applied 20260711170000 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > has required indexes: idx_jobs_owner_created, idx_jobs_owner_status 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > grant update is present — documented risk for C2 review 0ms
+ ✓ src/__tests__/generations.test.ts > Migration static safety assertions > references public.set_updated_at() from Slice B migration 0ms
+ ✓ src/__tests__/generations.test.ts > Auth gate > POST /api/generate returns 401 13ms
+ ✓ src/__tests__/generations.test.ts > Auth gate > GET /api/generations returns 401 8ms
+ ✓ src/__tests__/generations.test.ts > Auth gate > GET /api/generations/:id returns 401 4ms
+ ✓ src/__tests__/generations.test.ts > Auth gate > DELETE /api/generations/:id returns 401 4ms
+ ✓ src/__tests__/generations.test.ts > Auth gate > PATCH /api/generations/:id returns 404 (route intentionally removed) 4ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects limit < 1 3ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects limit > 100 3ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects negative offset 2ms
+ ✓ src/__tests__/generations.test.ts > Input validation > accepts valid limit=10, offset=0 4ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects non-UUID id 4ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects SQL-injection-like id 3ms
+ ✓ src/__tests__/generations.test.ts > Input validation > accepts valid UUID for detail 3ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects missing idempotencyKey in generate 4ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects empty idempotencyKey in generate 2ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects idempotencyKey > 128 chars 2ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects missing source in generate 2ms
+ ✓ src/__tests__/generations.test.ts > Input validation > rejects invalid platform in generate 2ms
+ ✓ src/__tests__/generations.test.ts > Atomic idempotency > creates new job when idempotency key is unique 4ms
+ ✓ src/__tests__/generations.test.ts > Atomic idempotency > returns existing completed job without regenerating (idempotent hit) 3ms
+ ✓ src/__tests__/generations.test.ts > Atomic idempotency > returns failed job with retryHint 2ms
+ ✓ src/__tests__/generations.test.ts > Atomic idempotency > returns 202 for pending/processing job 2ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations > returns paginated list 3ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations > returns empty list 2ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations/:id > returns job detail 2ms
+ ✓ src/__tests__/generations.test.ts > GET /api/generations/:id > returns 404 for non-existent job 2ms
+ ✓ src/__tests__/generations.test.ts > DELETE /api/generations/:id > soft-deletes a job 2ms
+ ✓ src/__tests__/generations.test.ts > DELETE /api/generations/:id > returns 404 when job not found 2ms
+ ✓ src/__tests__/generations.test.ts > Owner isolation > returns 404 for cross-user job access (RLS enforced) 2ms
+ ✓ src/__tests__/generations.test.ts > Owner isolation > list only returns authenticated user jobs 3ms
+
+ Test Files  2 passed (2)
+      Tests  45 passed (45)
+   Start at  21:57:06
+   Duration  825ms (transform 546ms, setup 55ms, import 1.04s, tests 180ms, environment 0ms)
+

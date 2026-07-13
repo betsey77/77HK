@@ -1,0 +1,80 @@
+{
+  "project": {
+    "name": "社媒文案器 IDE",
+    "path": "d:\\work\\思念\\前端设计稿\\social-copywriter-ide",
+    "operation": "create",
+    "deviceType": "desktop",
+    "language": "zh-CN",
+    "dashboardMode": false,
+    "replicationMode": "high-fidelity",
+    "designRead": "social media copywriting tool / shadcn dashboard / warm stone-orange light + neon-green dark",
+    "designDials": {
+      "layoutVariance": 2,
+      "motionIntensity": 1,
+      "visualDensity": 4
+    },
+    "styleDefinitionBrief": "Two-panel dashboard with shadcn-style components, orange(light)/green(dark) accent, accordion sections, sheet overlay audit panel.",
+    "sharedProjectShellContract": {
+      "navigationShell": "Simple app bar: brand icon + title + mock badge + theme toggle",
+      "primaryColorSystem": "Light: orange #f97316 accent on stone-white; Dark: neon green #00ff00 accent on olive-black",
+      "typographySystem": "Noto Sans SC / PingFang SC / Microsoft YaHei, 12-14px body",
+      "radiusScale": "12px cards, 8px inputs/buttons, 9999px pills",
+      "surfaceDepthModel": "Subtle shadow cards, 1px border, card-bg elevated from page-bg",
+      "ctaStyle": "Full-width primary button h-40px rounded-lg, outline secondary buttons",
+      "alignmentRules": "CSS Grid 2-column, flexbox internals, 12px gap"
+    }
+  },
+  "designSource": {
+    "operatingMode": "library-bound",
+    "libraryIdentity": {
+      "name": "TRAE",
+      "id": "dl_builtin_trae",
+      "version": null,
+      "scope": "built-in-global",
+      "path": "c:\\Users\\35308\\.trae-cn\\design_libraries\\dl_builtin_trae",
+      "versionSource": "selected-context"
+    },
+    "iconAssets": {
+      "source": "assets/icons",
+      "projectIconDir": "assets/icons/dl_builtin_tik_tok",
+      "libraryKey": "dl_builtin_tik_tok",
+      "renderMethod": "css-mask",
+      "pathTemplate": "../assets/icons/dl_builtin_tik_tok/{name}.svg",
+      "totalCount": 0,
+      "coloringRule": "currentColor by default; override with Library token when needed"
+    }
+  },
+  "pages": [
+    {
+      "pageId": "page-ide-main",
+      "title": "社媒文案器 - IDE 主界面",
+      "htmlSrc": "pages/ide-main.html",
+      "pageType": "information-dense",
+      "densityType": "information-dense"
+    },
+    {
+      "pageId": "page-ide-optimized",
+      "title": "港话社媒文案器 - 匹配前端代码优化版",
+      "htmlSrc": "pages/ide-optimized.html",
+      "pageType": "information-dense",
+      "densityType": "information-dense"
+    },
+    {
+      "pageId": "page-dashboard-light",
+      "title": "港话社媒生成器 - 亮色版",
+      "htmlSrc": "pages/dashboard-light.html",
+      "pageType": "dashboard",
+      "densityType": "information-dense"
+    },
+    {
+      "pageId": "page-dashboard-dark",
+      "title": "港话社媒生成器 - 暗色版",
+      "htmlSrc": "pages/dashboard-dark.html",
+      "pageType": "dashboard",
+      "densityType": "information-dense"
+    }
+  ],
+  "assets": [],
+  "wiringPlan": [],
+  "hiddenInteractionPlan": []
+}

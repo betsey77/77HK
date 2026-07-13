@@ -1,0 +1,23 @@
+Supabase CLI installation — 2026-07-11
+
+Install command:
+  npm install --save-dev supabase
+
+Result:
+  PASS — added 8 packages
+
+Verification command:
+  npx supabase --version
+
+Verified version:
+  2.109.1
+
+Environment:
+- Installed as a root-project devDependency; not a machine-global package.
+- Docker is not installed, so `supabase start` cannot run the local container stack yet.
+- No Supabase login, project link, remote migration, or database mutation was performed.
+
+Audit note:
+- npm audit reports 3 pre-existing/resolvable dependency findings: 1 high and 2 critical.
+- Findings currently trace to form-data and the root concurrently -> shell-quote chain.
+- `npm audit fix` was intentionally not run because it can make unrelated dependency changes; review in a separate security slice.

@@ -1,0 +1,66 @@
+{
+  "data": [
+    {
+      "id": "page-ide-main",
+      "title": "社媒文案器 - IDE 主界面",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1752052000000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/ide-main.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-ide-optimized",
+      "title": "港话社媒文案器 - 匹配前端代码优化版（暗色）",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1752058000000,
+      "canvasData": {
+        "x": 620,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/ide-optimized.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-ide-light",
+      "title": "港话社媒文案器 - 亮色版",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1752064000000,
+      "canvasData": {
+        "x": 1240,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/ide-light.html",
+        "interactions": []
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "desktop",
+    "projectName": "社媒文案器 IDE",
+    "designLibrary": {
+      "name": "TRAE",
+      "id": "dl_builtin_trae",
+      "version": null,
+      "scope": "built-in-global",
+      "path": "c:\\Users\\35308\\.trae-cn\\design_libraries\\dl_builtin_trae",
+      "versionSource": "selected-context"
+    },
+    "showEdge": true
+  }
+}
