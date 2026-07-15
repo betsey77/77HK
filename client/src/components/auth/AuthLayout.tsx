@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Sun, Moon, Layers, ShieldCheck, MessageSquareText } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -10,6 +10,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 interface AuthLayoutProps {
   children: ReactNode;
+  variant?: 'default' | 'login-v4';
 }
 
 const CAPABILITIES = [
@@ -18,8 +19,107 @@ const CAPABILITIES = [
   { icon: MessageSquareText, label: '消费者反馈视角' },
 ] as const;
 
-export default function AuthLayout({ children }: AuthLayoutProps) {
+export default function AuthLayout({ children, variant = 'default' }: AuthLayoutProps) {
   const { isDark, toggleTheme } = useTheme();
+  const [loginPhrase, setLoginPhrase] = useState('77港话通\n社媒文案器');
+
+  useEffect(() => {
+    if (variant !== 'login-v4') return;
+    const root = document.documentElement;
+    root.classList.add('light');
+    root.setAttribute('data-theme', 'light');
+    const reduceMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return;
+
+    let targetX = 0.32;
+    let targetY = 0.48;
+    let currentX = 0.32;
+    let currentY = 0.48;
+    let frame = 0;
+    const applyPointer = () => {
+      currentX += (targetX - currentX) * 0.07;
+      currentY += (targetY - currentY) * 0.07;
+      root.style.setProperty('--mx', currentX.toFixed(4));
+      root.style.setProperty('--my', currentY.toFixed(4));
+      if (Math.abs(targetX - currentX) > 0.001 || Math.abs(targetY - currentY) > 0.001) {
+        frame = window.requestAnimationFrame(applyPointer);
+      } else {
+        frame = 0;
+      }
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      targetX = event.clientX / Math.max(window.innerWidth, 1);
+      targetY = event.clientY / Math.max(window.innerHeight, 1);
+      if (!frame) frame = window.requestAnimationFrame(applyPointer);
+    };
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      if (frame) window.cancelAnimationFrame(frame);
+      root.style.removeProperty('--mx');
+      root.style.removeProperty('--my');
+    };
+  }, [variant]);
+
+  useEffect(() => {
+    if (
+      variant !== 'login-v4'
+      || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    ) return;
+    const phrases = ['77港话通\n社媒文案器', '港式语气\n一次出稿', '五平台\n一键生成'];
+    let phraseIndex = 0;
+    let characterIndex = (phrases[0] ?? '').length;
+    let deleting = true;
+    let timer = 0;
+    const tick = () => {
+      const phrase = phrases[phraseIndex] ?? phrases[0] ?? '';
+      characterIndex += deleting ? -1 : 1;
+      setLoginPhrase(phrase.slice(0, Math.max(characterIndex, 0)));
+      if (!deleting && characterIndex >= phrase.length) {
+        deleting = true;
+        timer = window.setTimeout(tick, 1450);
+      } else if (deleting && characterIndex <= 0) {
+        deleting = false;
+        phraseIndex = (phraseIndex + 1) % phrases.length;
+        timer = window.setTimeout(tick, 280);
+      } else {
+        timer = window.setTimeout(tick, deleting ? 46 : 88);
+      }
+    };
+    timer = window.setTimeout(tick, 1400);
+    return () => window.clearTimeout(timer);
+  }, [variant]);
+
+  if (variant === 'login-v4') {
+    return (
+      <div className="login-v4-root">
+        <div className="toolbar" role="toolbar" aria-label="登录导航">
+          <strong>登录</strong><span className="sep" aria-hidden="true" /><a className="link" href="/">← 返回首页</a>
+        </div>
+        <div className="veil" aria-label="登录页品牌背景">
+          <div className="veil-parallax"><div className="veil-mesh" /><div className="veil-bloom-soft" /><div className="veil-flowers" /></div>
+          <div className="veil-soften" /><div className="veil-grain" /><div className="veil-read" />
+        </div>
+        <div className="page">
+          <div className="page-main">
+            <section className="hero">
+              <div className="hero-inner">
+                <div className="logo-row"><span className="logo-box"><img src="/brand/77-logo.png" alt="" /></span><span>77 港话通</span></div>
+                <div className="type-wrap" aria-live="polite"><h1 className="type-title"><span className="type-text">{loginPhrase}</span><span className="caret" aria-hidden="true" /></h1></div>
+                <p className="tagline"><span className="hl">HK Cantonese Social Copywriter</span></p>
+              </div>
+            </section>
+            <section className="auth"><div className="panel">{children}</div></section>
+          </div>
+          <footer className="site-foot">
+            <p className="admin-line">需要团队管理员权限，请联系<a className="tel" href="tel:18595680518">VX&amp;Tel: 18595680518</a></p>
+            <p className="credit">团队协作版 ¥99/月 · 人工确认后开通</p>
+          </footer>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative min-h-full overflow-hidden ${isDark ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>

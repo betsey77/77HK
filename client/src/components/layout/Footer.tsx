@@ -20,7 +20,7 @@ export default function Footer() {
         Powered by {engineLabel}
       </span>
       <span className="text-[10px] text-gray-700 light:text-gray-600">
-        v0.3.0
+        v1.1.4
       </span>
     </footer>
   );

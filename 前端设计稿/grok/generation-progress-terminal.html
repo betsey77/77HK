@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark" data-reduced="false">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>生成进度 + Agent Terminal · 设计稿</title>
+  <style>
+    :root {
+      --font: "PingFang HK", "Microsoft YaHei", system-ui, sans-serif;
+      --mono: ui-monospace, "SF Mono", Consolas, "Cascadia Code", monospace;
+      --radius: 8px;
+      --radius-xl: 12px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --dur: 200ms;
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg: #030712;
+      --surface: #111827;
+      --surface-2: #1f2937;
+      --border: rgba(55, 65, 81, 0.5);
+      --text: #f3f4f6;
+      --text-2: #9ca3af;
+      --text-3: #6b7280;
+      --accent: #34d399;
+      --accent-2: #6ee7b7;
+      --accent-soft: rgba(16, 185, 129, 0.15);
+      --accent-border: rgba(16, 185, 129, 0.35);
+      --accent-line: rgba(52, 211, 153, 0.55);
+      --danger: #f87171;
+      --danger-soft: rgba(239, 68, 68, 0.15);
+      --term-bg: #0b1220;
+      --term-header: #0f172a;
+      --tag-d: #34d399;
+      --tag-v: #38bdf8;
+      --tag-q: #fbbf24;
+      --tag-a: #a3e635;
+      --scrim: rgba(0, 0, 0, 0.45);
+      --btn-bg: #1f2937;
+      --btn-hover: #374151;
+      --primary-bg: #059669;
+      --primary-hover: #10b981;
+    }
+
+    [data-theme="light"] {
+      --bg: #f9fafb;
+      --surface: #ffffff;
+      --surface-2: #f3f4f6;
+      --border: rgba(209, 213, 219, 0.8);
+      --text: #111827;
+      --text-2: #4b5563;
+      --text-3: #9ca3af;
+      --accent: #ea580c;
+      --accent-2: #c2410c;
+      --accent-soft: rgba(249, 115, 22, 0.12);
+      --accent-border: rgba(249, 115, 22, 0.35);
+      --accent-line: rgba(234, 88, 12, 0.55);
+      --danger: #ef4444;
+      --danger-soft: rgba(239, 68, 68, 0.1);
+      --term-bg: #f8fafc;
+      --term-header: #f1f5f9;
+      --tag-d: #ea580c;
+      --tag-v: #0284c7;
+      --tag-q: #d97706;
+      --tag-a: #65a30d;
+      --scrim: rgba(15, 23, 42, 0.25);
+      --btn-bg: #f3f4f6;
+      --btn-hover: #e5e7eb;
+      --primary-bg: #ea580c;
+      --primary-hover: #f97316;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .logo-box {
+      display: inline-flex;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      overflow: hidden;
+      background: #000;
+      flex-shrink: 0;
+    }
+    .logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.035);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand p {
+      margin: 0;
+      font-size: 10px;
+      color: var(--text-3);
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--accent-border);
+      background: var(--accent-soft);
+      color: var(--accent-2);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      align-items: center;
+    }
+
+    .controls label {
+      font-size: 11px;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    select, button {
+      font-family: inherit;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--btn-bg);
+      color: var(--text);
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+    }
+    select:hover, button:hover { background: var(--btn-hover); }
+    select:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    button.primary {
+      background: var(--primary-bg);
+      border-color: transparent;
+      color: #fff;
+      font-weight: 600;
+    }
+    button.primary:hover { background: var(--primary-hover); }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+
+    .stage-card {
+      width: min(520px, 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .steps {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: 72px;
+    }
+
+    .dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    }
+
+    .dot-inner {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--text-3);
+    }
+
+    .step[data-status="pending"] .label { color: var(--text-3); }
+    .step[data-status="active"] .dot {
+      border: 2px solid var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .step[data-status="active"] .dot-inner {
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+    }
+    .step[data-status="active"] .label {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .step[data-status="done"] .dot {
+      border-color: var(--accent-border);
+      background: var(--accent-soft);
+    }
+    .step[data-status="done"] .label { color: var(--accent-2); }
+    .step[data-status="failed"] .dot {
+      border-color: rgba(248, 113, 113, 0.4);
+      background: var(--danger-soft);
+    }
+    .step[data-status="failed"] .label { color: var(--danger); }
+
+    .label {
+      font-size: 10px;
+      text-align: center;
+      line-height: 1.25;
+      max-width: 64px;
+      transition: color var(--dur) var(--ease);
+    }
+
+    .connector {
+      width: 32px;
+      height: 2px;
+      margin-top: 13px;
+      border-radius: 999px;
+      background: var(--border);
+      transition: background 0.45s var(--ease);
+    }
+    .connector[data-from="done"] { background: var(--accent-line); }
+    .connector[data-from="active"] {
+      background: linear-gradient(90deg, var(--accent-line), var(--border));
+    }
+
+    .hint {
+      margin: 0;
+      font-size: 10px;
+      color: var(--text-3);
+      text-align: center;
+    }
+
+    .live {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    /* Terminal */
+    .terminal {
+      width: min(520px, 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: var(--term-bg);
+      overflow: hidden;
+      box-shadow: 0 8px 30px var(--scrim);
+    }
+
+    .term-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--term-header);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .term-head-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-2);
+      font-weight: 600;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .term-meta {
+      font-size: 10px;
+      color: var(--text-3);
+      font-family: var(--mono);
+    }
+
+    .term-body {
+      height: 168px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.55;
+      scroll-behavior: smooth;
+    }
+
+    .log {
+      display: flex;
+      gap: 8px;
+      color: var(--text-2);
+      animation: log-in 180ms var(--ease);
+    }
+    .log + .log { margin-top: 4px; }
+
+    .log .tag {
+      flex-shrink: 0;
+      font-weight: 600;
+    }
+    .tag-DIAGNOSE { color: var(--tag-d); }
+    .tag-VARIANT_ENGINE { color: var(--tag-v); }
+    .tag-QUALITY_GATE { color: var(--tag-q); }
+    .tag-AUDIENCE_SIM { color: var(--tag-a); }
+    .tag-SYSTEM { color: var(--text-3); }
+
+    .log .msg { color: var(--text-2); }
+    .log.is-active .msg { color: var(--text); }
+
+    .cursor {
+      display: inline-block;
+      width: 7px;
+      height: 12px;
+      margin-left: 2px;
+      background: var(--accent);
+      vertical-align: -1px;
+      border-radius: 1px;
+    }
+
+    .scanline {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        transparent 0%,
+        rgba(52, 211, 153, 0.03) 50%,
+        transparent 100%
+      );
+      background-size: 100% 8px;
+      opacity: 0.35;
+    }
+
+    .term-wrap { position: relative; width: 100%; }
+
+    .note {
+      max-width: 520px;
+      margin: 0 auto var(--space-4);
+      padding: 0 var(--space-4);
+      font-size: 11px;
+      color: var(--text-3);
+      text-align: center;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.92); }
+    }
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    @keyframes log-in {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    [data-reduced="false"] .step[data-status="active"] .dot-inner {
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    [data-reduced="false"] .pulse-dot {
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    [data-reduced="false"] .cursor {
+      animation: blink 1s step-end infinite;
+    }
+    [data-reduced="true"] .step[data-status="active"] .dot-inner,
+    [data-reduced="true"] .pulse-dot,
+    [data-reduced="true"] .cursor {
+      animation: none;
+    }
+    [data-reduced="true"] .log { animation: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .step[data-status="active"] .dot-inner,
+      .pulse-dot,
+      .cursor { animation: none !important; }
+      .log { animation: none !important; }
+    }
+
+    .check, .x {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .step[data-status="done"] .check { color: var(--accent); }
+    .step[data-status="failed"] .x { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo-box" aria-hidden="true">
+        <img src="assets/77-logo.png" alt="" />
+      </span>
+      <div>
+        <h1>生成进度可视化 · 设计稿</h1>
+        <p>预估阶段 · 非 SSE / 非真实模型日志</p>
+      </div>
+      <span class="badge">Mock only</span>
+    </div>
+    <div class="controls">
+      <label>主题
+        <select id="theme" aria-label="主题">
+          <option value="dark">Dark · 荧光绿</option>
+          <option value="light">Light · 橙色</option>
+        </select>
+      </label>
+      <label>场景
+        <select id="scenario" aria-label="场景">
+          <option value="idle">Idle</option>
+          <option value="running" selected>Running</option>
+          <option value="success">Success</option>
+          <option value="error">Error</option>
+        </select>
+      </label>
+      <label>
+        <input type="checkbox" id="reduced" /> 减少动效
+      </label>
+      <button type="button" class="primary" id="btn-play">演示运行</button>
+      <button type="button" id="btn-reset">重置</button>
+    </div>
+  </header>
+
+  <p class="note">
+    日志由阶段状态推导，标签仅为用户可读模块名。实际产品接入时绑定 <code>StageProgress.status</code>，禁止伪造 token 流与精确耗时。
+  </p>
+
+  <main>
+    <div class="stage-card" id="progress-root">
+      <div class="steps" id="steps" role="list" aria-label="生成四阶段"></div>
+      <p class="hint">预估阶段 · 实际耗时可能因 AI 响应速度而异</p>
+      <div class="live" id="live" aria-live="polite" aria-atomic="true"></div>
+
+      <div class="term-wrap">
+        <div class="terminal" role="region" aria-label="阶段状态终端（预估）">
+          <div class="term-head">
+            <div class="term-head-left">
+              <span class="pulse-dot" aria-hidden="true"></span>
+              Agent Terminal
+              <span style="font-weight:400;color:var(--text-3);font-size:10px">预估流程</span>
+            </div>
+            <div class="term-meta" id="term-meta">stage · idle</div>
+          </div>
+          <div class="term-body" id="term-body"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const STAGES = [
+      { id: "diagnosis", label: "诊断原文", tag: "DIAGNOSE" },
+      { id: "generation", label: "生成变体", tag: "VARIANT_ENGINE" },
+      { id: "audit", label: "质量审核", tag: "QUALITY_GATE" },
+      { id: "feedback", label: "消费者反馈", tag: "AUDIENCE_SIM" },
+    ];
+
+    const LOG_MAP = {
+      diagnosis: {
+        start: "正在识别原文语言与品牌约束…",
+        done: "原文诊断完成，已提取关键约束。",
+      },
+      generation: {
+        start: "正在生成 5 个平台版本…",
+        done: "平台差异化表达生成完成。",
+      },
+      audit: {
+        start: "正在检查港味、平台适配与品牌安全…",
+        done: "质量门禁检查通过。",
+      },
+      feedback: {
+        start: "正在汇总目标消费者反馈…",
+        done: "消费者反馈模拟完成。",
+      },
+    };
+
+    let statuses = ["pending", "pending", "pending", "pending"];
+    let logs = [];
+    let timers = [];
+    let running = false;
+
+    const elSteps = document.getElementById("steps");
+    const elBody = document.getElementById("term-body");
+    const elMeta = document.getElementById("term-meta");
+    const elLive = document.getElementById("live");
+    const elTheme = document.getElementById("theme");
+    const elScenario = document.getElementById("scenario");
+    const elReduced = document.getElementById("reduced");
+
+    function clearTimers() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      running = false;
+    }
+
+    function iconCheck() {
+      return `<svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>`;
+    }
+    function iconX() {
+      return `<svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+    }
+
+    function renderSteps() {
+      let html = "";
+      STAGES.forEach((s, i) => {
+        const st = statuses[i];
+        let inner = `<span class="dot-inner"></span>`;
+        if (st === "done") inner = iconCheck();
+        if (st === "failed") inner = iconX();
+        html += `
+          <div class="step" data-status="${st}" data-stage="${s.id}" role="listitem" aria-label="${s.label}：${st}">
+            <div class="dot">${inner}</div>
+            <span class="label">${s.label}</span>
+          </div>`;
+        if (i < STAGES.length - 1) {
+          html += `<div class="connector" data-from="${st}" aria-hidden="true"></div>`;
+        }
+      });
+      elSteps.innerHTML = html;
+
+      const active = STAGES.find((_, i) => statuses[i] === "active");
+      const failed = STAGES.find((_, i) => statuses[i] === "failed");
+      const allDone = statuses.every((x) => x === "done");
+      if (failed) elLive.textContent = `阶段失败：${failed.label}`;
+      else if (allDone) elLive.textContent = "生成流程已完成（预估）";
+      else if (active) elLive.textContent = `当前预估阶段：${active.label}`;
+      else elLive.textContent = "生成未开始";
+    }
+
+    function renderLogs() {
+      const activeIdx = statuses.findIndex((s) => s === "active");
+      elBody.innerHTML = logs
+        .map((l, idx) => {
+          const isLast = idx === logs.length - 1;
+          const showCursor = isLast && activeIdx >= 0 && running;
+          return `<div class="log ${isLast && running ? "is-active" : ""}">
+            <span class="tag tag-${l.tag}">[${l.tag}]</span>
+            <span class="msg">${l.msg}${showCursor ? '<span class="cursor" aria-hidden="true"></span>' : ""}</span>
+          </div>`;
+        })
+        .join("");
+      elBody.scrollTop = elBody.scrollHeight;
+
+      const active = STAGES.find((_, i) => statuses[i] === "active");
+      const allDone = statuses.every((s) => s === "done");
+      const anyFailed = statuses.some((s) => s === "failed");
+      if (anyFailed) elMeta.textContent = "stage · error";
+      else if (allDone) elMeta.textContent = "stage · success";
+      else if (active) elMeta.textContent = `stage · ${active.id}`;
+      else elMeta.textContent = "stage · idle";
+    }
+
+    function pushLog(tag, msg) {
+      logs.push({ tag, msg });
+      renderLogs();
+    }
+
+    function setScenario(name) {
+      clearTimers();
+      logs = [];
+      if (name === "idle") {
+        statuses = ["pending", "pending", "pending", "pending"];
+        pushLog("SYSTEM", "等待用户点击「生成文案」…");
+      } else if (name === "running") {
+        statuses = ["done", "active", "pending", "pending"];
+        pushLog("DIAGNOSE", LOG_MAP.diagnosis.done);
+        pushLog("VARIANT_ENGINE", LOG_MAP.generation.start);
+      } else if (name === "success") {
+        statuses = ["done", "done", "done", "done"];
+        STAGES.forEach((s) => {
+          pushLog(s.tag, LOG_MAP[s.id].done);
+        });
+        pushLog("SYSTEM", "结果已写入中栏（设计稿 mock）");
+      } else if (name === "error") {
+        statuses = ["done", "done", "failed", "pending"];
+        pushLog("DIAGNOSE", LOG_MAP.diagnosis.done);
+        pushLog("VARIANT_ENGINE", LOG_MAP.generation.done);
+        pushLog("QUALITY_GATE", "质量门禁检查未通过（示例错误）");
+        pushLog("SYSTEM", "已回落到原有错误路径，不假装成功");
+      }
+      renderSteps();
+      renderLogs();
+    }
+
+    function playDemo() {
+      clearTimers();
+      running = true;
+      statuses = ["pending", "pending", "pending", "pending"];
+      logs = [];
+      elScenario.value = "running";
+      pushLog("SYSTEM", "已启动预估流程（本地演示）");
+      renderSteps();
+
+      const plan = [
+        { t: 300, fn: () => {
+          statuses[0] = "active";
+          pushLog("DIAGNOSE", LOG_MAP.diagnosis.start);
+          renderSteps();
+        }},
+        { t: 1600, fn: () => {
+          statuses[0] = "done";
+          pushLog("DIAGNOSE", LOG_MAP.diagnosis.done);
+          statuses[1] = "active";
+          pushLog("VARIANT_ENGINE", LOG_MAP.generation.start);
+          renderSteps();
+        }},
+        { t: 3600, fn: () => {
+          statuses[1] = "done";
+          pushLog("VARIANT_ENGINE", LOG_MAP.generation.done);
+          statuses[2] = "active";
+          pushLog("QUALITY_GATE", LOG_MAP.audit.start);
+          renderSteps();
+        }},
+        { t: 5400, fn: () => {
+          statuses[2] = "done";
+          pushLog("QUALITY_GATE", LOG_MAP.audit.done);
+          statuses[3] = "active";
+          pushLog("AUDIENCE_SIM", LOG_MAP.feedback.start);
+          renderSteps();
+        }},
+        { t: 7200, fn: () => {
+          statuses[3] = "done";
+          pushLog("AUDIENCE_SIM", LOG_MAP.feedback.done);
+          pushLog("SYSTEM", "全部预估阶段完成 · 进入结果视图");
+          running = false;
+          elScenario.value = "success";
+          renderSteps();
+          renderLogs();
+        }},
+      ];
+      plan.forEach(({ t, fn }) => timers.push(setTimeout(fn, t)));
+    }
+
+    elTheme.addEventListener("change", () => {
+      document.documentElement.setAttribute("data-theme", elTheme.value);
+    });
+    elScenario.addEventListener("change", () => setScenario(elScenario.value));
+    elReduced.addEventListener("change", () => {
+      document.documentElement.setAttribute("data-reduced", elReduced.checked ? "true" : "false");
+    });
+    document.getElementById("btn-play").addEventListener("click", playDemo);
+    document.getElementById("btn-reset").addEventListener("click", () => {
+      elScenario.value = "idle";
+      setScenario("idle");
+    });
+
+    // init
+    setScenario("running");
+  </script>
+</body>
+</html>

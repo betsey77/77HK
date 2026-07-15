@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark" data-variant="A" data-state="idle">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>三栏工作台 UI 提案 · 设计稿</title>
+  <style>
+    :root {
+      --font: "PingFang HK", "Microsoft YaHei", system-ui, sans-serif;
+      --mono: ui-monospace, Consolas, monospace;
+      --header-h: 48px;
+      --tweaks-w: 260px;
+    }
+    [data-theme="dark"] {
+      --bg: #030712;
+      --surface: #111827;
+      --panel: #0b1220;
+      --panel-2: #111827;
+      --border: rgba(55, 65, 81, 0.55);
+      --text: #f3f4f6;
+      --text-2: #9ca3af;
+      --text-3: #6b7280;
+      --accent: #34d399;
+      --accent-strong: #10b981;
+      --accent-text: #6ee7b7;
+      --accent-soft: rgba(16, 185, 129, 0.14);
+      --accent-border: rgba(16, 185, 129, 0.35);
+      --amber: #fbbf24;
+      --danger: #f87171;
+      --btn: #1f2937;
+      --btn-hover: #374151;
+      --term: #070d18;
+    }
+    [data-theme="light"] {
+      --bg: #f9fafb;
+      --surface: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f3f4f6;
+      --border: rgba(209, 213, 219, 0.85);
+      --text: #111827;
+      --text-2: #4b5563;
+      --text-3: #9ca3af;
+      --accent: #ea580c;
+      --accent-strong: #ea580c;
+      --accent-text: #c2410c;
+      --accent-soft: rgba(249, 115, 22, 0.1);
+      --accent-border: rgba(234, 88, 12, 0.35);
+      --amber: #d97706;
+      --danger: #dc2626;
+      --btn: #f3f4f6;
+      --btn-hover: #e5e7eb;
+      --term: #f8fafc;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); }
+    button, select, textarea, input { font-family: inherit; }
+
+    /* Tweaks bar */
+    .tweaks {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 50;
+      width: var(--tweaks-w);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+    .tweaks-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tweaks-body { padding: 10px; display: grid; gap: 8px; }
+    .tweaks.collapsed .tweaks-body { display: none; }
+    .tweaks label {
+      display: grid;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--text-3);
+    }
+    .tweaks select, .tweaks button {
+      font-size: 11px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      padding: 5px 8px;
+      cursor: pointer;
+    }
+    .tweaks button:hover, .tweaks select:hover { background: var(--btn-hover); }
+    .tweaks .hint {
+      font-size: 10px;
+      color: var(--text-3);
+      line-height: 1.4;
+      margin: 0;
+    }
+    .variant-pill {
+      display: inline-flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .variant-pill button {
+      flex: 1;
+      min-width: 0;
+    }
+    .variant-pill button.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+      color: var(--accent-text);
+      font-weight: 600;
+    }
+
+    /* App shell */
+    .app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      min-width: 960px;
+    }
+
+    header.app-header {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .logo-box {
+      width: 32px; height: 32px; border-radius: 9px;
+      overflow: hidden; background: #000; flex-shrink: 0;
+    }
+    .logo-box img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.035); }
+    .brand h1 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: -0.02em; }
+    .brand p { margin: 0; font-size: 10px; color: var(--text-3); }
+
+    .header-actions { display: flex; align-items: center; gap: 6px; }
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-3);
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .icon-btn:hover { background: var(--btn); color: var(--text); }
+    .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .engine {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--accent);
+      padding: 0 6px;
+    }
+    .engine i {
+      width: 6px; height: 6px; border-radius: 999px; background: var(--accent);
+      display: inline-block;
+    }
+    .quota {
+      font-size: 10px;
+      color: var(--text-3);
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .panels {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      min-height: 0;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .panel:last-child { border-right: none; }
+    .panel-head {
+      flex-shrink: 0;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    /* Left form */
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      font-size: 10px;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+    .field textarea, .field input, .field select {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .field textarea:focus, .field input:focus, .field select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text-2);
+      cursor: pointer;
+    }
+    .chip:hover { border-color: var(--text-3); color: var(--text); }
+    .chip.added {
+      border-color: var(--accent-border);
+      background: var(--accent-soft);
+      color: var(--accent-text);
+    }
+    .chip-toast {
+      font-size: 10px;
+      color: var(--accent-text);
+      min-height: 14px;
+      margin-top: 4px;
+    }
+    .cta {
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-strong);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+    .cta:hover { filter: brightness(1.08); }
+    .cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .cta:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+    /* Center states */
+    .center {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      padding: 16px;
+    }
+    .center .title { font-size: 13px; color: var(--text-2); margin: 0; }
+    .center .sub { font-size: 11px; color: var(--text-3); margin: 0; }
+
+    .steps {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .step { width: 64px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .dot {
+      width: 24px; height: 24px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--panel-2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dot span { width: 6px; height: 6px; border-radius: 999px; background: var(--text-3); }
+    .step.active .dot { border: 2px solid var(--accent); background: var(--accent-soft); }
+    .step.active .dot span { width: 10px; height: 10px; background: var(--accent); }
+    .step.done .dot { border-color: var(--accent-border); background: var(--accent-soft); }
+    .step.done .dot span { background: var(--accent); width: 8px; height: 8px; }
+    .step .lbl { font-size: 9px; color: var(--text-3); }
+    .step.active .lbl { color: var(--accent); font-weight: 600; }
+    .step.done .lbl { color: var(--accent-text); }
+    .conn { width: 28px; height: 2px; margin-top: 11px; background: var(--border); border-radius: 999px; }
+    .conn.done { background: var(--accent); opacity: 0.55; }
+
+    .terminal {
+      width: min(460px, 100%);
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--term);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .term-h {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 10px; border-bottom: 1px solid var(--border);
+      font-size: 10px; color: var(--text-2); font-weight: 600;
+    }
+    .term-b {
+      padding: 8px 10px;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 1.5;
+      color: var(--text-2);
+      max-height: 120px;
+      overflow: auto;
+    }
+    [data-variant="B"] .term-b { max-height: 160px; }
+    [data-variant="C"] .terminal.collapsed .term-b { display: none; }
+    [data-variant="C"] .terminal { width: min(400px, 100%); }
+    .tag { color: var(--accent); font-weight: 600; }
+
+    .result-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-2);
+      padding: 12px;
+    }
+    .result-card .meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px; font-size: 10px; color: var(--text-3);
+    }
+    .result-card .score { color: var(--accent-text); font-weight: 700; }
+    .result-card pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: var(--font);
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text);
+    }
+    .tabs {
+      display: flex; gap: 4px; flex-wrap: wrap; width: 100%; margin-bottom: 8px;
+    }
+    .tab {
+      font-size: 10px; padding: 4px 8px; border-radius: 6px;
+      border: 1px solid var(--border); background: transparent; color: var(--text-3); cursor: pointer;
+    }
+    .tab.active {
+      background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent-text); font-weight: 600;
+    }
+
+    .error-box {
+      color: var(--danger);
+      font-size: 13px;
+    }
+    .retry {
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    /* Right audit */
+    .audit-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: var(--panel-2);
+    }
+    .audit-item .h {
+      display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;
+    }
+    .audit-item .h strong { color: var(--text); font-weight: 600; }
+    .sev-high { color: var(--danger); }
+    .sev-med { color: var(--amber); }
+    .sev-low { color: #60a5fa; }
+    .audit-item p { margin: 0; font-size: 11px; color: var(--text-2); line-height: 1.45; }
+    .empty-right {
+      font-size: 12px; color: var(--text-3); text-align: center; padding: 24px 8px;
+    }
+
+    .banner {
+      flex-shrink: 0;
+      font-size: 10px;
+      padding: 4px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--accent-soft);
+      color: var(--accent-text);
+      text-align: center;
+    }
+
+    [data-variant="B"] .panel-head { letter-spacing: 0.02em; }
+    [data-variant="B"] .cta { box-shadow: 0 0 0 1px var(--accent-border); }
+    [data-variant="C"] .steps { transform: scale(0.92); }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="banner" id="banner">
+      设计稿 · 变体 A（基线紧凑）· 状态 idle · 不调用真实 API
+    </div>
+
+    <header class="app-header">
+      <div class="brand">
+        <span class="logo-box"><img src="assets/77-logo.png" alt="77" /></span>
+        <div>
+          <h1>77港话通社媒文案器</h1>
+          <p>HK Cantonese Social Copywriter</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="icon-btn" title="生成历史">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          历史
+        </button>
+        <button type="button" class="icon-btn" title="文案收藏库">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17.3l-6.2 3.3 1.2-7L2 8.7l7-1L12 1.3 15 7.7l7 1-5 4.9 1.2 7z"/></svg>
+          收藏库
+        </button>
+        <span class="engine" title="引擎状态"><i></i> DeepSeek</span>
+        <span class="quota" id="quota-label">Free · 18/20</span>
+        <button type="button" class="icon-btn">菜单</button>
+      </div>
+    </header>
+
+    <div class="panels">
+      <!-- Left -->
+      <section class="panel" aria-label="输入栏">
+        <div class="panel-head"><span>输入与参数</span><span style="font-weight:400;color:var(--text-3)">左栏</span></div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="source">原文</label>
+            <textarea id="source">暑假兒童餐：高性價比營養肉丸，適合忙碌爸媽！今日限定優惠，快啲嚟試啦～</textarea>
+          </div>
+          <div class="field">
+            <label>品牌 / 产品（示例）</label>
+            <input value="思念 · 儿童营养肉丸" readonly />
+          </div>
+          <div class="field">
+            <label>预设消费者画像（点击两次应去重）</label>
+            <div class="chips" id="persona-chips">
+              <button type="button" class="chip" data-name="本地师奶阿May">+ 本地师奶阿May</button>
+              <button type="button" class="chip" data-name="职场白领Jason">+ 职场白领Jason</button>
+              <button type="button" class="chip" data-name="斜杠青年Chris">+ 斜杠青年Chris</button>
+              <button type="button" class="chip" data-name="育儿爸妈Karen">+ 育儿爸妈Karen</button>
+            </div>
+            <div class="chip-toast" id="persona-toast" aria-live="polite"></div>
+            <div class="chips" id="persona-list" style="margin-top:6px"></div>
+          </div>
+          <button type="button" class="cta" id="btn-generate">生成文案</button>
+          <p class="chip-toast" style="margin-top:8px;color:var(--text-3)">
+            生成按钮在设计稿中切换中栏状态；402 场景请打开 quota 设计稿。
+          </p>
+        </div>
+      </section>
+
+      <!-- Center -->
+      <section class="panel" aria-label="结果栏">
+        <div class="panel-head">
+          <span>结果</span>
+          <span style="font-weight:400;color:var(--text-3)" id="center-state-label">idle</span>
+        </div>
+        <div class="panel-body" id="center-body"></div>
+      </section>
+
+      <!-- Right -->
+      <section class="panel" aria-label="审核栏">
+        <div class="panel-head"><span>质量审核</span><span style="font-weight:400;color:var(--text-3)">右栏</span></div>
+        <div class="panel-body" id="right-body"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Tweaks -->
+  <div class="tweaks" id="tweaks">
+    <div class="tweaks-head" id="tweaks-toggle">
+      <span>Tweaks</span>
+      <span id="tweaks-caret">▾</span>
+    </div>
+    <div class="tweaks-body">
+      <p class="hint">同一三栏骨架上的 3 个受约束局部变体，不是三套产品。</p>
+      <label>主题
+        <select id="theme">
+          <option value="dark">Dark · emerald</option>
+          <option value="light">Light · orange</option>
+        </select>
+      </label>
+      <label>中栏状态
+        <select id="ui-state">
+          <option value="idle">idle</option>
+          <option value="loading">loading</option>
+          <option value="result">result</option>
+          <option value="error">error</option>
+        </select>
+      </label>
+      <div>
+        <div style="font-size:10px;color:var(--text-3);margin-bottom:4px">局部变体</div>
+        <div class="variant-pill" id="variants">
+          <button type="button" class="active" data-v="A" title="基线紧凑">A</button>
+          <button type="button" data-v="B" title="终端更显">B</button>
+          <button type="button" data-v="C" title="结果优先">C</button>
+        </div>
+      </div>
+      <p class="hint" id="variant-desc">A 基线：最接近现网密度，仅加强 loading 终端与空态层级。</p>
+      <button type="button" id="btn-quota-demo">演示额度不足入口</button>
+    </div>
+  </div>
+
+  <script>
+    const VARIANT_DESC = {
+      A: "A 基线：最接近现网密度，仅加强 loading 终端与空态层级。",
+      B: "B 终端更显：loading 终端略增高，CTA 描边更强，标签更醒目。",
+      C: "C 结果优先：进度更小；终端可折叠，给结果区更多预期空间。",
+    };
+
+    const personas = new Set();
+    const elCenter = document.getElementById("center-body");
+    const elRight = document.getElementById("right-body");
+    const elBanner = document.getElementById("banner");
+    const elStateLabel = document.getElementById("center-state-label");
+    const elVariantDesc = document.getElementById("variant-desc");
+    const elPersonaList = document.getElementById("persona-list");
+    const elPersonaToast = document.getElementById("persona-toast");
+
+    function currentVariant() {
+      return document.documentElement.getAttribute("data-variant") || "A";
+    }
+    function currentState() {
+      return document.documentElement.getAttribute("data-state") || "idle";
+    }
+
+    function updateBanner() {
+      elBanner.textContent = `设计稿 · 变体 ${currentVariant()} · 状态 ${currentState()} · 不调用真实 API`;
+      elStateLabel.textContent = currentState();
+      elVariantDesc.textContent = VARIANT_DESC[currentVariant()];
+    }
+
+    function renderRight(state) {
+      if (state !== "result") {
+        elRight.innerHTML = `<div class="empty-right">生成完成后，审核议题会显示在这里。<br/><span style="font-size:10px">保留右栏工作流，不改为营销页。</span></div>`;
+        return;
+      }
+      elRight.innerHTML = `
+        <div class="audit-item">
+          <div class="h"><strong>港味自然度</strong><span class="sev-low">低</span></div>
+          <p>口语节奏良好；可再压缩一句硬广。</p>
+        </div>
+        <div class="audit-item">
+          <div class="h"><strong>平台适配 · IG</strong><span class="sev-med">中</span></div>
+          <p>hashtag 偏多，建议保留 3–5 个核心标签。</p>
+        </div>
+        <div class="audit-item">
+          <div class="h"><strong>品牌安全</strong><span class="sev-high">高</span></div>
+          <p>「限定」表述需与实际活动规则一致（示例议题）。</p>
+        </div>
+      `;
+    }
+
+    function renderCenter(state) {
+      const v = currentVariant();
+      if (state === "idle") {
+        elCenter.innerHTML = `
+          <div class="center">
+            <div style="font-size:28px;opacity:0.25;line-height:1">🎋</div>
+            <p class="title">在左边贴上原文，设定参数，然后按「生成文案」</p>
+            <p class="sub">支持普通话、简体中文、英文社媒文案 · 结果会出现在本栏</p>
+          </div>`;
+      } else if (state === "loading") {
+        const termCollapsed = v === "C" ? "collapsed" : "";
+        elCenter.innerHTML = `
+          <div class="center" style="justify-content:center">
+            <div class="steps" aria-label="预估四阶段">
+              <div class="step done"><div class="dot"><span></span></div><div class="lbl">诊断原文</div></div>
+              <div class="conn done"></div>
+              <div class="step active"><div class="dot"><span></span></div><div class="lbl">生成变体</div></div>
+              <div class="conn"></div>
+              <div class="step"><div class="dot"><span></span></div><div class="lbl">质量审核</div></div>
+              <div class="conn"></div>
+              <div class="step"><div class="dot"><span></span></div><div class="lbl">消费者反馈</div></div>
+            </div>
+            <p class="sub">预估阶段 · 实际耗时可能因 AI 响应速度而异</p>
+            <div class="terminal ${termCollapsed}" id="term">
+              <div class="term-h">
+                <span>● Agent Terminal · 预估流程</span>
+                ${v === "C" ? '<button type="button" class="icon-btn" id="term-toggle" style="padding:0 4px">展开</button>' : '<span style="font-family:var(--mono);font-weight:400;color:var(--text-3)">stage · generation</span>'}
+              </div>
+              <div class="term-b">
+                <div><span class="tag">[DIAGNOSE]</span> 原文诊断完成，已提取关键约束。</div>
+                <div><span class="tag">[VARIANT_ENGINE]</span> 正在生成 5 个平台版本…</div>
+              </div>
+            </div>
+          </div>`;
+        if (v === "C") {
+          const term = document.getElementById("term");
+          const tbtn = document.getElementById("term-toggle");
+          tbtn?.addEventListener("click", () => {
+            const open = !term.classList.contains("collapsed");
+            if (open) {
+              term.classList.add("collapsed");
+              tbtn.textContent = "展开";
+            } else {
+              term.classList.remove("collapsed");
+              tbtn.textContent = "折叠";
+            }
+          });
+        }
+      } else if (state === "result") {
+        elCenter.innerHTML = `
+          <div style="width:100%;max-width:560px;margin:0 auto">
+            <div class="tabs" role="tablist">
+              <button class="tab active" type="button">标准港式</button>
+              <button class="tab" type="button">轻粤语</button>
+              <button class="tab" type="button">IG</button>
+              <button class="tab" type="button">Facebook</button>
+              <button class="tab" type="button">Shorts</button>
+            </div>
+            <div class="result-card">
+              <div class="meta">
+                <span>标准港式 · mock</span>
+                <span class="score">综合 86</span>
+              </div>
+              <pre>暑假兒童餐嚟喇！高性價比營養肉丸，專為忙碌爸媽而設。
+今日限定優惠，快啲帶小朋友嚟試～
+#兒童餐 #營養肉丸 #香港美食</pre>
+            </div>
+          </div>`;
+        elCenter.querySelectorAll(".tab").forEach((tab) => {
+          tab.addEventListener("click", () => {
+            elCenter.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+          });
+        });
+      } else if (state === "error") {
+        elCenter.innerHTML = `
+          <div class="center">
+            <div class="error-box">生成失败：上游模型暂时不可用（示例，非 402）</div>
+            <button type="button" class="retry" id="btn-retry">重试</button>
+            <p class="sub">非 402 错误不弹升级窗；工作台输入保留</p>
+          </div>`;
+        document.getElementById("btn-retry")?.addEventListener("click", () => setState("loading"));
+      }
+      renderRight(state);
+    }
+
+    function setState(state) {
+      document.documentElement.setAttribute("data-state", state);
+      document.getElementById("ui-state").value = state;
+      updateBanner();
+      renderCenter(state);
+    }
+
+    function setVariant(v) {
+      document.documentElement.setAttribute("data-variant", v);
+      document.querySelectorAll("#variants button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.v === v);
+      });
+      updateBanner();
+      renderCenter(currentState());
+    }
+
+    // Persona dedupe demo
+    document.getElementById("persona-chips").addEventListener("click", (e) => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      const name = btn.dataset.name;
+      if (personas.has(name)) {
+        elPersonaToast.textContent = "该示例已加入";
+        btn.classList.add("added");
+        setTimeout(() => { elPersonaToast.textContent = ""; }, 1600);
+        return;
+      }
+      personas.add(name);
+      btn.classList.add("added");
+      elPersonaToast.textContent = `已添加：${name}`;
+      const tag = document.createElement("span");
+      tag.className = "chip added";
+      tag.textContent = name;
+      tag.title = "点击移除（演示）";
+      tag.style.cursor = "pointer";
+      tag.addEventListener("click", () => {
+        personas.delete(name);
+        tag.remove();
+        btn.classList.remove("added");
+        elPersonaToast.textContent = `已移除：${name}`;
+      });
+      elPersonaList.appendChild(tag);
+      setTimeout(() => { if (elPersonaToast.textContent.startsWith("已添加")) elPersonaToast.textContent = ""; }, 1200);
+    });
+
+    document.getElementById("theme").addEventListener("change", (e) => {
+      document.documentElement.setAttribute("data-theme", e.target.value);
+    });
+    document.getElementById("ui-state").addEventListener("change", (e) => setState(e.target.value));
+    document.getElementById("variants").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-v]");
+      if (b) setVariant(b.dataset.v);
+    });
+    document.getElementById("btn-generate").addEventListener("click", () => setState("loading"));
+    document.getElementById("btn-quota-demo").addEventListener("click", () => {
+      window.open("quota-insufficient-dialog.html", "_blank");
+    });
+    document.getElementById("tweaks-toggle").addEventListener("click", () => {
+      document.getElementById("tweaks").classList.toggle("collapsed");
+    });
+
+    // init
+    setState("idle");
+  </script>
+</body>
+</html>

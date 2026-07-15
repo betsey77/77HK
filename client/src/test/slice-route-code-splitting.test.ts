@@ -11,6 +11,8 @@ describe('route code splitting', () => {
     expect(source).toContain("const AdminPage = lazy(() => import('./pages/AdminPage'))");
     expect(source).toContain("const InputPanel = lazy(() => import('./components/input/InputPanel'))");
     expect(source).toContain('<Suspense fallback={<AuthLoading />}>');
+    expect(source).toContain('return <MarketingPage />;');
+    expect(source).not.toContain('return <ThemeProvider><MarketingPage /></ThemeProvider>;');
     expect(source).not.toMatch(/^import\s+MarketingPage\s+from/m);
     expect(source).not.toMatch(/^import\s+AdminPage\s+from/m);
     expect(source).not.toMatch(/^import\s+InputPanel\s+from/m);

@@ -18,6 +18,7 @@ import SignupPage from '../pages/SignupPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import FavoritesPanel from '../components/favorites/FavoritesPanel';
 import InputPanel from '../components/input/InputPanel';
+import Footer from '../components/layout/Footer';
 import { withDefaultPublishPlatform } from '../utils/publishPlatform';
 import { formatAdminReasonTag, formatAdminReasonTags } from '../utils/adminDisplayLabels';
 import type { BookmarkedCopy, AppSettings } from '../types';
@@ -184,22 +185,19 @@ beforeEach(() => {
 // ── A. Login visual ───────────────────────────────────────────
 
 describe('登录页视觉与认证行为', () => {
-  it('显示品牌 logo、欢迎回来，并保留邮箱/密码、忘记密码与注册入口', async () => {
+  it('显示原稿品牌大字，并保留邮箱/密码、忘记密码与注册入口', async () => {
     render(<LoginPage />, { wrapper: AuthWrapper });
     await awaitAuthReady();
 
     const logo = document.querySelector('img[src="/brand/77-logo.png"]');
     expect(logo).toBeTruthy();
-    expect(screen.getByText('欢迎回来')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /77港话通[\s\S]*社媒文案器/ })).toBeInTheDocument();
     expect(screen.getByLabelText('邮箱 Email')).toHaveAttribute('id', 'login-email');
     expect(screen.getByLabelText('密码 Password')).toHaveAttribute('id', 'login-password');
     expect(screen.getByRole('link', { name: /忘记密码/ })).toHaveAttribute('href', '/forgot-password');
     expect(screen.getByRole('link', { name: /创建账户/ })).toHaveAttribute('href', '/signup');
     expect(screen.getByRole('button', { name: /登录/i })).toBeInTheDocument();
-    // 左栏能力点 ≤ 3
-    const caps = screen.getAllByTestId('auth-capability');
-    expect(caps.length).toBeGreaterThanOrEqual(1);
-    expect(caps.length).toBeLessThanOrEqual(3);
+    expect(screen.queryByTestId('auth-capability')).not.toBeInTheDocument();
   });
 
   it('共享 AuthLayout 注册/忘记密码页不回归：仍有 logo 与主题切换', async () => {
@@ -229,25 +227,20 @@ describe('登录页视觉与认证行为', () => {
       path.resolve(__dirname, '../pages/LoginPage.tsx'),
       'utf8',
     );
-    expect(loginSrc).toContain('欢迎回来');
+    expect(loginSrc).toContain('variant="login-v4"');
     expect(loginSrc).toContain('resolveNextPath');
   });
 
-  it('AuthLayout 左侧产品标题使用官网渐变规则，字号与文案不变', () => {
+  it('AuthLayout 登录分支保留原稿打字机和花朵背景结构', () => {
     const layoutSrc = fs.readFileSync(
       path.resolve(__dirname, '../components/auth/AuthLayout.tsx'),
       'utf8',
     );
-    expect(layoutSrc).toContain('77港话通社媒文案器');
-    expect(layoutSrc).toMatch(/text-2xl/);
-    expect(layoutSrc).toMatch(/md:text-3xl/);
-    expect(layoutSrc).toContain('bg-gradient-to-r');
-    expect(layoutSrc).toContain('from-emerald-300');
-    expect(layoutSrc).toContain('to-lime-300');
-    expect(layoutSrc).toContain('light:from-orange-600');
-    expect(layoutSrc).toContain('light:to-amber-500');
-    expect(layoutSrc).toContain('bg-clip-text');
-    expect(layoutSrc).toContain('text-transparent');
+    expect(layoutSrc).toContain('77港话通\\n社媒文案器');
+    expect(layoutSrc).toContain('className="veil-flowers"');
+    expect(layoutSrc).toContain('className="type-title"');
+    expect(layoutSrc).toContain('className="panel"');
+    expect(layoutSrc).toContain('prefers-reduced-motion: reduce');
   });
 });
 
@@ -369,7 +362,13 @@ describe('工作台左侧四大折叠页', () => {
     );
   }
 
-  it('四个折叠页存在；默认展开品牌与文案参数，收起受众与配置；Source/Language 始终可见', async () => {
+  it('工作台页脚显示当前产品版本 v1.1.4', () => {
+    render(<Footer />, { wrapper: InputWrapper });
+
+    expect(screen.getByText('v1.1.4')).toBeInTheDocument();
+  });
+
+  it('四个折叠页默认全部收起，使用主题强调色；Source/Language 始终可见', async () => {
     render(<InputPanel />, { wrapper: InputWrapper });
 
     expect(screen.getByTestId('input-section-source')).toBeInTheDocument();
@@ -379,10 +378,15 @@ describe('工作台左侧四大折叠页', () => {
     const audience = screen.getByRole('button', { name: /目标受众与参考/ });
     const config = screen.getByRole('button', { name: /配置管理/ });
 
-    expect(brand).toHaveAttribute('aria-expanded', 'true');
-    expect(params).toHaveAttribute('aria-expanded', 'true');
+    expect(brand).toHaveAttribute('aria-expanded', 'false');
+    expect(params).toHaveAttribute('aria-expanded', 'false');
     expect(audience).toHaveAttribute('aria-expanded', 'false');
     expect(config).toHaveAttribute('aria-expanded', 'false');
+
+    for (const trigger of [brand, params, audience, config]) {
+      const chevron = trigger.lastElementChild;
+      expect(chevron).toHaveClass('text-emerald-400', 'light:text-orange-500');
+    }
 
     // 折叠内容保持挂载（hidden 而非卸载）
     expect(screen.getByTestId('input-accordion-panel-brand')).toBeInTheDocument();
@@ -391,7 +395,8 @@ describe('工作台左侧四大折叠页', () => {
     expect(screen.getByTestId('input-accordion-panel-config')).toBeInTheDocument();
     expect(screen.getByTestId('input-accordion-panel-audience').className).toMatch(/hidden/);
     expect(screen.getByTestId('input-accordion-panel-config').className).toMatch(/hidden/);
-    expect(screen.getByTestId('input-accordion-panel-brand').className).not.toMatch(/\bhidden\b/);
+    expect(screen.getByTestId('input-accordion-panel-brand').className).toMatch(/hidden/);
+    expect(screen.getByTestId('input-accordion-panel-params').className).toMatch(/hidden/);
 
     // 生成按钮在折叠组之后
     expect(screen.getByRole('button', { name: /生成文案/ })).toBeInTheDocument();

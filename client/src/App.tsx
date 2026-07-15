@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AppProvider, AppContext } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -6,6 +6,7 @@ import { PlanAccessProvider } from './context/PlanAccessContext';
 import { useCloudSync } from './hooks/useCloudSync';
 import { resolveNextPath } from './services/nextPath';
 import { OPEN_REVIEWED_FAVORITE_EVENT } from './services/reviewResultNotifications';
+import BrandLoader from './components/shared/BrandLoader';
 
 const Header = lazy(() => import('./components/layout/Header'));
 const Footer = lazy(() => import('./components/layout/Footer'));
@@ -50,14 +51,7 @@ function CenterContent() {
 // ============================================================
 
 function AuthLoading() {
-  return (
-    <div className="flex h-full items-center justify-center bg-gray-950 light:bg-white">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-emerald-400 light:border-gray-300 light:border-t-orange-500" />
-        <p className="text-sm text-gray-500 light:text-gray-400">恢复会话中…</p>
-      </div>
-    </div>
-  );
+  return <BrandLoader label="正在准备 77 工作台…" fullPage />;
 }
 
 // ============================================================
@@ -184,8 +178,27 @@ function AccountScopedAdmin() {
  * then renders children. Shows a minimal loading state during
  * hydration and a non-blocking legacy import prompt.
  */
-function CloudSyncGate({ children }: { children: ReactNode }) {
+const CLOUD_SYNC_FOCUS_INTERVAL_MS = 30_000;
+
+export function shouldBlockCloudSync(
+  syncStatus: string,
+  initialHydrationComplete: boolean,
+) {
+  return !initialHydrationComplete && (syncStatus === 'hydrating' || syncStatus === 'error');
+}
+
+export function shouldRefreshCloudSyncOnFocus(
+  syncStatus: string,
+  lastRefreshAt: number,
+  now: number,
+) {
+  return syncStatus === 'ready' && now - lastRefreshAt >= CLOUD_SYNC_FOCUS_INTERVAL_MS;
+}
+
+export function CloudSyncGate({ children }: { children: ReactNode }) {
   const { state: authState } = useAuth();
+  const [initialHydrationComplete, setInitialHydrationComplete] = useState(false);
+  const lastFocusRefreshAtRef = useRef(0);
 
   const cloudSync = useCloudSync(
     authState.user?.id ?? 'anonymous',
@@ -193,29 +206,32 @@ function CloudSyncGate({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    if (cloudSync.syncStatus !== 'ready') return;
+    setInitialHydrationComplete(true);
+    if (lastFocusRefreshAtRef.current === 0) {
+      lastFocusRefreshAtRef.current = Date.now();
+    }
+  }, [cloudSync.syncStatus]);
+
+  useEffect(() => {
     const refreshOnFocus = () => {
-      if (cloudSync.syncStatus === 'ready') cloudSync.retryHydration();
+      const now = Date.now();
+      if (shouldRefreshCloudSyncOnFocus(cloudSync.syncStatus, lastFocusRefreshAtRef.current, now)) {
+        lastFocusRefreshAtRef.current = now;
+        cloudSync.retryHydration();
+      }
     };
     window.addEventListener('focus', refreshOnFocus);
     return () => window.removeEventListener('focus', refreshOnFocus);
   }, [cloudSync.retryHydration, cloudSync.syncStatus]);
 
-  // Hydration loading state
-  if (cloudSync.syncStatus === 'hydrating') {
-    return (
-      <div className="flex h-full items-center justify-center bg-gray-950 light:bg-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-emerald-400 light:border-gray-300 light:border-t-orange-500" />
-          <p className="text-sm text-gray-500 light:text-gray-400">
-            同步云端数据…
-          </p>
-        </div>
-      </div>
-    );
+  // Only the first account hydration blocks the workbench.
+  if (cloudSync.syncStatus === 'hydrating' && shouldBlockCloudSync(cloudSync.syncStatus, initialHydrationComplete)) {
+    return <BrandLoader label="同步云端数据…" fullPage />;
   }
 
   // Hydration error with retry
-  if (cloudSync.syncStatus === 'error') {
+  if (cloudSync.syncStatus === 'error' && shouldBlockCloudSync(cloudSync.syncStatus, initialHydrationComplete)) {
     return (
       <div className="flex h-full items-center justify-center bg-gray-950 light:bg-white">
         <div className="flex flex-col items-center gap-4 max-w-sm text-center">
@@ -246,7 +262,7 @@ function CloudSyncGate({ children }: { children: ReactNode }) {
       )}
 
       {/* Non-blocking sync error with retry */}
-      {cloudSync.syncError && cloudSync.syncStatus === 'ready' && (
+      {cloudSync.syncError && (cloudSync.syncStatus === 'ready' || initialHydrationComplete) && (
         <div className="mx-auto flex max-w-3xl items-center justify-between rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-400">
           <span>{cloudSync.syncError}</span>
           <div className="flex items-center gap-2">
@@ -372,7 +388,7 @@ function AppRoutes() {
 
   // ---- Public landing ----
   if (path === '/' || path === '') {
-    return <ThemeProvider><MarketingPage /></ThemeProvider>;
+    return <MarketingPage />;
   }
 
   // ---- Public pricing page ----

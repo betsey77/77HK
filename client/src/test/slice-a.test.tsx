@@ -326,7 +326,7 @@ describe('Auth pages — theme button colors', () => {
     clearThemeStore();
   });
 
-  it('LoginPage submit button uses emerald in dark mode', async () => {
+  it('LoginPage keeps the approved light-v4 primary button in stored dark mode', async () => {
     localStorage.setItem('hk-cantonese-theme', 'dark');
     document.documentElement.classList.remove('light');
 
@@ -338,10 +338,11 @@ describe('Auth pages — theme button colors', () => {
     await awaitAuthReady();
 
     const button = screen.getByRole('button', { name: /登录/i });
-    expect(button.className).toMatch(/emerald/);
+    expect(button.className).toBe('btn-primary');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
   });
 
-  it('LoginPage submit button uses orange in light mode', async () => {
+  it('LoginPage keeps the approved light-v4 primary button in light mode', async () => {
     localStorage.setItem('hk-cantonese-theme', 'light');
     document.documentElement.classList.add('light');
 
@@ -353,6 +354,7 @@ describe('Auth pages — theme button colors', () => {
     await awaitAuthReady();
 
     const button = screen.getByRole('button', { name: /登录/i });
-    expect(button.className).toMatch(/orange/);
+    expect(button.className).toBe('btn-primary');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
   });
 });

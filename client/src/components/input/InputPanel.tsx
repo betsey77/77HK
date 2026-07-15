@@ -79,7 +79,7 @@ function InputAccordion({
           </span>
         </span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200 ${
+          className={`h-4 w-4 shrink-0 text-emerald-400 transition-transform duration-200 light:text-orange-500 ${
             open ? 'rotate-180' : ''
           }`}
           aria-hidden
@@ -116,7 +116,7 @@ export default function InputPanel() {
         title="品牌与内容场景"
         summary="类型 · 品牌 · 红线 · 发布日 · 竞品"
         icon={Building2}
-        defaultOpen
+        defaultOpen={false}
       >
         <CopyTypeSelector />
         <BrandInput />
@@ -130,7 +130,7 @@ export default function InputPanel() {
         title="文案参数"
         summary="Brief · 创意 · 平台 · 篇幅 · 语气 · 港味"
         icon={SlidersHorizontal}
-        defaultOpen
+        defaultOpen={false}
       >
         <StructuredBriefToggle />
         <CreativitySliderComponent />

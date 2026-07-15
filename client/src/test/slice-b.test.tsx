@@ -210,8 +210,8 @@ describe('Slice B — Auth pages render without crash', () => {
   it('LoginPage renders', async () => {
     render(<LoginPage />, { wrapper: Wrapper });
     await awaitAuthReady();
-    const brands = screen.getAllByText('77港话通社媒文案器');
-    expect(brands.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('77 港话通')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /77港话通[\s\S]*社媒文案器/ })).toBeInTheDocument();
   });
 
   it('SignupPage renders', async () => {
@@ -273,7 +273,7 @@ describe('Slice B — Theme regression on auth pages', () => {
     clearThemeStore();
   });
 
-  it('LoginPage submit button uses emerald in dark mode', async () => {
+  it('LoginPage uses the fixed light-v4 button in stored dark mode', async () => {
     localStorage.setItem('hk-cantonese-theme', 'dark');
     document.documentElement.classList.remove('light');
 
@@ -281,10 +281,11 @@ describe('Slice B — Theme regression on auth pages', () => {
     await awaitAuthReady();
 
     const btn = screen.getByRole('button', { name: /登录/i });
-    expect(btn.className).toMatch(/\bemerald\b/);
+    expect(btn.className).toBe('btn-primary');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
   });
 
-  it('LoginPage submit button uses orange in light mode', async () => {
+  it('LoginPage uses the fixed light-v4 button in light mode', async () => {
     localStorage.setItem('hk-cantonese-theme', 'light');
     document.documentElement.classList.add('light');
 
@@ -292,7 +293,8 @@ describe('Slice B — Theme regression on auth pages', () => {
     await awaitAuthReady();
 
     const btn = screen.getByRole('button', { name: /登录/i });
-    expect(btn.className).toMatch(/\borange\b/);
+    expect(btn.className).toBe('btn-primary');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
   });
 });
 
