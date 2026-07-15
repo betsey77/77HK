@@ -152,3 +152,12 @@ Playwright 至少覆盖：
 ## 5. 下一任务建议
 
 下一轮不应直接部署生产。建议交给 Grok Build 的第一项任务为 **Phase 0：发布基线与 migration 漂移修复**；完成后由 Codex 做独立验收，再进入 staging 和 Playwright E2E。任何 Migration 修复、线上环境创建、生产支付或生产部署仍需单独授权。
+
+## 6. 2026-07-15 checkpoint
+
+- B4 已关闭：本地文件名已对齐，`migration list --linked` 显示 15/15 local/remote version 一致，无需 `migration repair`。
+- B5 基础部分已关闭：Git remote 已建立，`master` 已推送至 `betsey77/77HK`；本轮 CI 变更尚未 commit/push。
+- B6 已保持关闭：production/full audit 均为 0 vulnerabilities。
+- 前端大 chunk 已处理：主入口降至约 471 kB，Vite 500 kB 警告消失。
+- Phase 0 CI 本地完成：新增只读 GitHub Actions workflow 和 Supabase local config；Client 400/400、Server 571/571、双端 typecheck/build 通过。
+- 仍未关闭：GitHub Actions 首次线上运行、独立 staging 从零重放、完整浏览器 E2E、Auth 邮件、支付宝 sandbox 真实闭环、监控/备份/回滚与生产部署。

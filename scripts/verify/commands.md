@@ -87,3 +87,18 @@ node -e "JSON.parse(require('fs').readFileSync('client/vercel.json','utf8')); JS
 - Server tests ≥ 509 passed  
 - 双端 typecheck + build 通过  
 - `npm audit` 与 `npm audit --omit=dev` 均为 0 未处置 high/critical  
+
+## 2026-07-15 Phase 0 CI 基线
+
+```powershell
+# CI / Supabase 配置静态门禁
+cd server
+npx vitest run src/__tests__/phase0-ci-config.test.ts
+
+# linked project Migration history，只读
+cd ..
+npx supabase migration list --linked
+```
+
+- 当前基线：Client 400/400，Server 571/571，双端 typecheck/build 通过，两次 audit 0 vulnerabilities。
+- 当前 Migration：15/15 local/remote version 一致；禁止把只读检查替换为未授权的 `db push` 或 `migration repair`。

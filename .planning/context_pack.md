@@ -1,6 +1,6 @@
 # 77vibe-dev-flow Context Pack
 
-Generated: 2026-07-15T12:40:29
+Generated: 2026-07-15T16:57:21
 Project: D:\work\77港话通社媒文案\77
 
 Use this file after context compaction, agent handoff, or thread restart.
@@ -298,28 +298,23 @@ Playwright 仅 Phase 0 smoke；完整业务 E2E 见 `docs/release/202
 
 ```text
 [truncated: showing tail]
-o-250-quota/
-- Remote: Migration `20260715113350` 已获明确授权并推送；有效 Pro 用户已从 10/400 立即变为 10/250。
+view-reminder/verification.md`
+# 2026-07-15 - 前端路由级代码拆分
 
+- 营销、认证、历史、结算、管理员和工作台重组件改为 `React.lazy` 按需加载，统一使用既有加载态作为 `Suspense` fallback。
+- 主入口 JS 从 857,028 bytes 降至 471,335 bytes，减少约 45%，Vite 超过 500 kB 的警告消失。
+- 路由匹配、Provider 层级、鉴权、支付和业务状态保持不变。
+- 验证：Client 393/393、TypeScript、production build、三个主路径 HTTP 200 均通过。
+- 证据：`docs/evidence/2026-07-15/route-code-splitting/verification.md`
 
-## Implemented locally - 2026-07-15 - 团队协作版 99 元/月联系定制
+# 2026-07-15 - Phase 0 CI 与 Migration 基线
 
-- Type: feature
-- Risk: medium
-- Why: 为需要管理员审核能力的内部团队提供人工开通入口，不走自动支付宝结算。
-- Change: 官网与 Pricing 新增 ￥99/月团队卡片，复用微信联系弹窗；显示微信号、项目二维码、复制反馈及非支付宝付款说明。
-- Verification: Client 378/378、Server 560/560、双端 typecheck/build、两次 audit 通过；桌面/390px 手机完成二维码、复制、Esc、共享入口与无横向溢出验收。
-- Decision: ￥99 为月费展示，不是一次性定制价。
-- Evidence: docs/evidence/2026-07-15/team-plan-contact/
-- Boundary: 本地实现；无 Migration、部署、订单、权益授予、commit 或 push。
-
-## Proposed - 2026-07-15 - 用户审核结果弹窗
-
-- Type: feature
-- Risk: medium
-- Why: 管理员审核完成后，文案 owner 需要及时收到通过/未通过结果并定位到对应收藏。
-- Verification: 通过/未通过文案、品牌回退、owner 隔离、刷新去重、新审核再次提醒、立即查看定位与弹窗可访问性。
-- Evidence: docs/evidence/2026-07-15/user-review-result-dialog/
+- 新增 Supabase CLI 本地配置，统一本地 Auth 5173 回调并启用 migration harness。
+- 新增 GitHub Actions CI：锁定安装、双端测试、类型检查、构建及两次依赖审计。
+- CI 使用只读 Token、固定官方 Action SHA，不读取 secrets、不部署、不写数据库。
+- linked Supabase Migration history 15/15 完全对齐，不需要 repair。
+- 验证：Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
+- 未执行：Git commit/push、GitHub 线上 CI、staging 创建/重放、Migration 写入、部署或真实支付。
 ```
 
 
@@ -438,19 +433,19 @@ npm run test:e2e:smoke
 ```text
 # Task Plan
 
+## 2026-07-15 Phase 0 CI / Migration checkpoint
+
+- **已完成本地：** `supabase/config.toml`、只读 GitHub Actions CI、安全静态门禁。
+- **已只读验证：** linked Migration history 15/15 本地远端一致，旧 W2 漂移已关闭，无需 repair。
+- **已验证：** Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
+- **仍待授权/外部状态：** commit/push 后确认 GitHub Actions 首次运行；创建独立 staging Supabase 并从零重放 migrations。
+- **下一小切片建议：** 在不连接生产数据的前提下准备 Playwright 稳定运行和完整浏览器 E2E 用例分层；staging 创建与部署另行确认。
+
 ## 2026-07-14 生产上线门禁复审
 
 - 结论：**尚未达到生产部署条件**；本地核心回归通过，但真实支付宝 sandbox E2E、浏览器 E2E、migration history 对齐、依赖安全、staging/CI、Auth 邮件与运维闭环仍为阻断项。
 - 本轮实测：Client 353/353、Server 509/509、双端 production build 通过。
-- 新发现：本地/远端 W2 migration 时间戳不一致；production audit 仍有 `form-data` high，完整 audit 另有 `concurrently`/`shell-quote` critical；Supabase Advisor 仍有 SECURITY DEFINER 与 leaked-password 警告。
-- 推荐架构更新：按用户确认先采用 Vercel Hobby 免费层，同域托管 Vite + Express Function（东京）并继续使用东京 Supabase；若用途不再属于个人非商业、或生成时延/长连接/GPU 触发门槛，再升级 Pro 或拆为 Vercel 前端 + 独立常驻 API。
-- 权威执行计划：`docs/release/2026-07-14-production-launch-plan-v2.md`。
-- Grok Build Phase 0 交接：`.planning/prompts/20260714-grok-phase0-production-readiness.md`。
-- 本轮未部署、未切生产支付、未推送 Migration、未 commit/push。
-
-## 2026-07-14 checkpoint
-
-- **2026-07-14 部署审计：** 详细的上线阻断项、Verc
+- 新发现：本地/远端 W2 migration 时间戳不一致；production audit 仍有 `form-data` high，完整 audit 另有 `concurrently`/`shell-quote` critical；Supabase Advisor 仍有 SE
 [truncated: showing head]
 ```
 
@@ -494,7 +489,7 @@ Before running `sequential-subagents` or `parallel-subagents`, ask the user for 
 ```text
 # Project Status
 
-Generated: 2026-07-15T10:26:43
+Generated: 2026-07-15T16:56:51
 Project: D:\work\77港话通社媒文案\77
 
 ## Workflow Score
@@ -505,7 +500,7 @@ Project: D:\work\77港话通社媒文案\77
 
 ## Current Phase
 
-- **IN PROGRESS — 高影响操作确认与批量删除：** 退出/复原确认，收藏与历史多选/全选/批量删除，历史部分失败保留；无 Migration。
+**PHASE 0 LOCAL COMPLETE —** CI 与 Supabase local harness 已完成；等待首次 commit/push 和 GitHub Actions 线上验证。下一开发切片为 Playwright 浏览器 E2E 准备。
 
 ## Missing Items
 
@@ -513,18 +508,18 @@ Project: D:\work\77港话通社媒文案\77
 
 ## Evidence Summary
 
-- Evidence outputs: 12
-- Passed: 3
-- Failed: 0
+- Evidence outputs: 18
+- Passed: 7
+- Failed: 2
 - Unknown: 9
 
 ## Recent Evidence
 
-- `docs\evidence\2026-07-12\slice-H1-R\test-output.txt`: unknown (n/a)
-- `docs\evidence\2026-07-11\slice-B-auth\test-output.txt`: unknown (n/a)
-- `docs\evidence\2026-07-11\slice-B-remote-migration\test-output.txt`: unknown (n/a)
-- `docs\evidence\2026-07-11\slice-B-migration-review\test-output.txt`: unknown (n/a)
-- `docs\evidence\2026-07-11\slice-B-baseline\test-output.txt`: unknown (n/a)
+- `docs\evidence\2026-07-15\phase0-ci-migration-baseline\test-output.txt`: pass (0)
+- `docs\evidence\2026-07-15\slice-06\test-output.txt`: pass (0)
+- `docs\evidence\2026-07-15\slice-05\test-output.txt`: fail (2)
+- `docs\evidence\2026-07-15\slice-04\test-output.txt`: fail (2)
+- `docs\evidence\2026-07-15\slice-03\test-output.txt`: pass (0)
 - `docs\evidence\2026-07-1
 [truncated: showing head]
 ```
@@ -607,28 +602,27 @@ Choose either Supabase Dashboard SQL Editor / authenticated Supabase MCP as the 
 
 ```text
 [truncated: showing tail]
-serve_quota` 事务验证 249 可预留、250/251 拒绝，回滚后 QA ledger=0、真实用量仍为 10。Client 372/372、Server 560/560、双端 typecheck/build 与两次 audit 通过；未部署、commit 或 push Git。
+提醒并支持标签重新可见刷新及“立刻审核”跳转。Client 392/392、Server 569/569、双端 typecheck/build、前端/API 200 均通过。历史 false 记录未回填；无远端写入、Migration、部署、commit/push/reset/clean/Worktree。
+- 2026-07-15：✅ **前端路由级代码拆分完成** — 营销、认证、历史、结算、管理员和工作台重组件改为 `React.lazy` 按需加载，主入口 JS 从 857,028 bytes 降至 471,335 bytes（约 -45%），Vite 500 kB 警告消失。Client 393/393、typecheck/build、`/`/`/admin`/`/app` 200 通过。Grok Build 只读审阅连续两次仅返回 CLI 警告、无有效结论，按上限停止且未改文件。无安装、Migration、远端写入、真实支付、部署、commit/push/reset/clean/Worktree。
 
-- 2026-07-15: ✅ **团队协作版 ￥99/月联系入口本地切片完成** — 官网与 Pricing 均新增团队卡片，展示审核分组、管理员句子批注、待审核队列与提醒；共享弹窗显示微信号 `18595680518` 和项目二维码，支持复制反馈、Esc、焦点管理并明确不会发起支付宝付款。Client 378/378、Server 560/560、双端 typecheck/build 与两次 audit 通过；桌面/390px 手机浏览器验收无横向溢出。无 Migration、部署、订单、权益授予、commit 或 push。
-
-- 2026-07-15: ✅ **用户自写收藏与待审核队列应用层完成，Migration 已推送** — 收藏库新增自写表单、显式审核选择与类型编辑；管理员新增同组待审核筛选、行高亮、圆形角标及合并提醒，数量下降不误报。Migration `20260715121000` 已授权推送并完成远端 history/结构/Advisor 复核；真实 PostgREST anti-join 只读调用通过且列表无正文。Client 383/383、Server 569/569、双端 typecheck/build、production audit 0 vulnerabilities。Playwright runner 连既有 smoke 共 3 次启动超时，截图未判通过；未部署、commit、Git push、reset/clean 或创建 Worktree。
+- 2026-07-15：✅ **Phase 0 CI 与 Migration 基线本地完成** — 新增 Supabase CLI 本地配置和只读 GitHub Actions CI；官方 Actions 固定 SHA，Token 仅 `contents: read`，不引用 secrets、不部署、不执行 DB 写入。linked Migration history 15/15 完全一致，无需 repair。Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。workflow 尚未 commit/push，GitHub 线上运行与 staging 从零重放未验证。
 ```
 
 
 ## Recent Evidence Files
 
-- docs\evidence\2026-07-15\user-authored-review-queue\verification.md (2621 bytes)
-- docs\evidence\2026-07-15\team-plan-contact\verification.md (1383 bytes)
-- docs\evidence\2026-07-15\slice-06\notes.md (966 bytes)
-- docs\evidence\2026-07-15\slice-06\test-output.txt (8688 bytes)
-- docs\evidence\2026-07-15\slice-05\test-output.txt (7619 bytes)
-- docs\evidence\2026-07-15\slice-05\notes.md (426 bytes)
-- docs\evidence\2026-07-15\slice-04\test-output.txt (7367 bytes)
-- docs\evidence\2026-07-15\slice-04\notes.md (420 bytes)
-- docs\evidence\2026-07-15\team-plan-contact\screenshots\marketing-team-card-mobile.png (11884 bytes)
-- docs\evidence\2026-07-15\team-plan-contact\screenshots\marketing-team-card-desktop.png (11785 bytes)
-- docs\evidence\2026-07-15\team-plan-contact\screenshots\marketing-team-plan-mobile.png (9255 bytes)
-- docs\evidence\2026-07-15\team-plan-contact\screenshots\team-contact-dialog-mobile.png (99267 bytes)
+- docs\evidence\2026-07-15\phase0-ci-migration-baseline\test-output.txt (222 bytes)
+- docs\evidence\2026-07-15\phase0-ci-migration-baseline\verification.md (1813 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\acceptance.md (1151 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\loader-77-orange-green.png (15828 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\login-semantic-lines-mobile.png (320507 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\login-semantic-lines-desktop.png (1093772 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\home-terminal-enlarged-mobile.png (114917 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\home-terminal-enlarged-desktop.png (223351 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\home-mobile-full.png (1150814 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\home-desktop-full.png (2202943 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\loader-77.png (14579 bytes)
+- docs\evidence\2026-07-15\homepage-login-v4-review\login-mobile-final.png (316872 bytes)
 
 
 ## Recent Experience Library Files

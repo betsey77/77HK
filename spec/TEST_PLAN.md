@@ -285,3 +285,11 @@ npm run build
 |CR-2026-07-15-feature|团队协作版 99 元/月联系定制|Pricing/官网 CTA 路由回归、弹窗交互、剪贴板失败与二维码资源可用性测试。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|官网和定价页新增团队协作版 ￥99/月，并说明审核分组、管理员批注、待审核队列等团队功能。; CTA 不进入支付页；弹窗显示联系 vx：18595680518，号码可一键复制，并展示项目内保存的微信二维码。; 弹窗具备关闭、复制成功/失败状态与键盘可访问性；不把电话或二维码错误描述为支付宝收款入口。|docs/evidence/2026-07-15/team-plan-contact/|
 
 |CR-2026-07-15-feature|用户审核结果弹窗|覆盖通过/未通过文案、品牌为空回退、owner/RLS 隔离、刷新去重、新审核再次提醒、立即查看定位与键盘可访问性。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|adopted 显示“你的{品牌}文案已通过审核，请立即查看”，changes_requested 显示“你的{品牌}文案未通过审核，请立即查看”。; 同一 owner+favorite+revision+review time 只提示一次，新审核再次提示。; 立即查看打开收藏库并定位目标；不得泄露其他 owner 或 review_group 的品牌、审核状态、正文或计数。|docs/evidence/2026-07-15/user-review-result-dialog/|
+
+## 2026-07-15：Phase 0 CI 与 Migration 基线
+
+- 静态门禁必须验证本地 Supabase project ID、5173 Auth 回调、Migration enabled，以及不包含生产 project ref。
+- CI 必须固定官方 Action SHA、最小 `contents: read` 权限、关闭 checkout 凭据持久化，并顺序执行 install/test/typecheck/build/audit。
+- CI 禁止 `pull_request_target`、`${{ secrets.* }}`、`db push`、`migration repair` 与部署命令。
+- `npx supabase migration list --linked` 只读输出必须保证每个 local/remote version 一致。
+- 完整验收命令：`npm run verify`；GitHub 线上 CI 状态只能在 workflow commit/push 后判定。

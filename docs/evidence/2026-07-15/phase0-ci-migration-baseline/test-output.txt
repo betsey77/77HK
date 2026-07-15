@@ -1,0 +1,9 @@
+Exit code: 0
+focused: 2/2 passed
+client: 400/400 passed
+server: 571/571 passed
+typecheck: passed
+build: passed
+audit_prod: 0 vulnerabilities
+audit_all: 0 vulnerabilities
+migrations: 15/15 local and remote versions aligned

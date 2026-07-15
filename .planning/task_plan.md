@@ -1,5 +1,13 @@
 # Task Plan
 
+## 2026-07-15 Phase 0 CI / Migration checkpoint
+
+- **已完成本地：** `supabase/config.toml`、只读 GitHub Actions CI、安全静态门禁。
+- **已只读验证：** linked Migration history 15/15 本地远端一致，旧 W2 漂移已关闭，无需 repair。
+- **已验证：** Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
+- **仍待授权/外部状态：** commit/push 后确认 GitHub Actions 首次运行；创建独立 staging Supabase 并从零重放 migrations。
+- **下一小切片建议：** 在不连接生产数据的前提下准备 Playwright 稳定运行和完整浏览器 E2E 用例分层；staging 创建与部署另行确认。
+
 ## 2026-07-14 生产上线门禁复审
 
 - 结论：**尚未达到生产部署条件**；本地核心回归通过，但真实支付宝 sandbox E2E、浏览器 E2E、migration history 对齐、依赖安全、staging/CI、Auth 邮件与运维闭环仍为阻断项。
@@ -23,7 +31,7 @@
 
 ## Current checkpoint — 2026-07-13
 
-- **IN PROGRESS — 高影响操作确认与批量删除：** 退出/复原确认，收藏与历史多选/全选/批量删除，历史部分失败保留；无 Migration。
+- **COMPLETED — 高影响操作确认与批量删除：** 退出/复原确认，收藏与历史多选/全选/批量删除，历史部分失败保留；无 Migration。
 - **收藏库卡片品牌/产品识别小切片已完成**：复用现有收藏 settings，在平台标签左侧显示“品牌 · 产品”；Client 260/260 与 production build 通过，无 Migration。
 - Slice D cloud sync is **COMPLETE locally and remotely**. 3 tables + 7 API endpoints + mutation sync/outbox + hydration/retry + explicit legacy import. Migration pushed and RLS/limit transaction smoke passed.
 - Slice C2a/C2b is complete locally and remotely.
@@ -48,7 +56,7 @@
 ## Phases
 
 1. Slice A：正式路由 + 登录/注册/重置 Mock 壳（done — 2026-07-11 验收修复通过，12/12 测试）。
-2. Slice B：真实 Supabase Auth + profiles/roles/RLS（in progress；2026-07-11 已获迁移授权）。
+2. Slice B：真实 Supabase Auth + profiles/roles/RLS（completed；后续远端 Auth/RLS 切片已验收）。
 3. Slice C：generation_jobs + history + 服务端额度。
    - Slice C1：generation_jobs + history + owner RLS（done；v4 + soft-delete patch，远端闭环）
    - Slice C2a：可信写入 + 额度账本本地基础（done；2026-07-11 本地通过，Migration 未推送，secret 未配置）

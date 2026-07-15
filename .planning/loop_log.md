@@ -160,3 +160,15 @@
 - Goal state: achieved
 - Exit code: 0
 - Stop report: .planning\loop_stop.md
+
+## 2026-07-15T16:49 - Phase 0 CI 与 Migration 基线
+
+- Phase: implement + verify
+- Goal: 补齐本地 Supabase harness、只读 CI 和 Migration history 复核
+- Goal state: achieved locally
+- Exit code: 0
+- Focused tests: 2/2
+- Full verification: Client 400/400; Server 571/571; typecheck/build passed; audits 0 vulnerabilities
+- Remote read-only: 15/15 Migration versions aligned
+- Boundary: CI 尚未 commit/push；未 staging、db push/repair、部署或真实支付
+- Evidence: `docs/evidence/2026-07-15/phase0-ci-migration-baseline/verification.md`

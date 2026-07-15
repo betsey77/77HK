@@ -954,3 +954,18 @@ Manual visual confirmation remains available at `http://localhost:5175/app` whil
 | 自动化验证 | ✅ Client 389/389；Server 受影响回归 25/25；Client production build 通过 |
 
 证据：`docs/evidence/2026-07-15/admin-pending-empty-state/verification.md`
+
+## 2026-07-15：Phase 0 CI 与 Migration 基线
+
+| 验收项 | 结果 |
+|---|---|
+| Supabase 本地 config 存在且仅含本地 project ID/回调 | ✅ |
+| GitHub Actions 最小只读权限、SHA 固定、无 secrets/部署/DB 写入 | ✅ 静态门禁 |
+| linked Migration local/remote history | ✅ 15/15 完全一致 |
+| Client / Server 全量测试 | ✅ 400/400；571/571 |
+| 双端 typecheck / production build | ✅ |
+| production / full dependency audit | ✅ 0 vulnerabilities |
+| GitHub Actions 线上运行 | ⚠️ workflow 尚未 commit/push，未验证 |
+| staging 从零 Migration 重放 | ⚠️ staging 尚未创建，未执行 |
+
+证据：`docs/evidence/2026-07-15/phase0-ci-migration-baseline/verification.md`

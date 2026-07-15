@@ -400,3 +400,11 @@ flowchart LR
 - 汇总接口只返回 `count/latestRequestedAt`；管理员列表继续排除正文，正文仍只能经先审计后读取的详情接口获得。
 - 客户端采用页面加载和窗口 focus 刷新，不引入 Realtime；会话内保存已见最高请求时间和最近数量，数量下降不触发新任务提醒。
 - 收藏表单和列表沿用现有窄侧栏、4/8px 间距、Lucide 图标和深浅色 token，不新增组件库或依赖。
+
+## Phase 0 CI 与本地 Supabase Harness（2026-07-15）
+
+- `supabase/config.toml` 使用独立本地项目 ID `77hk-local`、本地 5173 Auth 回调和既有 migration 目录；seed 在没有 `seed.sql` 时关闭。
+- GitHub Actions 仅在 `master/main` 的 push 与 pull request 执行质量门禁，不执行部署、远端 Migration 或支付操作。
+- CI 使用根 workspace 的锁文件，顺序固定为 `npm ci -> test -> typecheck -> build -> audit:prod -> audit:all`。
+- `GITHUB_TOKEN` 仅授予仓库内容只读权限，checkout 不持久化凭据，官方 Actions 使用不可变 SHA。
+- linked Migration history 只读核对完全对齐；后续仍需独立 staging 从零重放，生产数据库禁止 `db reset`。

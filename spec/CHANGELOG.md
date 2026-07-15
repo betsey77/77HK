@@ -1387,3 +1387,12 @@ returns boolean language plpgsql security definer set search_path = ''
 - 路由匹配、Provider 层级、鉴权、支付和业务状态保持不变。
 - 验证：Client 393/393、TypeScript、production build、三个主路径 HTTP 200 均通过。
 - 证据：`docs/evidence/2026-07-15/route-code-splitting/verification.md`
+
+# 2026-07-15 - Phase 0 CI 与 Migration 基线
+
+- 新增 Supabase CLI 本地配置，统一本地 Auth 5173 回调并启用 migration harness。
+- 新增 GitHub Actions CI：锁定安装、双端测试、类型检查、构建及两次依赖审计。
+- CI 使用只读 Token、固定官方 Action SHA，不读取 secrets、不部署、不写数据库。
+- linked Supabase Migration history 15/15 完全对齐，不需要 repair。
+- 验证：Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
+- 未执行：Git commit/push、GitHub 线上 CI、staging 创建/重放、Migration 写入、部署或真实支付。
