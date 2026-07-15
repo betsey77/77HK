@@ -33,7 +33,7 @@ describe('Phase 0 release baseline configuration', () => {
     expect(workflow).toContain('persist-credentials: false');
     expect(workflow).toMatch(/actions\/checkout@[a-f0-9]{40}/);
     expect(workflow).toMatch(/actions\/setup-node@[a-f0-9]{40}/);
-    expect(workflow).toContain('node-version: 20');
+    expect(workflow).toContain('node-version: 22');
 
     const commands = [
       'npm ci',
