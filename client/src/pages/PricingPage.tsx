@@ -58,13 +58,11 @@ export default function PricingPage() {
         </div>
       </header>
 
-      {/* ── MOCK Banner ── */}
+      {/* ── Payment availability ── */}
       <div className="mx-auto mt-4 max-w-3xl rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-center">
         <p className="flex items-center justify-center gap-2 text-xs text-amber-400">
           <AlertTriangle className="h-3.5 w-3.5" />
-          <span>
-            <strong>[MOCK]</strong> 此为演示定价页。Pro 在线支付仍为演示；团队协作版通过微信联系人工开通，不会在本站扣款。
-          </span>
+          <span>Pro 在线支付暂未开放；团队协作版通过微信联系人工开通，本站不会自动扣款。</span>
         </p>
       </div>
 
@@ -96,7 +94,7 @@ export default function PricingPage() {
             {[
               ['Free 的 20 次是什么概念？', '每滚动 7 天内可完成最多 20 次完整生成流程（诊断→变体→审核→反馈）。到达上限后需等待周期刷新，或升级到 Pro。'],
               ['Pro 每月 250 次够用吗？', '按每个工作日生成约 11 篇文案计算，250 次可覆盖高频品牌运营的月度需求。自然月结束时自动重置。'],
-              ['现在可以付费吗？', '目前尚未接入真实支付宝支付。此页面为前端演示，点击「升级到 Pro」会跳转到 Mock 结算流程。'],
+              ['现在可以付费吗？', 'Pro 在线支付暂未开放。点击「升级到 Pro」可查看结算页面；正式支付开放前不会产生真实扣款。团队协作版通过微信联系人工开通。'],
               ['可以随时取消吗？', 'Pro 为月度订阅，MVP 阶段不支持降级到 Free。正式支付上线后将提供完整的自助管理功能。'],
               ['数据安全吗？', '我们使用 Supabase 提供数据隔离和 RLS 保护，你的文案和品牌数据只有你自己能访问。'],
             ].map(([q, a]) => (
@@ -111,7 +109,7 @@ export default function PricingPage() {
 
       {/* ── Footer ── */}
       <footer className="border-t border-gray-800 light:border-gray-200 px-4 py-6 text-center text-xs text-gray-600 light:text-gray-400">
-        <p>© 2026 77港话通社媒文案器 — 定价页为 Mock 演示，不构成实际要约。</p>
+        <p>© 2026 77港话通社媒文案器</p>
       </footer>
       <TeamContactDialog open={teamContactOpen} onClose={() => setTeamContactOpen(false)} />
     </div>
@@ -230,10 +228,6 @@ function PlanCard({ plan, theme, isPrimary }: { plan: PlanInfo; theme: string; i
         </a>
       )}
 
-      {/* MOCK label */}
-      <p className="mt-3 text-center text-[10px] text-amber-500/70">
-        [MOCK] 演示用，非真实扣款
-      </p>
     </div>
   );
 }

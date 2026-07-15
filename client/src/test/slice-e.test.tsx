@@ -77,11 +77,10 @@ beforeEach(() => {
 // ============================================================
 
 describe('PricingPage', () => {
-  it('renders the MOCK banner', () => {
+  it('shows payment availability without user-visible Mock labels', () => {
     render(<PricingPage />);
-    const mockElements = screen.getAllByText(/\[MOCK\]/);
-    expect(mockElements.length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(/演示定价页/)).toBeInTheDocument();
+    expect(screen.queryByText(/\[?MOCK\]?/i)).toBeNull();
+    expect(screen.getAllByText(/Pro 在线支付暂未开放/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders Free and Pro plan names', () => {
@@ -132,15 +131,10 @@ describe('PricingPage', () => {
     expect(screen.getByText('常见问题')).toBeInTheDocument();
   });
 
-  it('renders MOCK label on each plan card', () => {
+  it('renders a standard product footer without demo wording', () => {
     render(<PricingPage />);
-    const mockLabels = screen.getAllByText(/\[MOCK\] 演示用/);
-    expect(mockLabels.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('renders footer with MOCK disclaimer', () => {
-    render(<PricingPage />);
-    expect(screen.getByText(/Mock 演示/)).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 77港话通社媒文案器/)).toBeInTheDocument();
+    expect(screen.queryByText(/演示|Mock/i)).toBeNull();
   });
 
   it('clips the uploaded logo inside a black rounded container', () => {
