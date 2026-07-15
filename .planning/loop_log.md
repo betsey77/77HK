@@ -172,3 +172,13 @@
 - Remote read-only: 15/15 Migration versions aligned
 - Boundary: CI 尚未 commit/push；未 staging、db push/repair、部署或真实支付
 - Evidence: `docs/evidence/2026-07-15/phase0-ci-migration-baseline/verification.md`
+
+## 2026-07-15T17:05 - Phase 0 GitHub CI 在线复核
+
+- Phase: verify
+- Goal: 推送 Phase 0 基线并证明 GitHub Actions 全绿
+- Goal state: achieved
+- Initial failure: Node 20 缺少 Supabase Realtime 所需原生 WebSocket，Server 570/571
+- Fix: CI Node 22；官方 checkout/setup-node 固定 SHA v5
+- Final run: `29403089055` success，全部 9 个质量步骤通过
+- Boundary: 未 staging、db push/repair、部署或真实支付

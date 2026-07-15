@@ -158,3 +158,5 @@
 - 2026-07-15：✅ **前端路由级代码拆分完成** — 营销、认证、历史、结算、管理员和工作台重组件改为 `React.lazy` 按需加载，主入口 JS 从 857,028 bytes 降至 471,335 bytes（约 -45%），Vite 500 kB 警告消失。Client 393/393、typecheck/build、`/`/`/admin`/`/app` 200 通过。Grok Build 只读审阅连续两次仅返回 CLI 警告、无有效结论，按上限停止且未改文件。无安装、Migration、远端写入、真实支付、部署、commit/push/reset/clean/Worktree。
 
 - 2026-07-15：✅ **Phase 0 CI 与 Migration 基线本地完成** — 新增 Supabase CLI 本地配置和只读 GitHub Actions CI；官方 Actions 固定 SHA，Token 仅 `contents: read`，不引用 secrets、不部署、不执行 DB 写入。linked Migration history 15/15 完全一致，无需 repair。Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。workflow 尚未 commit/push，GitHub 线上运行与 staging 从零重放未验证。
+
+- 2026-07-15：✅ **Phase 0 GitHub CI 在线验证完成** — 首次 Node 20 运行因 Supabase Realtime 缺原生 WebSocket 失败；最小修复为 CI Node 22。随后将 checkout/setup-node 更新到固定 SHA 的 v5，最终 run `29403089055` 全绿且无旧 runtime 弃用警告。基线已推送；仍未 staging、部署、Migration 写入或真实支付。

@@ -1,6 +1,6 @@
 # 77vibe-dev-flow Context Pack
 
-Generated: 2026-07-15T16:57:21
+Generated: 2026-07-15T17:06:20
 Project: D:\work\77港话通社媒文案\77
 
 Use this file after context compaction, agent handoff, or thread restart.
@@ -298,11 +298,7 @@ Playwright 仅 Phase 0 smoke；完整业务 E2E 见 `docs/release/202
 
 ```text
 [truncated: showing tail]
-view-reminder/verification.md`
-# 2026-07-15 - 前端路由级代码拆分
-
-- 营销、认证、历史、结算、管理员和工作台重组件改为 `React.lazy` 按需加载，统一使用既有加载态作为 `Suspense` fallback。
-- 主入口 JS 从 857,028 bytes 降至 471,335 bytes，减少约 45%，Vite 超过 500 kB 的警告消失。
+bytes，减少约 45%，Vite 超过 500 kB 的警告消失。
 - 路由匹配、Provider 层级、鉴权、支付和业务状态保持不变。
 - 验证：Client 393/393、TypeScript、production build、三个主路径 HTTP 200 均通过。
 - 证据：`docs/evidence/2026-07-15/route-code-splitting/verification.md`
@@ -315,6 +311,12 @@ view-reminder/verification.md`
 - linked Supabase Migration history 15/15 完全对齐，不需要 repair。
 - 验证：Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
 - 未执行：Git commit/push、GitHub 线上 CI、staging 创建/重放、Migration 写入、部署或真实支付。
+
+## Phase 0 在线验证更新
+
+- 基线与 Node 22 修复已提交并推送至 `origin/master`。
+- GitHub Actions 最终运行 `29403089055` 全绿；官方 Actions 已更新为固定 SHA 的 v5。
+- 仍未执行 staging 创建/重放、Migration 写入、部署或真实支付。
 ```
 
 
@@ -438,14 +440,15 @@ npm run test:e2e:smoke
 - **已完成本地：** `supabase/config.toml`、只读 GitHub Actions CI、安全静态门禁。
 - **已只读验证：** linked Migration history 15/15 本地远端一致，旧 W2 漂移已关闭，无需 repair。
 - **已验证：** Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
-- **仍待授权/外部状态：** commit/push 后确认 GitHub Actions 首次运行；创建独立 staging Supabase 并从零重放 migrations。
+- **已完成远端 Git：** Phase 0 基线与 Node 22 CI 修复已 push；GitHub Actions `29403089055` 全绿。
+- **仍待授权/外部状态：** 创建独立 staging Supabase 并从零重放 migrations。
 - **下一小切片建议：** 在不连接生产数据的前提下准备 Playwright 稳定运行和完整浏览器 E2E 用例分层；staging 创建与部署另行确认。
 
 ## 2026-07-14 生产上线门禁复审
 
 - 结论：**尚未达到生产部署条件**；本地核心回归通过，但真实支付宝 sandbox E2E、浏览器 E2E、migration history 对齐、依赖安全、staging/CI、Auth 邮件与运维闭环仍为阻断项。
 - 本轮实测：Client 353/353、Server 509/509、双端 production build 通过。
-- 新发现：本地/远端 W2 migration 时间戳不一致；production audit 仍有 `form-data` high，完整 audit 另有 `concurrently`/`shell-quote` critical；Supabase Advisor 仍有 SE
+- 新发现：本地/远端 W2 migration 时间戳不一致；production audit 仍有 `form-data` high，完整 audit 另有 `concurrently`
 [truncated: showing head]
 ```
 
@@ -500,7 +503,7 @@ Project: D:\work\77港话通社媒文案\77
 
 ## Current Phase
 
-**PHASE 0 LOCAL COMPLETE —** CI 与 Supabase local harness 已完成；等待首次 commit/push 和 GitHub Actions 线上验证。下一开发切片为 Playwright 浏览器 E2E 准备。
+**PHASE 0 COMPLETE —** CI 与 Supabase local harness 已完成并推送；GitHub Actions `29403089055` 全绿。下一开发切片为 Playwright 浏览器 E2E 准备。
 
 ## Missing Items
 
@@ -520,7 +523,7 @@ Project: D:\work\77港话通社媒文案\77
 - `docs\evidence\2026-07-15\slice-05\test-output.txt`: fail (2)
 - `docs\evidence\2026-07-15\slice-04\test-output.txt`: fail (2)
 - `docs\evidence\2026-07-15\slice-03\test-output.txt`: pass (0)
-- `docs\evidence\2026-07-1
+- `docs\evidence\2026-07-15\slice-02
 [truncated: showing head]
 ```
 
@@ -602,17 +605,18 @@ Choose either Supabase Dashboard SQL Editor / authenticated Supabase MCP as the 
 
 ```text
 [truncated: showing tail]
-提醒并支持标签重新可见刷新及“立刻审核”跳转。Client 392/392、Server 569/569、双端 typecheck/build、前端/API 200 均通过。历史 false 记录未回填；无远端写入、Migration、部署、commit/push/reset/clean/Worktree。
-- 2026-07-15：✅ **前端路由级代码拆分完成** — 营销、认证、历史、结算、管理员和工作台重组件改为 `React.lazy` 按需加载，主入口 JS 从 857,028 bytes 降至 471,335 bytes（约 -45%），Vite 500 kB 警告消失。Client 393/393、typecheck/build、`/`/`/admin`/`/app` 200 通过。Grok Build 只读审阅连续两次仅返回 CLI 警告、无有效结论，按上限停止且未改文件。无安装、Migration、远端写入、真实支付、部署、commit/push/reset/clean/Worktree。
+入口 JS 从 857,028 bytes 降至 471,335 bytes（约 -45%），Vite 500 kB 警告消失。Client 393/393、typecheck/build、`/`/`/admin`/`/app` 200 通过。Grok Build 只读审阅连续两次仅返回 CLI 警告、无有效结论，按上限停止且未改文件。无安装、Migration、远端写入、真实支付、部署、commit/push/reset/clean/Worktree。
 
 - 2026-07-15：✅ **Phase 0 CI 与 Migration 基线本地完成** — 新增 Supabase CLI 本地配置和只读 GitHub Actions CI；官方 Actions 固定 SHA，Token 仅 `contents: read`，不引用 secrets、不部署、不执行 DB 写入。linked Migration history 15/15 完全一致，无需 repair。Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。workflow 尚未 commit/push，GitHub 线上运行与 staging 从零重放未验证。
+
+- 2026-07-15：✅ **Phase 0 GitHub CI 在线验证完成** — 首次 Node 20 运行因 Supabase Realtime 缺原生 WebSocket 失败；最小修复为 CI Node 22。随后将 checkout/setup-node 更新到固定 SHA 的 v5，最终 run `29403089055` 全绿且无旧 runtime 弃用警告。基线已推送；仍未 staging、部署、Migration 写入或真实支付。
 ```
 
 
 ## Recent Evidence Files
 
-- docs\evidence\2026-07-15\phase0-ci-migration-baseline\test-output.txt (222 bytes)
-- docs\evidence\2026-07-15\phase0-ci-migration-baseline\verification.md (1813 bytes)
+- docs\evidence\2026-07-15\phase0-ci-migration-baseline\test-output.txt (256 bytes)
+- docs\evidence\2026-07-15\phase0-ci-migration-baseline\verification.md (2419 bytes)
 - docs\evidence\2026-07-15\homepage-login-v4-review\acceptance.md (1151 bytes)
 - docs\evidence\2026-07-15\homepage-login-v4-review\loader-77-orange-green.png (15828 bytes)
 - docs\evidence\2026-07-15\homepage-login-v4-review\login-semantic-lines-mobile.png (320507 bytes)

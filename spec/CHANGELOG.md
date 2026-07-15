@@ -1396,3 +1396,9 @@ returns boolean language plpgsql security definer set search_path = ''
 - linked Supabase Migration history 15/15 完全对齐，不需要 repair。
 - 验证：Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
 - 未执行：Git commit/push、GitHub 线上 CI、staging 创建/重放、Migration 写入、部署或真实支付。
+
+## Phase 0 在线验证更新
+
+- 基线与 Node 22 修复已提交并推送至 `origin/master`。
+- GitHub Actions 最终运行 `29403089055` 全绿；官方 Actions 已更新为固定 SHA 的 v5。
+- 仍未执行 staging 创建/重放、Migration 写入、部署或真实支付。

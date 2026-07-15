@@ -5,7 +5,8 @@
 - **已完成本地：** `supabase/config.toml`、只读 GitHub Actions CI、安全静态门禁。
 - **已只读验证：** linked Migration history 15/15 本地远端一致，旧 W2 漂移已关闭，无需 repair。
 - **已验证：** Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。
-- **仍待授权/外部状态：** commit/push 后确认 GitHub Actions 首次运行；创建独立 staging Supabase 并从零重放 migrations。
+- **已完成远端 Git：** Phase 0 基线与 Node 22 CI 修复已 push；GitHub Actions `29403089055` 全绿。
+- **仍待授权/外部状态：** 创建独立 staging Supabase 并从零重放 migrations。
 - **下一小切片建议：** 在不连接生产数据的前提下准备 Playwright 稳定运行和完整浏览器 E2E 用例分层；staging 创建与部署另行确认。
 
 ## 2026-07-14 生产上线门禁复审

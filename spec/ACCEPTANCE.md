@@ -965,7 +965,7 @@ Manual visual confirmation remains available at `http://localhost:5175/app` whil
 | Client / Server 全量测试 | ✅ 400/400；571/571 |
 | 双端 typecheck / production build | ✅ |
 | production / full dependency audit | ✅ 0 vulnerabilities |
-| GitHub Actions 线上运行 | ⚠️ workflow 尚未 commit/push，未验证 |
+| GitHub Actions 线上运行 | ✅ `29403089055` 全部步骤通过 |
 | staging 从零 Migration 重放 | ⚠️ staging 尚未创建，未执行 |
 
 证据：`docs/evidence/2026-07-15/phase0-ci-migration-baseline/verification.md`

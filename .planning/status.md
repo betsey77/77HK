@@ -11,7 +11,7 @@ Project: D:\work\77港话通社媒文案\77
 
 ## Current Phase
 
-**PHASE 0 LOCAL COMPLETE —** CI 与 Supabase local harness 已完成；等待首次 commit/push 和 GitHub Actions 线上验证。下一开发切片为 Playwright 浏览器 E2E 准备。
+**PHASE 0 COMPLETE —** CI 与 Supabase local harness 已完成并推送；GitHub Actions `29403089055` 全绿。下一开发切片为 Playwright 浏览器 E2E 准备。
 
 ## Missing Items
 
@@ -94,4 +94,4 @@ Project: D:\work\77港话通社媒文案\77
 
 ## Recommended Next Action
 
-完成 GitHub Actions 首次线上验证；随后在不连接生产数据的前提下准备 Playwright 浏览器 E2E。创建 staging、部署或支付实测仍需单独授权。
+在不连接生产数据的前提下准备 Playwright 浏览器 E2E。创建 staging、部署或支付实测仍需单独授权。

@@ -7,3 +7,4 @@ build: passed
 audit_prod: 0 vulnerabilities
 audit_all: 0 vulnerabilities
 migrations: 15/15 local and remote versions aligned
+github_ci: run 29403089055 passed
