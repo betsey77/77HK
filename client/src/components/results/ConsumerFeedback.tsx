@@ -2,6 +2,7 @@
 import type { ConsumerFeedback as ConsumerFeedbackType, ConsumerSuggestion, VariantKey } from '../../types';
 import { AppContext } from '../../context/AppContext';
 import { VARIANT_TABS } from '../../constants';
+import { apiUrl } from '../../services/apiBase';
 
 interface Props {
   feedback: ConsumerFeedbackType[];
@@ -437,7 +438,7 @@ export default function ConsumerFeedbackSection({ feedback }: Props) {
         if (!variantText) continue;
 
         try {
-          const res = await fetch('/api/apply-suggestion', {
+          const res = await fetch(apiUrl('/apply-suggestion'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -575,7 +576,7 @@ export default function ConsumerFeedbackSection({ feedback }: Props) {
     const prevTotal = state.scores?.generated?.total ?? previousTotalScore.current;
 
     try {
-      const res = await fetch('/api/re-evaluate', {
+      const res = await fetch(apiUrl('/re-evaluate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -650,7 +651,7 @@ export default function ConsumerFeedbackSection({ feedback }: Props) {
       const results = await Promise.all(
         textsToTranslate.map(async (text) => {
           try {
-            const res = await fetch('/api/translate', {
+            const res = await fetch(apiUrl('/translate'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ text }),

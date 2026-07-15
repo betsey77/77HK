@@ -1,0 +1,54 @@
+﻿
+ RUN  v4.1.10 D:/work/77娓瘽閫氱ぞ濯掓枃妗?77/server
+
+ 鉁?src/__tests__/w2-no-prompt-injection.test.ts > W2 does not inject case library into generation > DeepSeek / CantoneseLLM prompts omit case library body/reason even if smuggled on request object 2ms
+ 鉁?src/__tests__/w2-no-prompt-injection.test.ts > W2 does not inject case library into generation > rules fallback does not include case library body/reason 1ms
+ 鉁?src/__tests__/w2-no-prompt-injection.test.ts > W2 does not inject case library into generation > generate route does not map client-supplied case bodies into GenerateRequest 1ms
+ 鉁?src/__tests__/w2-no-prompt-injection.test.ts > W2 does not inject case library into generation > case library routes do not mount under /api/admin 1ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 resolve / validation > defaults missing W1 fields 2ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 resolve / validation > maps legacy tone to primaryTone 0ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 resolve / validation > requires customCopyType 2鈥?0 for custom 1ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 resolve / validation > clamps tone modifiers to max two 0ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 prompt injection 鈥?length switch > omits length section when lengthControlEnabled is false 1ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 prompt injection 鈥?length switch > includes soft length targets when enabled 0ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 three engine paths share constraints > DeepSeek prompt contains shared W1 sections 1ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 three engine paths share constraints > CantoneseLLM prompt contains shared W1 sections 0ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 three engine paths share constraints > rules fallback still emits five platform variants under W1 params 1ms
+ 鉁?src/__tests__/w1-parameters.test.ts > W1 does not break reference cases / calendar sections > still injects reference cases when W1 fields present 0ms
+ 鉁?src/__tests__/reference-cases.test.ts > reference case prompt injection > DeepSeek prompt requires each platform variant to apply identifiable reference techniques 2ms
+ 鉁?src/__tests__/reference-cases.test.ts > reference case prompt injection > CantoneseLLM prompt requires each platform variant to apply identifiable reference techniques 0ms
+ 鉁?src/__tests__/reference-cases.test.ts > reference case rules fallback > applies selected hook, emoji and CTA style instead of silently ignoring references 1ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 normalizeSelectedCaseLibraryIds > keeps order, de-dupes, caps at 3, drops non-UUID 1ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 normalizeSelectedCaseLibraryIds > returns empty for non-array / empty 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 resolveCaseLibraryContext (owner-scoped) > returns only owner non-deleted rows in request order; marks partial 2ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 resolveCaseLibraryContext (owner-scoped) > foreign / empty result does not leak 鈥?empty entries + partial 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 shared prompt section + three engines > omits case library section when no context 1ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 shared prompt section + three engines > DeepSeek includes equivalent good/bad structured constraints and anti-copy rules 1ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 shared prompt section + three engines > CantoneseLLM includes equivalent good/bad structured constraints and anti-copy rules 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 shared prompt section + three engines > client-smuggled caseLibraryEntries without caseLibraryContext still ignored 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 rules fallback > applies style cues without echoing case body 1ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 rules fallback > applyCaseLibraryStyle never pastes body 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 rules fallback > without cases, output matches baseline shape 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 budget with reference cases > case library priority: total context 鈮?5, library 鈮?3 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 snapshots for history > buildCaseLibrarySnapshots keeps min fields for historical interpretability 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 snapshots for history > partial notice constant is generic (no existence leak) 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 calendar + reference cases no regression on all platforms > calendar section still requires multi-platform fusion 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 calendar + reference cases no regression on all platforms > reference cases + case library coexist in DeepSeek prompt 0ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 generate route accepts IDs only (source contract) > generate route resolves selectedCaseLibraryIds and does not map client case bodies 1ms
+ 鉁?src/__tests__/w3-case-prompt-injection.test.ts > W3 derive hints > maps bad reason to avoid notes without body 0ms
+ 鉁?src/__tests__/case-library.test.ts > W2 case library field validation > accepts title optional, body 20鈥?000, reason 1鈥?00, tags limits 1ms
+ 鉁?src/__tests__/case-library.test.ts > W2 case library field validation > rejects short body / long title / too many tags / non-string tags 1ms
+ 鉁?src/__tests__/case-library.test.ts > W2 case library field validation > derives unnamed display names without writing to DB fields 0ms
+ 鉁?src/__tests__/case-library.test.ts > GET /api/case-library > returns 401 without auth 15ms
+ 鉁?src/__tests__/case-library.test.ts > GET /api/case-library > lists only non-deleted rows ordered by updated_at desc and filters query 5ms
+ 鉁?src/__tests__/case-library.test.ts > POST /api/case-library > creates entry for authenticated owner 4ms
+ 鉁?src/__tests__/case-library.test.ts > POST /api/case-library > rejects invalid body 3ms
+ 鉁?src/__tests__/case-library.test.ts > PATCH / DELETE ownership > returns 404 for other-owner / missing id on update 3ms
+ 鉁?src/__tests__/case-library.test.ts > PATCH / DELETE ownership > soft-deletes via update (204) and rejects invalid uuid 4ms
+ 鉁?src/__tests__/case-library.test.ts > PATCH / DELETE ownership > returns 404 when soft-deleting missing id 3ms
+
+ Test Files  5 passed (5)
+      Tests  45 passed (45)
+   Start at  13:33:18
+   Duration  888ms (transform 600ms, setup 130ms, import 948ms, tests 71ms, environment 0ms)
+

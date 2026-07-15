@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import type { HKPost } from '../../types';
 import PostCard from './PostCard';
 import SkeletonCard from './SkeletonCard';
+import { apiUrl } from '../../services/apiBase';
+import { SHORTS_TK_LABEL } from '../../constants';
 
 /**
  * Static example HK social media posts used as language vibe references.
@@ -65,7 +67,7 @@ const STATIC_EXAMPLE_POSTS: HKPost[] = [
     id: 'static-5',
     platform: 'youtube',
     type: 'organic',
-    headline: '港式Shorts文案示例',
+    headline: `港式${SHORTS_TK_LABEL}文案示例`,
     body: '3秒俾你睇到分别🔥左边系普通，右边系我哋。个客send返嚟嘅对比图冇P过㗎！想试嘅link in bio',
     hashtags: ['beforeafter', '真實效果', 'hkbeauty'],
     engagement: { likes: 8200, comments: 430, views: 120000 },
@@ -97,7 +99,7 @@ export default function LanguageVibeTab() {
   const fetchLanguageVibe = () => {
     setLoading(true);
     setError(null);
-    fetch('/api/inspiration/language-vibe', {
+    fetch(apiUrl('/inspiration/language-vibe'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })

@@ -46,3 +46,17 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
     }
   })();
 }
+
+/**
+ * requireSuperAdmin — narrow gate for super-admin-only endpoints.
+ *
+ * MUST run after requireAuth + requireAdmin (uses req.userRole set by requireAdmin).
+ * Does not replace requireAdmin; ordinary admin routes remain unaffected.
+ */
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (req.userRole === 'super_admin') {
+    next();
+    return;
+  }
+  res.status(403).json({ error: 'Super admin access required' });
+}

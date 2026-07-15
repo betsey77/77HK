@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { AppContext } from '../../context/AppContext';
 import CalendarEventCard from './CalendarEventCard';
 import type { CalendarEvent } from '../../types';
+import { apiUrl } from '../../services/apiBase';
 
 interface Props {
   selectedEventIds: Set<string>;
@@ -18,7 +19,7 @@ export default function TopicCalendarTab({ selectedEventIds, onToggleEvent }: Pr
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/inspiration/calendar', {
+      const res = await fetch(apiUrl('/inspiration/calendar'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

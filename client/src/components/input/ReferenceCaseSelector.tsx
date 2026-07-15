@@ -1,6 +1,8 @@
 import { useContext, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Star, StickyNote } from 'lucide-react';
+import { ChevronDown, ChevronUp, Star, StickyNote, Bookmark } from 'lucide-react';
 import { AppContext } from '../../context/AppContext';
+import { usePlanAccess } from '../../context/PlanAccessContext';
+import { getAccessibleBookmarks } from '../../services/planLimits';
 import { REASON_TAGS } from '../../types';
 
 /**
@@ -9,18 +11,24 @@ import { REASON_TAGS } from '../../types';
  */
 export default function ReferenceCaseSelector() {
   const { state, dispatch } = useContext(AppContext);
+  const { planId } = usePlanAccess();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const ratedBookmarks = useMemo(
     () =>
-      state.bookmarkedCopies
+      getAccessibleBookmarks(state.bookmarkedCopies, planId)
         .filter((bookmark) => (bookmark.rating ?? 0) >= 4)
         .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || b.savedAt.localeCompare(a.savedAt))
         .slice(0, 10),
-    [state.bookmarkedCopies],
+    [planId, state.bookmarkedCopies],
   );
 
-  const selectedIds = state.settings.selectedReferenceCaseIds ?? [];
+  const eligibleIds = useMemo(
+    () => new Set(ratedBookmarks.map((bookmark) => bookmark.id)),
+    [ratedBookmarks],
+  );
+  const selectedIds = (state.settings.selectedReferenceCaseIds ?? [])
+    .filter((id) => eligibleIds.has(id));
 
   const toggle = (id: string) => {
     if (selectedIds.includes(id)) {
@@ -41,17 +49,21 @@ export default function ReferenceCaseSelector() {
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-700/30 light:border-gray-300/60">
+    <div
+      data-testid="reference-case-selector"
+      className="shrink-0 overflow-hidden rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04] light:border-orange-400/30 light:bg-orange-50/60"
+    >
       <div className="flex items-center gap-1">
+        <Bookmark className="ml-2 h-3.5 w-3.5 shrink-0 text-emerald-400/60 light:text-orange-400" />
         <button
           type="button"
           aria-expanded={isExpanded}
           aria-controls="reference-case-list"
           onClick={() => setIsExpanded(value => !value)}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 px-2.5 py-2 text-left text-xs font-medium text-gray-400 transition-colors hover:text-gray-200 light:text-gray-600 light:hover:text-gray-900"
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1 py-2 text-left text-xs font-medium text-emerald-300/80 transition-colors hover:text-emerald-200 light:text-orange-600 light:hover:text-orange-800"
         >
           <span className="truncate">
-            参考收藏案例 <span className="text-gray-600 light:text-gray-400">（可用 {ratedBookmarks.length} 条 · 已选 {selectedIds.length}/3）</span>
+            参考收藏案例 <span className="text-emerald-600/60 light:text-orange-400">（可用 {ratedBookmarks.length} 条 · 已选 {selectedIds.length}/3）</span>
           </span>
           {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
         </button>
@@ -67,7 +79,7 @@ export default function ReferenceCaseSelector() {
       </div>
 
       {isExpanded && (
-        <div id="reference-case-list" className="space-y-1.5 border-t border-gray-700/30 px-2.5 pb-2.5 pt-2 light:border-gray-300/60">
+        <div id="reference-case-list" className="space-y-1.5 border-t border-emerald-500/20 px-2.5 pb-2.5 pt-2 light:border-orange-400/30">
           <p className="text-[10px] leading-relaxed text-gray-500">
             选择你之前评分 ≥4 的收藏案例，AI 将在生成时参考其技法风格
           </p>

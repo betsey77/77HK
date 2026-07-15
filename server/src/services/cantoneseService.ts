@@ -143,12 +143,13 @@ export async function generateWithCantoneseLLM(
   const clients = getClients();
   if (clients.length === 0) return null;
 
-  const temperature = TONE_TEMPERATURE[params.tone] ?? 0.7;
+  const effectiveTone = params.primaryTone ?? params.tone;
+  const temperature = TONE_TEMPERATURE[effectiveTone] ?? 0.7;
 
   const userPrompt = buildCantoneseLLMPrompt({
     source: params.source,
     platform: params.platform,
-    tone: params.tone,
+    tone: effectiveTone,
     cantoneseLevel: params.cantoneseLevel,
     englishMixingLevel: params.englishMixingLevel,
     brandName: params.brandName,
@@ -160,6 +161,13 @@ export async function generateWithCantoneseLLM(
     refresh: params.refresh,
     referenceCases: params.referenceCases,
     calendarEvents: params.calendarEvents,
+    copyType: params.copyType,
+    customCopyType: params.customCopyType,
+    lengthControlEnabled: params.lengthControlEnabled,
+    copyLengthLevel: params.copyLengthLevel,
+    primaryTone: effectiveTone,
+    toneModifiers: params.toneModifiers,
+    caseLibraryContext: params.caseLibraryContext,
   });
 
   // Try each available Cantonese client in priority order

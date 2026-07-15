@@ -8,15 +8,33 @@
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
     "dev:local": "concurrently -n client,server,model -c blue,green,yellow \"cd client && npm run dev\" \"cd server && npm run dev\" \"python server_4b_api.py\"",
-    "build": "cd client && npm ci && npm run build && cd ../server && npm ci && npm run build"
+    "install:all": "npm ci",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "cd client && npx vitest run",
+    "test:server": "cd server && npm test",
+    "typecheck": "npm run typecheck:client && npm run typecheck:server",
+    "typecheck:client": "cd client && npx tsc --noEmit",
+    "typecheck:server": "cd server && npx tsc --noEmit",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "audit:prod": "npm audit --omit=dev",
+    "audit:all": "npm audit",
+    "test:e2e:smoke": "playwright test --config=playwright.config.ts",
+    "verify": "npm run test && npm run typecheck && npm run build && npm run audit:prod && npm run audit:all"
   },
   "workspaces": [
     "client",
     "server"
   ],
   "devDependencies": {
-    "concurrently": "^9.1.0",
+    "@playwright/test": "^1.54.2",
+    "concurrently": "^9.2.4",
     "supabase": "^2.109.1",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "form-data": "4.0.6",
+    "shell-quote": "1.8.4"
   }
 }

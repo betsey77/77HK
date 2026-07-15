@@ -40,7 +40,7 @@ export default function TargetDatePicker() {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-medium text-gray-400 light:text-gray-600">
-        📅 目标发布时间
+        🗓️ 发布日期
       </label>
 
       <button

@@ -1,0 +1,41 @@
+﻿
+> hk-cantonese-copywriter@0.2.0 build
+> npm run build:client && npm run build:server
+
+
+> hk-cantonese-copywriter@0.2.0 build:client
+> cd client && npm run build
+
+
+> hk-cantonese-copywriter-client@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v6.4.3 [32mbuilding for production...[36m[39m
+transforming...
+[32m鉁?[39m 1710 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.98 kB[22m[1m[22m[2m 鈹?gzip:   0.70 kB[22m
+[2mdist/[22m[35massets/index-KDVMMIRY.css  [39m[1m[2m111.05 kB[22m[1m[22m[2m 鈹?gzip:  16.33 kB[22m
+[2mdist/[22m[36massets/index-BE9DuWNr.js   [39m[1m[33m812.25 kB[39m[22m[2m 鈹?gzip: 214.84 kB[22m
+node.exe : [33m
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([33m:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-m
+anualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m鉁?built in 4.36s[39m
+
+> hk-cantonese-copywriter@0.2.0 build:server
+> cd server && npm run build
+
+
+> hk-cantonese-copywriter-server@0.1.0 build
+> tsc
+

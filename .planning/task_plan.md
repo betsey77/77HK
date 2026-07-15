@@ -1,12 +1,37 @@
 # Task Plan
 
-## Current checkpoint — 2026-07-12
+## 2026-07-14 生产上线门禁复审
 
+- 结论：**尚未达到生产部署条件**；本地核心回归通过，但真实支付宝 sandbox E2E、浏览器 E2E、migration history 对齐、依赖安全、staging/CI、Auth 邮件与运维闭环仍为阻断项。
+- 本轮实测：Client 353/353、Server 509/509、双端 production build 通过。
+- 新发现：本地/远端 W2 migration 时间戳不一致；production audit 仍有 `form-data` high，完整 audit 另有 `concurrently`/`shell-quote` critical；Supabase Advisor 仍有 SECURITY DEFINER 与 leaked-password 警告。
+- 推荐架构更新：按用户确认先采用 Vercel Hobby 免费层，同域托管 Vite + Express Function（东京）并继续使用东京 Supabase；若用途不再属于个人非商业、或生成时延/长连接/GPU 触发门槛，再升级 Pro 或拆为 Vercel 前端 + 独立常驻 API。
+- 权威执行计划：`docs/release/2026-07-14-production-launch-plan-v2.md`。
+- Grok Build Phase 0 交接：`.planning/prompts/20260714-grok-phase0-production-readiness.md`。
+- 本轮未部署、未切生产支付、未推送 Migration、未 commit/push。
+
+## 2026-07-14 checkpoint
+
+- **2026-07-14 部署审计：** 详细的上线阻断项、Vercel + 独立 Express API 建议、真实支付宝与 E2E 分阶段计划见【docs/release/2026-07-14-deployment-readiness-plan.md】。未执行任何部署、真实支付、迁移或 Git 推送。
+
+- **已完成：** 管理员用户收藏「文案类型」sky 彩色 chip + 平台 green 区分；AuthLayout 左栏标题官网渐变（仅前端展示）。
+- **已完成：** 登录视觉、收藏卡片头部布局、管理员备注/标签 chip、工作台左侧四大折叠页（仅前端布局）。
+- **已完成：** 收藏发布平台可编辑并经既有云同步写回；管理员收藏平台默认使用用户收藏快照而非 `all`，标签/类型中文化，元信息检索与分页可用。
+- **已完成：** 结算 checkout 成功后不再额外等待 1.5 秒；安全订单/签名/webhook/回跳代码未变。
+- **仍待人工验收：** 登录页深/浅色标题渐变观感；管理员收藏类型/平台双 chip 对比；折叠展开后改参数/保存配置/案例库 state；收藏平台同步与管理员详情正文。
+- **仍待单独授权/执行：** 真实支付宝 sandbox 付款与 webhook 回调 E2E；部署；git commit/push（本切片未提交）。
+
+## Current checkpoint — 2026-07-13
+
+- **IN PROGRESS — 高影响操作确认与批量删除：** 退出/复原确认，收藏与历史多选/全选/批量删除，历史部分失败保留；无 Migration。
+- **收藏库卡片品牌/产品识别小切片已完成**：复用现有收藏 settings，在平台标签左侧显示“品牌 · 产品”；Client 260/260 与 production build 通过，无 Migration。
 - Slice D cloud sync is **COMPLETE locally and remotely**. 3 tables + 7 API endpoints + mutation sync/outbox + hydration/retry + explicit legacy import. Migration pushed and RLS/limit transaction smoke passed.
 - Slice C2a/C2b is complete locally and remotely.
-- Workbench usability polish is complete: history back-navigation, collapsed note summaries, collapsible reference cases, and signup confirmation loading/copy.
-- Next candidate: Spec v2.1 F1 simulated generation progress (diagnosis → generation → audit → feedback). After F1, continue with Slice E payment/order mock. Real Alipay integration remains a separate high-risk gate and requires explicit user approval.
-- Pricing: Free 20 successful full-generation workflows per rolling 7 days; Pro ¥19/month and 400 workflows. Feature-level entitlements are not yet enforced.
+- Slice E 套餐/订单/支付 Mock 已完成。
+- Slice G1 管理后台只读 API 已完成（schema-matched, Supertest 401/403/200）。
+- **Slice F1 / G1-R 最终阻断修复已完成（本地）**：支付宝沙箱前置架构（checkout/notify/reconcile/adapter）+ 11 项阻断修复。
+- **✅ F1 Migration 已推送并完成远端结构/RLS/权限核验；⚠️ 真实支付宝 sandbox E2E 未执行。**
+- PAYMENT_MODE 默认 `mock`；所有支付/生产动作仍需单独授权。
 
 ## Goal
 
@@ -71,3 +96,34 @@
 - completed: bug - 官网Pricing与结算转化链路未接通 → **RESOLVED 2026-07-12**: PricingPage content correct; CTA links verified; nextPath security tested; MarketingPage nav links confirmed.
 
 - completed: change - 已开发功能规格沉淀与防覆盖门禁 → **RESOLVED 2026-07-12**: regression_matrix.md created with 12 domains, 11 anti-regression gates.
+- completed: bug - 收藏案例已选但生成风格无明显关系 → **RESOLVED 2026-07-13**: invalid ID count fixed; dual-model prompt contract strengthened; rules fallback consumes reference style signals.
+- completed: feature - 普通管理员查看用户收藏详情并复制 → **RESOLVED 2026-07-13**: read-only metadata list + fail-closed audited detail + single-copy UI; no mutation/export and no RLS relaxation.
+- completed: bug - 配置管理未保存参考收藏案例 → **RESOLVED 2026-07-13**: SavedConfig + Supabase JSON round-trip + LOAD_CONFIG now preserve selectedReferenceCaseIds; UI shows reference count.
+- completed: bug - 生成历史载入后左侧配置丢失 → **RESOLVED 2026-07-13**: legacy brief compatibility + full workbenchSettings persistence + history recovery guidance; Client 259/259, TypeScript/build passed.
+- completed: safety + usability - 高影响操作确认、收藏/历史批量删除、检索分页 → **RESOLVED 2026-07-13**: 退出/复原/历史删除均先确认；收藏与历史支持多选、当前页全选、批量删除；两处均每页 10 条并可按品牌/产品/正文检索。Client 270/270、Server 427/427、双端 build 通过，无 Migration。
+- completed: monetization entitlement - Free 收藏最多 10 条、生成历史开放最新 15 条，其余保留并由 Pro 解锁；客户端提示 + 服务端防绕过，无 Migration。Client 276/276、Server 433/433、双端 TypeScript/build 通过。
+
+## Current checkpoint — 2026-07-13（支付回跳 UI）
+
+- completed: 结算页账户信息复用 HeaderMenu 折叠菜单。
+- completed: 仅服务端已确认 paid 的非 Mock 支付自动返回结算页。
+- completed: 结算页核对 paid 订单后弹出支付成功 / Pro 已开通窗口；伪造 URL fail-closed。
+- completed: 参考收藏案例增加 `shrink-0`，修复左栏只显示绿色细线。
+- verified: Client 253/253；TypeScript + Vite build passed。
+- authorized next: 普通管理员只读查看用户收藏详情，禁止编辑/删除/导出，记录访问日志。
+
+- completed: bug - R1.1 管理员审核保存与正文审阅修复. Local tests/build/audit passed; remote `20260714190100` pushed and transaction-verified without persisting test data.
+
+- completed: feature - R2 收藏文案句子级管理员批注；自动化验收通过，R2 Migration 已推送并复核。
+
+- completed: feature - R2.1 收藏正文直接编辑与重新送审；自动化验收通过，R2 Migration 已推送并复核。
+
+- completed: change - Shorts 展示名统一为 Shorts/TK；内部 key 保持 `shorts`，Prompt 同时覆盖 YouTube Shorts/TikTok，全量验证与浏览器截图通过。
+
+- pending: feature - 用户自写收藏文案与待审核队列. Confirm with user before implementation.
+
+- completed: change - Pro 月额度调整为 250 次；Migration `20260715113350` 已推送，存量有效 Pro 当前周期由 10/400 立即变为 10/250，边界事务验证后无 QA 残留。
+
+- completed: feature - 团队协作版 99 元/月联系定制；官网/Pricing 卡片、共享微信联系弹窗、二维码与复制/键盘/手机验收完成，无支付或权益改动。
+
+- pending: feature - 用户审核结果弹窗；与管理员待审提醒一并设计，独立验证 owner 隔离、去重和“立即查看”定位。

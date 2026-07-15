@@ -13,10 +13,12 @@ import {
   AlertTriangle, Check, X, Loader2, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import HeaderMenu from '../components/layout/HeaderMenu';
 import type {
   PlanEntitlements, PaymentOrder, CheckoutResponse, PlanInfo,
 } from '../types';
 import { FREE_PLAN, PRO_PLAN, PLANS } from '../types';
+import { apiUrl } from '../services/apiBase';
 
 // ── Helpers ──
 
@@ -50,8 +52,13 @@ function getPlan(id: string): PlanInfo | undefined {
 }
 
 export default function BillingPage() {
-  const { state: authState } = useAuth();
+  const { state: authState, logout } = useAuth();
   const jwt = authState.session?.access_token ?? null;
+  const [successDialogDismissed, setSuccessDialogDismissed] = useState(false);
+
+  // Plans (public — no auth needed, but we fetch to get paymentMode)
+  const [paymentMode, setPaymentMode] = useState<'mock' | 'alipay_sandbox'>('mock');
+  const [isMock, setIsMock] = useState(true);
 
   // Entitlements
   const [entitlements, setEntitlements] = useState<PlanEntitlements | null>(null);
@@ -68,13 +75,27 @@ export default function BillingPage() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
 
+  // ── Fetch public plans to get paymentMode ──
+  const fetchPaymentMode = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl('/billing/plans'));
+      if (res.ok) {
+        const data = await res.json();
+        setPaymentMode(data.paymentMode || 'mock');
+        setIsMock(data.isMock !== false);
+      }
+    } catch {
+      // Default to mock
+    }
+  }, []);
+
   // ── Fetch entitlements ──
   const fetchEntitlements = useCallback(async () => {
     if (!jwt) return;
     setEntLoading(true);
     setEntError(null);
     try {
-      const res = await fetch('/api/me/entitlements', { headers: getAuthHeaders(jwt) });
+      const res = await fetch(apiUrl('/me/entitlements'), { headers: getAuthHeaders(jwt) });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `HTTP ${res.status}`);
@@ -94,7 +115,7 @@ export default function BillingPage() {
     setOrdersLoading(true);
     setOrdersError(null);
     try {
-      const res = await fetch('/api/billing/orders', { headers: getAuthHeaders(jwt) });
+      const res = await fetch(apiUrl('/billing/orders'), { headers: getAuthHeaders(jwt) });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `HTTP ${res.status}`);
@@ -109,9 +130,10 @@ export default function BillingPage() {
   }, [jwt]);
 
   useEffect(() => {
+    fetchPaymentMode();
     fetchEntitlements();
     fetchOrders();
-  }, [fetchEntitlements, fetchOrders]);
+  }, [fetchPaymentMode, fetchEntitlements, fetchOrders]);
 
   // ── Handle checkout ──
   async function handleCheckout(planId: string) {
@@ -120,21 +142,28 @@ export default function BillingPage() {
     setCheckoutError(null);
     setCheckoutResult(null);
     try {
-      const res = await fetch('/api/billing/checkout', {
+      // Route based on paymentMode from plans response
+      const endpoint = paymentMode === 'alipay_sandbox'
+        ? apiUrl('/billing/alipay/checkout')
+        : apiUrl('/billing/checkout');
+
+      const body = paymentMode === 'alipay_sandbox'
+        ? { planId, idempotencyKey: crypto.randomUUID() }
+        : { planId };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: getAuthHeaders(jwt),
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify(body),
       });
-      const body = await res.json();
+      const respBody = await res.json();
       if (!res.ok) {
-        throw new Error(body.error || `HTTP ${res.status}`);
+        throw new Error(respBody.error || `HTTP ${res.status}`);
       }
-      const result = body as CheckoutResponse;
+      const result = respBody as CheckoutResponse;
       setCheckoutResult(result);
-      // Navigate to the mock redirect URL after a brief delay
-      setTimeout(() => {
-        window.location.href = result.redirectUrl;
-      }, 1500);
+      // Navigate immediately after successful checkout (no artificial wait)
+      window.location.href = result.redirectUrl;
     } catch (err) {
       setCheckoutError(err instanceof Error ? err.message : '创建订单失败');
     } finally {
@@ -146,6 +175,16 @@ export default function BillingPage() {
   function handleRefresh() {
     fetchEntitlements();
     fetchOrders();
+  }
+
+  async function handleLogout() {
+    await logout();
+    window.location.href = '/login';
+  }
+
+  function dismissSuccessDialog() {
+    setSuccessDialogDismissed(true);
+    window.history.replaceState({}, '', '/app/billing');
   }
 
   // ── Not authenticated ──
@@ -174,6 +213,14 @@ export default function BillingPage() {
   const used = entitlements?.quotaUsed ?? 0;
   const total = entitlements?.quotaTotal ?? 20;
   const pct = quotaPercent(used, total);
+  const returnParams = new URLSearchParams(window.location.search);
+  const returnedOrderId = returnParams.get('payment') === 'success'
+    ? returnParams.get('orderId')
+    : null;
+  const verifiedPaidOrder = returnedOrderId
+    ? orders.find(order => order.id === returnedOrderId && order.status === 'paid')
+    : undefined;
+  const showSuccessDialog = !successDialogDismissed && !ordersLoading && !!verifiedPaidOrder;
 
   return (
     <div className="min-h-screen bg-gray-950 light:bg-white text-gray-100 light:text-gray-900">
@@ -192,16 +239,29 @@ export default function BillingPage() {
             <p className="text-[10px] text-gray-600 light:text-gray-500">HK Cantonese Social Copywriter</p>
           </div>
         </a>
-        <span className="text-xs text-gray-500">{authState.user?.email ?? ''}</span>
+        <HeaderMenu
+          userEmail={authState.user?.email ?? null}
+          onLogout={handleLogout}
+        />
       </header>
 
       <div className="mx-auto max-w-3xl px-4 py-8">
-        {/* ── MOCK Banner ── */}
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-center">
-          <p className="flex items-center justify-center gap-2 text-xs text-amber-400">
+        {/* ── Mode Banner ── */}
+        <div className={`mb-6 rounded-lg border px-4 py-2.5 text-center ${
+          paymentMode === 'alipay_sandbox'
+            ? 'border-blue-500/30 bg-blue-500/10'
+            : 'border-amber-500/30 bg-amber-500/10'
+        }`}>
+          <p className={`flex items-center justify-center gap-2 text-xs ${
+            paymentMode === 'alipay_sandbox' ? 'text-blue-400' : 'text-amber-400'
+          }`}>
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>
-              <strong>[MOCK]</strong> 此为演示结算页。所有套餐数据和订单均为本地 Mock，未接入真实支付宝支付。
+              {paymentMode === 'alipay_sandbox' ? (
+                <><strong>[支付宝沙箱]</strong> 沙箱测试环境。所有支付通过支付宝沙箱网关，未产生真实交易。</>
+              ) : (
+                <><strong>[MOCK]</strong> 此为演示结算页。所有套餐数据和订单均为本地 Mock，未接入真实支付宝支付。</>
+              )}
             </span>
           </p>
         </div>
@@ -273,7 +333,7 @@ export default function BillingPage() {
                   </span>
                 </h3>
                 <p className="text-xs text-gray-400 light:text-gray-600 mt-1">
-                  每自然月 400 次生成 · 优先模型队列 · 高级品牌档案
+                  每自然月 250 次生成 · 优先模型队列 · 高级品牌档案
                 </p>
               </div>
               <button
@@ -302,11 +362,13 @@ export default function BillingPage() {
               </p>
             )}
 
-            {/* Checkout success (before redirect) */}
+            {/* Checkout success (before redirect) — copy follows paymentMode from /api/billing/plans */}
             {checkoutResult && (
               <div className="mt-3 rounded bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400 flex items-center gap-2">
                 <Check className="h-3.5 w-3.5" />
-                订单 {checkoutResult.orderId} 已创建，即将跳转到模拟支付页面…
+                {paymentMode === 'alipay_sandbox'
+                  ? `订单 ${checkoutResult.orderId} 已创建，即将跳转到支付宝沙箱支付页…`
+                  : `订单 ${checkoutResult.orderId} 已创建，即将跳转到模拟支付页面…`}
               </div>
             )}
           </section>
@@ -362,12 +424,74 @@ export default function BillingPage() {
             </div>
           )}
 
-          {/* MOCK label */}
-          <p className="mt-4 text-center text-[10px] text-amber-500/60">
-            [MOCK] 所有订单记录存储在内存中，重启后清空
+          {/* Mode label */}
+          <p className={`mt-4 text-center text-[10px] ${
+            paymentMode === 'alipay_sandbox' ? 'text-blue-500/60' : 'text-amber-500/60'
+          }`}>
+            {paymentMode === 'alipay_sandbox'
+              ? '[支付宝沙箱] 订单存储在数据库中'
+              : '[MOCK] 所有订单记录存储在内存中，重启后清空'}
           </p>
         </section>
       </div>
+
+      {showSuccessDialog && verifiedPaidOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="billing-success-title"
+            className="w-full max-w-sm rounded-xl border border-emerald-500/30 bg-gray-950 p-6 shadow-2xl light:border-orange-300 light:bg-white"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 light:bg-orange-100 light:text-orange-600">
+                  <Check className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 id="billing-success-title" className="text-base font-bold">支付成功</h2>
+                  <p className="mt-0.5 text-xs text-gray-500">Pro 套餐已开通</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={dismissSuccessDialog}
+                aria-label="关闭支付成功提示"
+                className="rounded p-1 text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-200 light:hover:bg-gray-100 light:hover:text-gray-800"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-lg border border-gray-800 bg-gray-900/50 p-3 text-xs light:border-gray-200 light:bg-gray-50">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">套餐</span>
+                <span className="font-medium">{verifiedPaidOrder.planName}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-gray-500">实付金额</span>
+                <span className="font-semibold">¥{verifiedPaidOrder.amountCny}</span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={dismissSuccessDialog}
+                className="min-h-10 flex-1 rounded-md border border-gray-700 px-3 text-sm text-gray-300 transition-colors hover:bg-gray-800 light:border-gray-300 light:text-gray-700 light:hover:bg-gray-100"
+              >
+                留在结算页
+              </button>
+              <a
+                href="/app"
+                className="inline-flex min-h-10 flex-1 items-center justify-center rounded-md bg-emerald-400 px-3 text-sm font-semibold text-gray-950 transition-colors hover:bg-emerald-300 light:bg-orange-500 light:text-white light:hover:bg-orange-600"
+              >
+                开始创作
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

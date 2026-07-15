@@ -1,5 +1,349 @@
 # CHANGELOG
 
+## 2026-07-14 — R1 审核分组 + 管理员收藏批注
+
+### Added
+- 本地 migration `20260714190000_review_groups_admin_notes.sql`：`profiles.review_group`、`favorite_admin_reviews`、RLS、`admin_update_favorite_review` RPC。
+- `PUT /api/admin/favorites/:id/review`；管理员收藏列表/详情返回审核摘要；同组 scope 显式业务校验。
+- 用户 bootstrap `adminReview`；收藏卡只读高亮；管理后台审核编辑区与列表 chip。
+- 官网 footer 团队审核联系电话（`tel:18595680518`）。
+- 运维文档 `docs/admin/review-group-management.md`。
+
+### Security
+- service_role 绕过 RLS 时服务端必须重复同组校验；审核写仅经 service_role 原子 RPC；audit 不存完整意见正文。
+
+### Remote migration
+- 已推送 `20260714190000_review_groups_admin_notes.sql` 至 Supabase 项目 `qiotocumkbwckiezuptr`；远端 migration history 版本与本地一致。
+- 已验证新表 RLS、owner/admin SELECT policies、authenticated 只读、service-role-only RPC；R1 未新增 Security Advisor 警告。
+
+### Scope / Not done
+- **未**写入用户分组/角色、部署或修改支付。
+
+### Verification
+- 见 `docs/evidence/2026-07-14/review-groups-admin-notes/verification.md`。
+
+## 2026-07-14 — 本地部署适配（官网滚动 + 双项目 Vercel readiness）
+
+### Added
+- E2E smoke：真实分段滚动后全部 `[data-reveal]` 须 `is-in` 且 computed opacity ≠ 0（不硬编码节点数）。
+- `client/src/services/apiBase.ts` + `apiBase.test.ts`：`VITE_API_BASE_URL` 可配置 API origin。
+- `server/src/services/corsOrigins.ts` + `cors.test.ts`：`ALLOWED_ORIGINS` 严格 CORS。
+- `server/src/services/alipayUrls.ts` + `alipayUrls.test.ts`：`APP_FRONTEND_URL` / `APP_API_URL` 分域回调。
+- `client/vercel.json` SPA fallback；`server/vercel.json` Express `hnd1` + `functions` maxDuration 300（entry `src/app.ts`，无 legacy builds）。
+- 文档：`docs/release/2026-07-14-hosting-platform-decision.md`、`docs/release/2026-07-14-vercel-two-project-setup.md`。
+
+### Changed
+- 客户端运行时 API fetch 统一 `apiUrl()`（含 Billing / Feedback / Inspiration / Persona / Results 等）。
+- 支付宝 checkout URL 构造走 `resolveAlipayUrls`；sandbox 缺配置 fail closed 并提示正确变量名。
+
+### Scope / Not done
+- 未执行任何云部署 CLI；未 migration；未读/写真实 `.env` 密钥；未 git commit/push；未改计费规则/RLS/Prompt。
+
+### Verification
+- 见 `docs/evidence/2026-07-14/local-vercel-readiness/verification.md`。
+
+## 2026-07-14 — Phase 0 生产发布基线
+
+### Added
+- 根脚本分离：`install:all`、`test`/`test:client`/`test:server`、`typecheck`/`typecheck:*`、`build`/`build:*`、`audit:prod`/`audit:all`、`verify`、`test:e2e:smoke`。
+- Playwright 最小 smoke harness：`playwright.config.ts`、`e2e/smoke.spec.ts`；方案见证据目录 `playwright-smoke-plan.md`。
+- 发布方案文档：worktree 提交分组、migration 漂移映射、Supabase Advisor 修复提案（均在 `docs/evidence/2026-07-14/phase0-production-baseline/`）。
+- `.env.example` 完整变量名契约（全部空值）。
+- `scripts/verify/commands.md` 更新为安装与构建分离命令表。
+
+### Fixed / Security
+- 受控消除 high/critical：`form-data@4.0.6`、`shell-quote@1.8.4`（overrides）、`concurrently@^9.2.4`；**未**使用 `npm audit fix --force`。
+- `npm run build` 不再内嵌 `npm ci`。
+- W2 migration 本地文件名对齐远端：`20260714052140_w2_case_library.sql`、`20260714052414_harden_w2_case_library_function.sql`（仅 rename，无远端写入）。
+
+### Scope / Not done
+- 未部署、未切生产支付宝、未 migration push/repair、未 git commit/push、未写远端 DB。
+- 完整业务 Playwright E2E 延后 Phase 2。
+
+### Verification
+- Client 353/353；Server 509/509；双端 typecheck/build 通过。
+- `npm audit --omit=dev` 与完整 `npm audit`：0 vulnerabilities。
+- 证据：`docs/evidence/2026-07-14/phase0-production-baseline/`。
+
+## 2026-07-14 — 管理员类型彩色 chip 与登录标题渐变
+
+### Changed
+- 管理员「用户收藏」列表：文案类型使用 sky 色 chip 高亮，平台 chip 仍为 green/emerald，二者色系可区分。
+- 类型展示继续使用 `formatAdminCopyType` 中文映射，不回退英文枚举。
+- AuthLayout 左侧产品标题对齐官网渐变：深色 `from-emerald-300 to-lime-300`，浅色 `light:from-orange-600 light:to-amber-500`，并启用 `bg-clip-text text-transparent`。
+
+### Security / Scope
+- 仅前端展示层；无 AuthContext / Supabase 调用、路由、支付、Migration、RLS、`.env` 或服务端变更。
+- 标题文案与字号未改。
+
+### Verification
+- `npx vitest run src/test/slice-login-admin-accordion.test.tsx` → 11/11 passed。
+- Client `tsc --noEmit` 与 production build 通过。
+- 证据：`docs/evidence/2026-07-14/admin-type-login-gradient/notes.md`。
+
+## 2026-07-14 — 登录视觉、收藏卡片布局、管理员备注标签与左侧折叠页
+
+### Changed
+- 登录/认证壳（AuthLayout）：对齐官网克制深色科技感，Logo `/brand/77-logo.png`，左栏最多 3 条产品能力；LoginPage 增加「欢迎回来」标题。
+- 收藏库卡片头部：元信息可换行，日期独立行，复制/载入参数/删除固定右侧，避免窄宽重叠。
+- 管理员用户收藏表：备注低饱和强调容器；标签以中文 chip 展示（未知 → 自定义标签）；表头可换行。
+- 工作台左侧 InputPanel：四个折叠分组（品牌与内容场景 / 文案参数 / 目标受众与参考 / 配置管理）；默认展开前两组、收起后两组；折叠内容保持挂载。
+
+### Security / Scope
+- 无 Migration、RLS、Supabase、`.env`、密钥、支付服务端、订单、Webhook、额度或权限变更。
+- 未改 AuthContext / Supabase 调用；管理员详情仍 audit-before-body fail-closed。
+- 左侧折叠只重组现有控件；用户保存配置的字段集合不变。
+
+### Verification
+- Client 351/351；Server 509/509；双端 TypeScript 与 production build 通过。
+- 证据：`docs/evidence/2026-07-14/login-admin-accordion/notes.md`。
+
+## 2026-07-14 — 收藏发布平台、管理员收藏检索与结算跳转体验
+
+### Added / Changed
+- 收藏条目增加独立 `publishPlatform` 快照，用户可在收藏库修改；变更走既有 cloud sync/outbox，同步给管理员审阅。
+- 新收藏默认以生成变体作为发布平台；历史 `platform=all` 收藏以变体回退展示，避免管理员默认看到「全部平台」。
+- 管理员「用户收藏」支持品牌、产品、类型、平台、备注、收藏原因和标签的元信息检索；搜索/清除回到第 1 页并保持服务端分页总数。
+- 管理员收藏列表与详情统一中文显示文案类型、平台与标签；未知标签显示「自定义标签」。
+- checkout 成功后立即跳转服务端返回的 `redirectUrl`，不再有 1.5 秒前端等待。
+
+### Security / Scope
+- 管理员列表和检索均显式排除收藏正文；正文仍仅在审计日志写入成功后由详情接口返回。
+- 未变更数据库、Migration、RLS、支付宝订单创建/签名/notify/webhook/回跳校验、密钥、`.env` 或部署配置。
+
+### Verification
+- Client 342/342；Server 508/508；双端 TypeScript 与 production build 通过。
+- 证据：`docs/evidence/2026-07-14/favorite-platform-admin-search/notes.md`。
+
+## 2026-07-14 — 管理员审阅、配置保存与左侧标签 UI 修复
+
+### Fixed
+- 管理员收藏详情：长正文时标题/关闭与复制按钮保持可见（max-height + 可滚动正文 + 固定 footer）。
+- 审阅摘要改为紧凑两列 label/value；文案类型/平台展示中文（不改 API 枚举）。
+- 配置保存/未储存检测补齐 `targetDate` 与 `selectedCalendarEventIds`。
+- 「复原创作配置」将发布日期重置为**执行当日香港自然日**并清空话题日历选择。
+- 左侧输入标签补充语义 emoji（文案类型/目标平台/主语气/发布日期）。
+
+### Not in this slice
+- Migration / RLS / 远端写入 / 支付 / 部署 / `.env`
+- 管理员写操作、批量导出、左侧折叠页
+- Billing 跳转与支付速度
+
+### Verification
+- Client 330/330；Server admin 相关 56/56；两端 tsc + production build 通过。
+- 证据：`docs/evidence/2026-07-14/admin-config-ui-fixes/verification.md`。
+
+## 2026-07-14 — W4 管理员收藏审阅与超级管理员案例正文
+
+### Added
+- 收藏列表/详情从 `favorites.settings` 提取品牌、产品、文案类型、平台（null = 未填写）。
+- 管理后台收藏详情弹窗：正文上方只读「审阅摘要」卡。
+- `requireSuperAdmin` 中间件；`GET /api/admin/case-library/:id`（super_admin only）。
+- 案例审阅：exists → `admin_view_case_library_detail` 审计 → allowlist 正文；UI 按 ID 查询。
+- `GET /api/admin/stats` 附带服务端验证的 `role`，供案例入口可见性（不信任客户端自报）。
+
+### Security
+- 案例与收藏正文均为 fail-closed：审计写入失败绝不返回正文。
+- 案例响应无用户邮箱；普通管理员 403。
+- 无 `select(*)`、无管理员写路由、无 RLS 放宽。
+
+### Not in this slice
+- Migration / RLS / 远端写入 / 支付 / 部署 / `.env`
+- 跨用户案例列表、批量导出、编辑/删除/评分
+- 左侧折叠页
+
+### Verification
+- Server 501/501；Client 325/325；两端 tsc + production build 通过。
+- 证据：`docs/evidence/2026-07-14/w4-admin-review/`。
+
+## 2026-07-14 — W3 正反例 Prompt 注入（三引擎一致）
+
+### Added
+- Server：`caseLibraryContext` 解析器（JWT + RLS，owner/未软删除，最多 3 UUID）。
+- 共享 `buildCaseLibraryPromptSection` / `applyCaseLibraryStyle`：DeepSeek、CantoneseLLM、rules fallback 一致。
+- 正例技法约束 + 反例负向约束；禁止照抄正文/复述反例。
+- 与参考收藏案例共存：总上下文 ≤5，案例库优先。
+- 生成 brief 写入 `resolvedCaseLibrarySnapshots`（id/caseType/title/body/reason/tags）供历史解释。
+- 部分 ID 不可用时响应 `warnings: ['部分已选案例不可用']`。
+- Client：`useGenerate` 显式发送 `selectedCaseLibraryIds`（仅 ID）。
+
+### Security hardening
+- 生成历史写入前剔除客户端伪造的 `caseLibraryEntries`、`caseLibraryContext` 与 `resolvedCaseLibrarySnapshots`；历史只持久化服务端以当前用户 JWT/RLS 实际解析的案例快照。
+
+### Not in this slice
+- W4 管理员/超级管理员案例正文访问与审计。
+- 左侧折叠页 / Accordion / CollapsibleSection。
+- 任何 Migration、RLS、支付、部署、`.env` 变更。
+
+### Verification
+- 独立复验：Server 全量 484 passed；Client 全量 322 passed；两端生产构建通过。
+- 定向 W3：Server 19/19、Client 4/4 通过；含“伪造案例正文不进入历史 brief”回归。
+- 证据：`docs/evidence/2026-07-14/w3-case-prompt-injection/`。
+
+## 2026-07-14 — W2 个人正反例案例库（不含 Prompt 注入与折叠页）
+
+### Added
+- Migration：`supabase/migrations/20260714000000_w2_case_library.sql`（`case_library_entries` + RLS + soft delete），已推送并完成远端复核。
+- Server BFF：`GET/POST/PATCH/DELETE /api/case-library`（登录用户本人 CRUD，删除为软删除）。
+- Client：`CaseLibraryPanel` 增量挂到左侧 InputPanel（参考收藏案例与配置管理之间）；新增/编辑/删除确认/搜索/最多选 3 条。
+- `selectedCaseLibraryIds` 进入 AppSettings、保存配置、云同步 payload、历史 workbenchSettings 恢复。
+- 已删除案例：载入选择时忽略并给出非阻塞提示。
+
+### Not in this slice（W2 当时）
+- ~~W3 正反例 Prompt 注入~~ → 已在同日 W3 切片完成。
+- W4 管理员/超级管理员案例正文访问与审计。
+- 左侧折叠页。
+
+### Verification
+- Client：W2 vitest 10/10；W1/config/history 相关 24；`tsc --noEmit`；`npm run build`。
+- Server：W2 相关 22 + W1/reference/calendar 合计 71；`tsc --noEmit`；`npm run build`。
+- 证据：`docs/evidence/2026-07-14/w2-case-library/`。
+- 远端已确认表与约束存在、RLS 已启用、authenticated 仅有 select/insert/update 且没有 delete 权限，三条策略均限制 `auth.uid() = owner_id` 与未软删除记录。
+- 已推送 `20260714000001_harden_w2_case_library_function.sql`，远端确认 `private.case_library_tags_valid` 使用 `search_path=pg_catalog`；该项安全顾问提示已消失。
+
+## 2026-07-14 — W4 管理员审阅摘要规格补充（已由同日 W4 实现覆盖）
+
+### Changed
+- 规格要求已在 W4 实现切片落地（见上方 W4 changelog）。
+
+## 2026-07-14 — W1 创作参数闭环（不含折叠页）
+
+### Added
+- 文案类型 `copyType`（social/spoken/poster/advertorial/poetry/custom）与 custom 2–20 字说明。
+- 可选长度控制 `lengthControlEnabled` + `copyLengthLevel`（1–5 软目标）。
+- 丰富语气：`primaryTone`（12 项）+ `toneModifiers`（最多 2）；兼容旧 `tone`。
+- 输入面板增量控件：CopyTypeSelector、LengthControl、扩展 ToneSelector（非折叠布局）。
+- 服务端共享 `w1Constraints`，DeepSeek / CantoneseLLM / rules fallback 同一结构化约束。
+- 保存配置、历史 workbenchSettings、收藏 settings 快照与卡片文案类型展示。
+
+### Changed
+- `BrandTone` 扩展为 12 主语气；生成请求与 normalizeSettings 回退旧数据。
+
+### Not in this slice
+- W2 个人案例库、W3 正反例 Prompt、W4 管理员展示、左侧折叠页（需用户完成非折叠功能验收后）。
+
+### Verification
+- Client：`npx vitest run` 308/308；`tsc --noEmit`；`npm run build`。
+- Server：W1 + reference + calendar + generations 相关 vitest；`tsc --noEmit`；`npm run build`。
+- 证据：`docs/evidence/2026-07-14/w1-parameters/`。
+
+## 2026-07-14 — 左侧折叠页回退与开发顺序调整
+
+### Changed
+- 应用户要求，左侧折叠页实现已精确回退到开发前快照；不影响既有工作台、支付、数据库、角色或权限功能。
+- 后续顺序调整为 W1→W2→W3→W4→用户完成非折叠功能验收→左侧折叠页，避免在功能闭环前改变输入侧信息架构。
+
+### Verification
+- 已确认原 `InputPanel.tsx` 与回退快照一致，折叠页新增组件及其专属测试不再存在。
+
+## 2026-07-14 — 工作台内容控制与个人案例库规格（未开发）
+
+### Added
+- 新增 spec/WORKBENCH_CONTENT_CONTROLS.md，定义文案类型、可选长度控制、主/修饰语气、个人正反例案例库、Prompt 注入、保存配置/历史/收藏快照、管理员元数据展示和 Grok Build 边界。
+- 左侧折叠页仅记录独立 UX brief，案例库 Migration/RLS 也未实施。
+
+### Verification
+- 本次仅文档变更；未改动 Client/Server 代码、数据库、RLS、支付、环境变量或部署。
+
+## 2026-07-14 — 路由与结算体验定向修复
+
+### Fixed
+- 静态设计稿 `homepage-v2.html`：集中 `APP_ORIGIN=http://localhost:5173`，真实应用 CTA（`/app`、`/app/billing`、`/pricing`）改为绝对地址，避免在 5175 等静态预览端口误跳。
+- `BillingPage` 订单创建成功提示按 `paymentMode` 区分：`alipay_sandbox` → 支付宝沙箱支付页文案；`mock` → 模拟支付页面文案。Pro 用户继续隐藏升级 CTA。
+
+### Verification
+- Client 新增回归：`slice-route-billing-fix.test.tsx`（官网 CTA 矩阵、mock/sandbox 提示、Pro 无升级按钮）。
+- 未修改 `.env`、支付服务端、`PAYMENT_MODE`、密钥、端口或 Vite 配置。
+
+## 2026-07-13 — Free 收藏与生成历史容量权益
+
+### Added
+- Free 最多新增并访问最新 10 条收藏；达到容量后显示 Pro 解锁弹窗，删除收藏可释放容量。
+- Free 生成历史只开放最新 15 条，列表返回锁定数量并提供 Pro 入口；超额旧数据不删除。
+- 服务端对收藏新增、legacy import、历史搜索和历史详情实施套餐门禁，返回 `403 PLAN_LIMIT` 防止客户端绕过。
+- 参考收藏案例和生成 Prompt 只使用当前套餐可访问的收藏。
+
+### Verification
+- Client tests：276/276；Server tests：433/433。
+- Client/Server TypeScript：✅；Client/Server production build：✅。
+- 无数据库 Migration、部署、支付或远端数据写入。
+
+## 2026-07-13 — 收藏卡片品牌与产品展示
+
+### Changed
+- 文案收藏库卡片头部新增品牌与产品摘要，固定显示在平台高亮标签左侧。
+- 品牌与产品摘要改为双主题红色：暗色 `red-400`、亮色 `red-600`。
+- 长名称采用截断展示并提供完整悬停文本；缺失字段不会产生空占位。
+- 仅复用收藏记录现有 `settings` 数据，不涉及 API、数据库或 Migration。
+
+### Verification
+- TDD 回归：新增 1 项 DOM 顺序测试。
+- Client tests：260/260。
+- Client production build：✅。
+
+## 2026-07-13 — Slice F1 PKCS8 与失败订单收口
+
+### Fixed
+- 根据应用私钥 PEM header 为 `alipay-sdk` 显式设置 `keyType: PKCS8 | PKCS1`，修复 OpenSSL `DECODER routines::unsupported`
+- page-pay URL 初始化异常时，将对应 sandbox 订单从 `pending` 条件更新为 `failed`，仅保存通用错误码，不保存异常原文或密钥
+- 经用户授权，将本次错误产生的 3 条 pending 沙箱订单标记为 failed；未删除订单、未修改订阅
+
+### Verification
+- 真实应用私钥离线 RSA2 URL 生成：✅（未写订单、未发起付款）
+- Server tests：417/417
+- Server tsc / build / diff check：✅
+- 真实支付宝 sandbox 付款与 webhook/query 入账：⚠️ 待手动验收
+
+## 2026-07-13 — Slice F1 公开路由烟测阻断修复（实时）
+
+### Fixed
+- **Router ordering**: `billingRouter` 移至 `generationsRouter`/`syncRouter`/`feedbackRouter` 之前，避免后三者的 `router.use(requireAuth)` 拦截公开 billing 路由（plans/notify）
+- **Body parser hang**: 手动 body parser 现在跳过任何已解析的 `req.body` object（含空 `{}`），不再因 `Object.keys(req.body).length > 0` 条件对空 urlencoded body 重复读已消费流
+- **Comment fix**: billing notify JSDoc 修正 urlencoded 挂载位置（app.ts 精确路径，非 router.use）
+- **Live schema contract**: sandbox 套餐查询改用权威 Migration 的 `is_public` 与 `week/month`；数据库 `features` 为空对象时回退到现有 Free/Pro 展示清单，避免真实数据库返回 500 或空权益
+- **Runtime reload**: 清理未正确加载新源码的旧 `tsx` 子进程并重启本地 API；重新加载后公开套餐真实查询返回 200
+
+### New Tests (+7)
+- 2 tests: sandbox plans 无 token → 200（DB mock）
+- 2 tests: empty notify body → fast 200 "fail"（超时修复验证）
+- 1 test: alipay/checkout 无 token → 401
+- 2 tests: sync/entitlements 无 token → 401（回归验证）
+
+### Status
+- Server tests: **415/415** (+7)
+- Client tests: 250/250
+- Server tsc --noEmit: ✅
+- Server build: ✅
+- Live smoke mock + sandbox: ✅
+- F1 Migration: ✅ 已推送并完成远端结构/RLS/权限核验
+- Sandbox 配置与公钥格式: ✅ 本地校验通过；未写入仓库、未输出密钥
+- 真实登录后支付跳转/沙箱付款/webhook 入账: ⚠️ 尚待用户在支付宝沙箱页面手动验收
+
+## 2026-07-13 — Slice F1 / G1-R 最终阻断修复（第 3 次）
+
+### Fixed (11 项阻断)
+
+1. **BillingPage 沙箱路由**: 页面先从公开 plans 响应取得 `paymentMode`；mock 调 `/api/billing/checkout`，sandbox 调 `/api/billing/alipay/checkout` 并提交 `idempotencyKey`
+2. **Sandbox DB 读**: `GET /api/billing/plans` 从 DB `plans` 读取 + 返回 mode；orders/entitlements 按 PAYMENT_MODE 分流到可信 BFF DB 查询，严格 owner 限制，映射为 camelCase DTO
+3. **Return URL 安全**: checkout service 用 WHATWG URL 给配置的 return URL 追加 `orderId` + `paymentMode`，不信任 Host
+4. **BillingResultPage sandbox 识别**: 从 query 参数 `paymentMode` 识别 sandbox；pending/created 显示"等待服务端确认"；仅 DB order.status=paid 显示支付成功
+5. **urlencoded 去重**: 删除 billing router 中的 `express.urlencoded`，仅保留 app.ts 中的通知路径 parser
+6. **Notify 安全顺序**: 改为 解析→SDK 验签→app/seller/status→严格金额→查订单并验证→创建/读取去重事件→原子 RPC；invalid signature 零 DB mutation
+7. **SDK 4.14 camelCase**: `tradeQuery` 直接读取 camelCase 字段（tradeStatus/outTradeNo/tradeNo/totalAmount），不再读取 `alipay_trade_query_response`；新增 adapter 单测
+8. **Reconcile 错误处理**: 检查 `rpcErr` 和 `success` 返回值；RPC 失败不报告 paid；返回服务端已应用状态；保留 10s 限频
+9. **Admin Supertest 200**: 通过可控 service mock 精确断言 200；保持 no token=401、普通 user=403
+10. **.env.example 合并**: PAYMENT/ALIPAY 占位符合并到根 `.env.example`；删除重复 `server/.env.example`
+11. **文档更新**: ACCEPTANCE/CHANGELOG/status/task_plan/progress/regression_matrix/comprehensive-spec-v2 全部更新
+
+### Status
+- Server tests: 408/408 ✅
+- Client tests: 250/250 ✅
+- Server tsc --noEmit: ✅
+- Client tsc --noEmit: ✅
+- 双端 build: ✅
+- Secret scan: ✅ (无密钥泄露)
+- **Migration 已推送并完成远端结构/RLS/权限核验**；**真实支付宝 sandbox E2E 未执行**
+
 ## 2026-07-12 — Slice G1 最终修复（日历顺序 + Admin 审计顺序 + 客户端类型同步）
 
 ### Fixed
@@ -859,3 +1203,187 @@ returns boolean language plpgsql security definer set search_path = ''
 - Why: 连续切片可能在新增页面或功能时弱化既有参考案例、话题注入、Header信息架构和转化链路
 - Verification: TBD
 - Evidence: TBD
+
+
+## Completed - 2026-07-13 - 支付确认回跳与结算页成功弹窗
+
+- Type: fix + UI change
+- Risk: high（支付展示链路；不改变权益授予逻辑）
+- Changes:
+  - 支付宝结果页仅在服务端订单状态为 `paid` 且为非 Mock 订单时，延迟返回 `/app/billing`。
+  - 结算页再次以订单列表中的 `paid` 状态核对回跳订单，核对通过后弹出“支付成功 / Pro 套餐已开通”。
+  - 伪造 `payment=success` 查询参数不会显示成功弹窗，也不会授予权益。
+  - 结算页右上角邮箱文本改为复用工作台 `HeaderMenu` 折叠菜单。
+  - “参考收藏案例”增加 `shrink-0`，避免在固定高度 Flex 左栏中被压缩成一条边框。
+- Security boundary: 同步 `return_url` 只负责导航；Pro 权益仍仅由支付宝异步通知或服务端查单确认。
+- Verification: Client 253/253；TypeScript + Vite production build passed。
+- Evidence: `docs/evidence/2026-07-13/slice-F1-return-ui/verification.md`
+
+## Completed - 2026-07-13 - 收藏案例注入可靠性与管理员只读详情
+
+- Type: bug fix + authorized admin read capability
+- Reference fixes:
+  - 失效或低评分收藏 ID 不再虚假计入“已选”。
+  - DeepSeek/自部署 Prompt 要求五个平台各应用至少两项参考技法，并禁止挪用正例主题或事实。
+  - `rules` 降级引擎按 Hook、Emoji、CTA 标签/信号应用确定性风格，不再静默忽略参考案例。
+- Admin capability:
+  - 普通管理员与超级管理员均可查看“用户收藏”元数据。
+  - 列表不返回正文；详情遵循 `exists → audit → detail`，审计失败则拒绝访问。
+  - 详情显示用户邮箱、正文、平台、评分、备注、收藏原因、标签和收藏时间，可单条复制。
+  - 无编辑、删除、调整评分或批量导出；用户侧 RLS 未放宽。
+- Verification: Server 425/425; Client 255/255; dual TypeScript and production builds passed.
+- Evidence: `docs/evidence/2026-07-13/slice-reference-admin-favorites/verification.md`
+
+## Completed - 2026-07-13 - 配置管理保存参考收藏案例
+
+- Type: bug fix
+- Root cause: `selectedReferenceCaseIds` 只存在于 `AppSettings`，未进入 `SavedConfig`、Supabase JSON 序列化或云端恢复映射。
+- Changes:
+  - 保存、加载和“未储存”判断均包含参考案例 ID。
+  - `saved_configs.config` JSON 上行/下行保留 `selectedReferenceCaseIds`。
+  - 旧配置缺失字段时兼容为空数组。
+  - 配置条目提示增加“参考 N”。
+- Database: 无 Migration；复用现有 `saved_configs.config jsonb`。
+- Verification: Client 14 files / 256 tests passed; TypeScript and production build passed.
+- Evidence: `docs/evidence/2026-07-13/slice-config-reference/verification.md`
+
+## Completed - 2026-07-13 - 生成历史完整恢复工作台配置
+
+- Type: bug fix + recovery guidance
+- Root cause: 历史快照构造器只读取 `generation_jobs` 顶层列，没有读取 `brief` 中保存的结构化写作、消费者画像、参考案例和日历事件。
+- Changes:
+  - 兼容解析旧 `brief`，恢复旧记录中已存在的左侧配置。
+  - 新生成请求把完整 `AppSettings` 保存为 `brief.workbenchSettings`，后续历史可完整恢复。
+  - 历史列表与详情页增加统一的文字消失恢复提示。
+  - 对数组、画像和对象做运行时类型过滤，损坏历史安全回退。
+- Database: 无 Migration；复用现有 `generation_jobs.brief jsonb`。
+- Verification: Client 15 files / 259 tests passed; TypeScript and production build passed.
+- Evidence: `docs/evidence/2026-07-13/slice-history-settings/verification.md`
+
+## Completed - 2026-07-13 - 高影响操作确认、批量删除与列表收纳
+
+- 退出登录与复原创作配置改为确认后执行，取消保持当前会话和配置。
+- 生成历史列表/详情删除改为确认后调用软删除 API；异步处理中禁用弹窗按钮。
+- 收藏库与生成历史新增多选、当前页全选、选中计数和一次确认批量删除；历史部分失败时保留失败项并提示重试。
+- 收藏库和生成历史默认每页 10 条；收藏在本地 owner-scoped 数据中搜索，历史使用服务端 `q + limit + offset` 搜索品牌、产品与原文。
+- 历史摘要同步返回品牌与产品字段；查询继续保留 user JWT、owner 过滤、软删除过滤与 RLS。
+- Database: 无 Migration、无 RLS 变更、无批量删除新端点。
+- Verification: Client 270/270; Server 427/427; dual TypeScript and production builds passed.
+- Evidence: `docs/evidence/2026-07-13/slice-bulk-safety-pagination-verification.md`
+
+
+## Completed - 2026-07-14 - R1.1 管理员审核保存与正文审阅修复
+
+- Type: bug
+- Risk: high
+- Why: 远端 RPC 将 text 角色写入 app_role 枚举导致审核事务回滚；正文区域只能滚动，长文审阅困难。
+- Change: 新增后续 Migration，在两个审计写入点显式转换 `public.app_role`；正文框可纵向拉伸，详情内容区可滚动，错误提示可访问。
+- Security: 保留 `SECURITY DEFINER SET search_path = ''` 与 service-role-only 执行权限；未改变分组/RLS。
+- Verification: Client 365/365；Server 551/551；双端 TypeScript/生产构建；prod/all dependency audit 0 vulnerabilities。
+- Remote: 用户独立授权后，`20260714190100` 已推送至 `qiotocumkbwckiezuptr`；远端函数定义/ACL 已复核，service-role 事务调用返回成功并回滚，未留下测试审核记录。
+- Evidence: docs/evidence/2026-07-14/r1-review-save-hotfix/
+
+
+## Implemented locally - 2026-07-14 - R2 收藏文案句子级管理员批注
+
+- Type: feature
+- Risk: high
+- Why: 整篇审核意见无法准确指出需要修改的句子，用户理解和修改成本高。
+- Verification: 管理员同组/越组 API 测试、用户 RLS 读取测试、文本选择与高亮 UI 测试、失效锚点回退测试。
+- Evidence: docs/evidence/2026-07-14/r2-inline-review-and-favorite-edit/
+- Change: 管理员可在可拉伸正文框选中文字建立句子批注；新 RPC 原子保存整篇审核、批注与审计。用户收藏库以红色锚点显示建议，失效锚点安全降级为列表提示。
+- Remote: Migration `20260714190200` 已于 2026-07-15 推送并完成结构/权限复核。
+
+
+## Implemented locally - 2026-07-14 - R2.1 收藏正文直接编辑与重新送审
+
+- Type: feature
+- Risk: medium
+- Why: 用户需要在收藏库直接修正文案，保存后应避免沿用针对旧正文的管理员审核与句子锚点，并让管理员明确识别为修改后待审核。
+- Verification: 新增数据库契约、owner API、管理员 API、reducer 与收藏编辑/批注行为测试；再跑 Client/Server 全量测试、typecheck 与 build。
+- Evidence: docs/evidence/2026-07-14/r2-inline-review-and-favorite-edit/
+- Change: 收藏卡新增显式正文编辑/保存；owner-scoped BFF 更新成功后才改本地状态。数据库在正文实际变化时递增 revision、记录编辑时间并使旧审核失效，管理员看到“修改后待审核”。
+- Verification: Client 370/370；Server 554/554；双端 typecheck/build 通过。
+- Remote: Migration `20260714190200` 已于 2026-07-15 推送并完成结构/权限复核。
+
+
+## Implemented locally - 2026-07-15 - Shorts 展示名统一为 Shorts/TK
+
+- Type: change
+- Risk: medium
+- Why: 产品同时面向 YouTube Shorts 与 TikTok，现有 Shorts 展示名会误导用户。
+- Change: 客户端所有共用标签和官网文案统一为 `Shorts/TK`；生成、审核、复审、fallback 与 quick-check 语义同时覆盖 YouTube Shorts 和 TikTok；内部 key 保持 `shorts`。
+- Verification: Client 372/372；Server 557/557；双端 typecheck/build 通过；依赖审计 0 vulnerabilities；桌面与 390px 手机浏览器交互及无横向溢出检查通过。
+- Evidence: docs/evidence/2026-07-15/shorts-tk-label/
+
+
+## Implemented remotely - 2026-07-15 - 用户自写收藏文案与待审核队列
+
+- Type: feature
+- Risk: high
+- Why: 用户需要提交自己撰写的文案给团队管理员审核，并让管理员快速识别新增待审核任务。
+- Verification: 覆盖 owner 创建/编辑、必填校验、RLS 分组隔离、待审核计数、去重提醒、审核后清零及刷新恢复。
+- Evidence: docs/evidence/2026-07-15/user-authored-review-queue/
+- Change: 收藏库新增自写表单和文案类型编辑；管理员新增待审核筛选、高亮、角标与合并提醒；汇总仅返回计数/时间且继续同组隔离。
+- Remote: Migration `20260715121000` 已获明确授权并推送；远端 history、列、约束、索引、触发器和 Advisor 已复核。
+- Verification result: Client 383/383；Server 569/569；双端 typecheck/build；production audit 0 vulnerabilities；真实 PostgREST pending 查询通过。
+- Residual: 本机 Playwright runner 3 次启动超时，桌面/手机截图未判通过。
+
+
+## Implemented remotely - 2026-07-15 - Pro 月额度调整为 250 次
+
+- Type: change
+- Risk: high
+- Why: 将 Pro 套餐从每月 400 次调整为每月 250 次。
+- Change: 官网、Pricing、结算页、客户端/服务端套餐常量与 entitlements 兜底统一为 250；新增 `20260715113350_pro_250_quota.sql`，只更新 Pro plan，不重置存量 `quota_used` 或账本。
+- Verification: Client 372/372、Server 560/560、双端 typecheck/build、两次 audit 通过；远端 249/250/251 真实 RPC 事务验证通过并回滚，QA ledger 0。
+- Evidence: docs/evidence/2026-07-15/pro-250-quota/
+- Remote: Migration `20260715113350` 已获明确授权并推送；有效 Pro 用户已从 10/400 立即变为 10/250。
+
+
+## Implemented locally - 2026-07-15 - 团队协作版 99 元/月联系定制
+
+- Type: feature
+- Risk: medium
+- Why: 为需要管理员审核能力的内部团队提供人工开通入口，不走自动支付宝结算。
+- Change: 官网与 Pricing 新增 ￥99/月团队卡片，复用微信联系弹窗；显示微信号、项目二维码、复制反馈及非支付宝付款说明。
+- Verification: Client 378/378、Server 560/560、双端 typecheck/build、两次 audit 通过；桌面/390px 手机完成二维码、复制、Esc、共享入口与无横向溢出验收。
+- Decision: ￥99 为月费展示，不是一次性定制价。
+- Evidence: docs/evidence/2026-07-15/team-plan-contact/
+- Boundary: 本地实现；无 Migration、部署、订单、权益授予、commit 或 push。
+
+## Implemented locally - 2026-07-15 - 用户审核结果弹窗
+
+- Type: feature
+- Risk: medium
+- Why: 管理员审核完成后，文案 owner 需要及时收到通过/未通过结果并定位到对应收藏。
+- Change: owner-scoped 云同步完成后显示一次性右下角审核结果通知；支持通过/未通过、品牌回退、窗口聚焦刷新、操作后去重，以及立即打开收藏库并定位分页目标。
+- Verification: 新增 5 项通知/定位测试；受影响回归 22/22；完整 Client 388/388；TypeScript 与 production build 通过。
+- Evidence: docs/evidence/2026-07-15/user-review-result-dialog/
+- Boundary: 无 Migration、后端接口、Realtime、部署、commit 或 push；Playwright 按既有 3 次超时停止结论未重跑。
+
+## Implemented locally - 2026-07-15 - 管理员待审核空状态说明
+
+- Type: fix
+- Risk: low
+- Why: 当前无待审任务时只显示“暂无用户收藏”，容易被误解为查询或同步失败。
+- Change: 筛选按钮显示实时待审数量；空队列明确区分“待管理员审核”和“已通过/需用户修改”，不改变服务端待审定义。
+- Verification: 远端只读复核确认 4 条已提交收藏均已有审核结果、真实 pending=0；Client 389/389、Server 受影响回归 25/25、Client production build 通过。
+- Evidence: docs/evidence/2026-07-15/admin-pending-empty-state/
+- Boundary: 未写远端数据；无 Migration、部署、commit、push、reset/clean 或 Worktree。
+# 2026-07-15 - 收藏自动送审与管理员后台即时提醒修复
+
+- 新生成文案点击收藏后默认进入管理员待审核队列。
+- 收藏正文修改后由服务端同一笔更新强制重新送审，避免只改本地状态。
+- 自写收藏勾选送审的云同步负载新增回归覆盖。
+- `/admin` 增加右下角待审核提醒，并在窗口聚焦和标签重新可见时刷新；“立刻审核”直接打开待审核收藏。
+- 历史 `review_requested=false` 收藏不做批量回填；无 Migration、远端数据写入或部署。
+- 验证：Client 392/392，Server 569/569，双端 typecheck/build 通过。
+- 证据：`docs/evidence/2026-07-15/automatic-favorite-review-reminder/verification.md`
+# 2026-07-15 - 前端路由级代码拆分
+
+- 营销、认证、历史、结算、管理员和工作台重组件改为 `React.lazy` 按需加载，统一使用既有加载态作为 `Suspense` fallback。
+- 主入口 JS 从 857,028 bytes 降至 471,335 bytes，减少约 45%，Vite 超过 500 kB 的警告消失。
+- 路由匹配、Provider 层级、鉴权、支付和业务状态保持不变。
+- 验证：Client 393/393、TypeScript、production build、三个主路径 HTTP 200 均通过。
+- 证据：`docs/evidence/2026-07-15/route-code-splitting/verification.md`

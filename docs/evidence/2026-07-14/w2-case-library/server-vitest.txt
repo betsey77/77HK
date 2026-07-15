@@ -1,0 +1,9 @@
+﻿
+ RUN  v4.1.10 D:/work/77娓瘽閫氱ぞ濯掓枃妗?77/server
+
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  12:36:28
+   Duration  1.10s (transform 574ms, setup 102ms, import 932ms, tests 63ms, environment 0ms)
+

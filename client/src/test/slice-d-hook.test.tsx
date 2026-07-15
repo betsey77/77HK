@@ -61,6 +61,8 @@ vi.mock('../services/cloudSync', () => ({
     settings: b.settings as unknown as Record<string, unknown>,
     notes: b.notes ?? null, rating: b.rating ?? null,
     favoriteReason: b.favoriteReason ?? null, reasonTags: b.reasonTags ?? null, savedAt: b.savedAt,
+    isUserAuthored: b.isUserAuthored ?? false,
+    reviewRequested: b.reviewRequested ?? false,
   }),
   configToSyncConfig: (c: SavedConfig) => ({
     clientId: c.id, name: c.name, config: c as unknown as Record<string, unknown>,
@@ -72,6 +74,9 @@ vi.mock('../services/cloudSync', () => ({
     variantMeta: null, scores: null, consumerFeedback: null,
     notes: r.notes ?? undefined, rating: r.rating ?? undefined,
     favoriteReason: r.favoriteReason ?? undefined, reasonTags: r.reasonTags ?? undefined,
+    isUserAuthored: r.isUserAuthored ?? false,
+    reviewRequested: r.reviewRequested ?? false,
+    reviewRequestedAt: r.reviewRequestedAt ?? null,
   }),
   configRecordToSavedConfig: (r: { clientId: string; name: string; config: Record<string, unknown> }) => ({
     id: r.clientId, name: r.name, brandName: '', productName: '', brandRedLines: '',
@@ -340,6 +345,31 @@ describe('useCloudSync', () => {
     const lastCall = mockSyncFavoriteUp.mock.calls.at(-1)?.[0] as Record<string, unknown> | undefined;
     expect(lastCall).toBeDefined();
     expect(lastCall?.clientId).toBe('bm-new-diff');
+  });
+
+  it('5b. review request toggle is sent to cloud sync', async () => {
+    mockFetchBootstrap.mockResolvedValue({
+      favorites: [makeFavoriteRecord('bm-review', {
+        isUserAuthored: true,
+        reviewRequested: false,
+        reviewRequestedAt: null,
+      })],
+      savedConfigs: [],
+      brandProfile: null,
+    });
+    const { results } = renderSingleHarness();
+    expect(await waitForStatus('ready', results)).not.toBeNull();
+
+    await act(async () => {
+      dispatchViaGlobal({
+        type: 'UPDATE_BOOKMARK_REVIEW_REQUEST',
+        payload: { id: 'bm-review', reviewRequested: true },
+      });
+    });
+
+    await waitFor(() => mockSyncFavoriteUp.mock.calls.length > 0);
+    const lastCall = mockSyncFavoriteUp.mock.calls.at(-1)?.[0] as Record<string, unknown> | undefined;
+    expect(lastCall).toMatchObject({ clientId: 'bm-review', reviewRequested: true });
   });
 
   // 6. ADD_BOOKMARK with rating/reason includes rating in sync payload

@@ -15,7 +15,7 @@
  * - Centralized helper — no component touches sessionStorage directly.
  */
 
-import type { AppState, AppSettings, Diagnosis, Variants, Audit, Enhancement, GenerationEngine, ConsumerFeedback, VariantMeta, VariantKey, UIState, GenerationJob, Platform, BrandTone, InputLanguage } from '../types';
+import type { AppState, AppSettings, Diagnosis, Variants, Audit, Enhancement, GenerationEngine, ConsumerFeedback, VariantMeta, VariantKey, UIState, GenerationJob, Platform, BrandTone, InputLanguage, ConsumerPersona } from '../types';
 import { DEFAULT_SETTINGS, INPUT_LANGUAGES, PLATFORMS, TONES, VARIANT_TABS } from '../constants';
 
 // ── Snapshot shape (subset of AppState) ────────────────────────
@@ -39,6 +39,8 @@ export interface WorkbenchSnapshot {
 }
 
 const STORAGE_PREFIX = 'hk-cantonese-workbench';
+
+export const HISTORY_RECOVERY_NOTE = '若生成过程中页面文字消失，请打开对应历史记录，再点击“载入工作台”恢复。';
 
 // ── Required fields for a valid snapshot ───────────────────────
 
@@ -159,6 +161,37 @@ function validNumber(value: number, fallback: number, max: number): number {
   return Number.isFinite(value) && value >= 0 && value <= max ? value : fallback;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function validStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+}
+
+function validConsumerPersonas(value: unknown): ConsumerPersona[] {
+  if (!Array.isArray(value)) return [];
+  const requiredFields: (keyof ConsumerPersona)[] = [
+    'id', 'name', 'ageRange', 'occupation', 'habits', 'apps', 'notes',
+  ];
+
+  return value.filter((item): item is ConsumerPersona => {
+    const record = asRecord(item);
+    return !!record && requiredFields.every((field) => typeof record[field] === 'string');
+  });
+}
+
+function legacyReferenceCaseIds(brief: Record<string, unknown>): string[] {
+  if (!Array.isArray(brief.referenceCases)) return [];
+  return brief.referenceCases.flatMap((item) => {
+    const record = asRecord(item);
+    return record && typeof record.id === 'string' ? [record.id] : [];
+  });
+}
+
 /** Convert a complete persisted generation job into a validated workbench snapshot. */
 export function buildWorkbenchSnapshotFromHistory(job: GenerationJob): { snapshot: WorkbenchSnapshot | null; reason?: string } {
   const loadability = getHistoryJobLoadability(job);
@@ -181,6 +214,46 @@ export function buildWorkbenchSnapshotFromHistory(job: GenerationJob): { snapsho
   const activeTab: VariantKey = platform === 'ig' || platform === 'facebook' || platform === 'shorts'
     ? platform
     : 'lightCantonese';
+  const brief = asRecord(job.brief) ?? {};
+  const savedSettings = asRecord(brief.workbenchSettings) ?? brief;
+  const selectedReferenceCaseIds = 'selectedReferenceCaseIds' in savedSettings
+    ? validStringArray(savedSettings.selectedReferenceCaseIds)
+    : legacyReferenceCaseIds(brief);
+  const selectedCalendarEventIds = 'selectedCalendarEventIds' in savedSettings
+    ? validStringArray(savedSettings.selectedCalendarEventIds)
+    : validStringArray(brief.calendarEventIds);
+  const selectedCaseLibraryIds = 'selectedCaseLibraryIds' in savedSettings
+    ? validStringArray(savedSettings.selectedCaseLibraryIds).slice(0, 3)
+    : [];
+
+  // W1 fields from workbenchSettings (or brief root), with legacy tone → primaryTone
+  const w1Primary =
+    typeof savedSettings.primaryTone === 'string' && VALID_TONES.has(savedSettings.primaryTone as BrandTone)
+      ? savedSettings.primaryTone as BrandTone
+      : tone;
+  const w1CopyType =
+    typeof savedSettings.copyType === 'string' &&
+    ['social', 'spoken', 'poster', 'advertorial', 'poetry', 'custom'].includes(savedSettings.copyType)
+      ? savedSettings.copyType as AppSettings['copyType']
+      : DEFAULT_SETTINGS.copyType;
+  const w1LengthLevel = validNumber(
+    typeof savedSettings.copyLengthLevel === 'number' ? savedSettings.copyLengthLevel : DEFAULT_SETTINGS.copyLengthLevel,
+    DEFAULT_SETTINGS.copyLengthLevel,
+    5,
+  );
+  const w1LengthEnabled =
+    typeof savedSettings.lengthControlEnabled === 'boolean'
+      ? savedSettings.lengthControlEnabled
+      : DEFAULT_SETTINGS.lengthControlEnabled;
+  const w1Modifiers = Array.isArray(savedSettings.toneModifiers)
+    ? (savedSettings.toneModifiers as string[])
+        .filter((m): m is string => typeof m === 'string')
+        .slice(0, 2) as AppSettings['toneModifiers']
+    : DEFAULT_SETTINGS.toneModifiers;
+  const w1Custom =
+    w1CopyType === 'custom' && typeof savedSettings.customCopyType === 'string'
+      ? savedSettings.customCopyType
+      : '';
 
   return {
     snapshot: {
@@ -189,7 +262,7 @@ export function buildWorkbenchSnapshotFromHistory(job: GenerationJob): { snapsho
       settings: {
         ...DEFAULT_SETTINGS,
         platform,
-        tone,
+        tone: w1Primary,
         cantoneseLevel: validNumber(job.cantoneseLevel, DEFAULT_SETTINGS.cantoneseLevel, 5),
         englishMixingLevel: validNumber(job.englishMixingLevel, DEFAULT_SETTINGS.englishMixingLevel, 5),
         creativityLevel: validNumber(job.creativityLevel, DEFAULT_SETTINGS.creativityLevel, 4),
@@ -197,6 +270,23 @@ export function buildWorkbenchSnapshotFromHistory(job: GenerationJob): { snapsho
         brandName: job.brandName ?? '',
         productName: job.productName ?? '',
         brandRedLines: job.brandRedLines ?? '',
+        structuredBriefEnabled: typeof savedSettings.structuredBriefEnabled === 'boolean'
+          ? savedSettings.structuredBriefEnabled
+          : DEFAULT_SETTINGS.structuredBriefEnabled,
+        consumerPersonas: validConsumerPersonas(savedSettings.consumerPersonas),
+        targetDate: typeof savedSettings.targetDate === 'string'
+          ? savedSettings.targetDate
+          : DEFAULT_SETTINGS.targetDate,
+        competitorQueries: validStringArray(savedSettings.competitorQueries),
+        selectedReferenceCaseIds,
+        selectedCalendarEventIds,
+        selectedCaseLibraryIds,
+        copyType: w1CopyType,
+        customCopyType: w1Custom,
+        lengthControlEnabled: w1LengthEnabled,
+        copyLengthLevel: w1LengthLevel < 1 ? DEFAULT_SETTINGS.copyLengthLevel : w1LengthLevel,
+        primaryTone: w1Primary,
+        toneModifiers: w1Modifiers,
       },
       diagnosis: job.diagnosis,
       variants: job.variants,

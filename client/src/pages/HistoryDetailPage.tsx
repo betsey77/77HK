@@ -3,8 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { getGenerationJob, deleteGenerationJob } from '../services/api';
 import type { GenerationJob } from '../types';
-import { buildWorkbenchSnapshotFromHistory, getHistoryJobLoadability, saveWorkbenchSnapshotFromHistory } from '../services/workbenchSnapshot';
-import { ArrowLeft, Trash2, Upload } from 'lucide-react';
+import { HISTORY_RECOVERY_NOTE, buildWorkbenchSnapshotFromHistory, getHistoryJobLoadability, saveWorkbenchSnapshotFromHistory } from '../services/workbenchSnapshot';
+import { ArrowLeft, Info, Trash2, Upload } from 'lucide-react';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
+import { SHORTS_TK_LABEL } from '../constants';
 
 // ============================================================
 // HistoryDetailPage — view a single generation job in detail
@@ -18,6 +20,8 @@ export default function HistoryDetailPage() {
   const [pageState, setPageState] = useState<PageState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [job, setJob] = useState<GenerationJob | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Extract job ID from path: /app/history/:id
   const jobId = window.location.pathname.split('/').pop() ?? '';
@@ -41,13 +45,17 @@ export default function HistoryDetailPage() {
     }
   }, [authState.isAuthenticated, jobId, fetchJob]);
 
-  const handleDelete = async () => {
+  const handleDeleteConfirm = async () => {
     if (!job) return;
+    setIsDeleting(true);
     try {
       await deleteGenerationJob(job.id);
+      setShowDeleteConfirm(false);
       setPageState('deleted');
     } catch (err) {
       setError(err instanceof Error ? err.message : '删除失败');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -155,6 +163,19 @@ export default function HistoryDetailPage() {
   return (
     <div className={`h-full overflow-y-auto ${isDark ? 'bg-gray-950' : 'bg-gray-50'}`}>
       <div className="max-w-3xl mx-auto px-4 py-8">
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title="确认删除这条历史记录？"
+          message="删除后无法从历史记录恢复，此操作不可撤销。"
+          confirmLabel="确认删除"
+          confirming={isDeleting}
+          confirmingLabel="删除中…"
+          danger
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => {
+            if (!isDeleting) setShowDeleteConfirm(false);
+          }}
+        />
         {/* Back link */}
         <a href="/app/history" className={`inline-flex items-center gap-1.5 text-sm mb-6 ${accentLink}`}>
           <ArrowLeft className="h-4 w-4" /> 返回历史列表
@@ -208,7 +229,7 @@ export default function HistoryDetailPage() {
               </span>
             )}
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               className={`shrink-0 flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
                 isDark ? 'text-gray-600 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
               }`}
@@ -218,6 +239,19 @@ export default function HistoryDetailPage() {
               <span>删除</span>
             </button>
           </div>
+        </div>
+
+        <div
+          role="note"
+          aria-label="历史恢复提示"
+          className={`mb-6 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-relaxed ${
+            isDark
+              ? 'border-emerald-500/20 bg-emerald-500/[0.06] text-gray-300'
+              : 'border-orange-200 bg-orange-50 text-gray-700'
+          }`}
+        >
+          <Info className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isDark ? 'text-emerald-400' : 'text-orange-600'}`} />
+          <span>{HISTORY_RECOVERY_NOTE}</span>
         </div>
 
         {/* Error (failed jobs) */}
@@ -251,7 +285,7 @@ export default function HistoryDetailPage() {
                      key === 'lightCantonese' ? '轻粤语' :
                      key === 'ig' ? 'Instagram' :
                      key === 'facebook' ? 'Facebook' :
-                     key === 'shorts' ? 'Shorts' : key}
+                     key === 'shorts' ? SHORTS_TK_LABEL : key}
                   </p>
                   <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${headingClass}`}>
                     {text as string}

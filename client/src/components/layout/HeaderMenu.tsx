@@ -1,11 +1,13 @@
 import { useContext, useEffect, useRef, useState, useCallback } from 'react';
-import { Home, RotateCcw, Sun, Moon, LogOut, Menu, User, MessageSquare, CreditCard, Shield } from 'lucide-react';
+import { Home, RotateCcw, Sun, Moon, LogOut, Menu, User, MessageSquare, CreditCard, Shield, Bell, X } from 'lucide-react';
 import { AppContext } from '../../context/AppContext';
-import { checkAdminAccess } from '../../services/api';
+import { checkAdminAccess, getAdminPendingReviewSummary, type AdminPendingReviewSummary } from '../../services/api';
+import { recordAdminPendingReviewSummary } from '../../services/adminReviewReminder';
+import ConfirmDialog from '../shared/ConfirmDialog';
 
 interface Props {
   userEmail?: string | null;
-  onLogout?: () => void;
+  onLogout?: () => void | Promise<void>;
   onOpenFeedback?: () => void;
 }
 
@@ -13,17 +15,50 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
   const { state, dispatch } = useContext(AppContext);
   const [isOpen, setIsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [pendingSummary, setPendingSummary] = useState<AdminPendingReviewSummary>({ count: 0, latestRequestedAt: null });
+  const [reviewToast, setReviewToast] = useState<AdminPendingReviewSummary | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'restore' | 'logout' | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const refreshPendingReviews = useCallback(async () => {
+    try {
+      const summary = await getAdminPendingReviewSummary();
+      setPendingSummary(summary);
+      if (recordAdminPendingReviewSummary(summary, userEmail)) {
+        setReviewToast(summary);
+      }
+    } catch {
+      // The menu remains usable if the non-critical badge refresh fails.
+    }
+  }, [userEmail]);
 
   // Server-verified admin check (not based on browser role string)
   useEffect(() => {
     let cancelled = false;
     checkAdminAccess().then((ok) => {
-      if (!cancelled) setIsAdmin(ok);
+      if (!cancelled) {
+        setIsAdmin(ok);
+        if (ok) void refreshPendingReviews();
+      }
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshPendingReviews]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const onFocus = () => { void refreshPendingReviews(); };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshPendingReviews();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [isAdmin, refreshPendingReviews]);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -79,13 +114,30 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
   }
 
   function handleRestore() {
-    dispatch({ type: 'RESTORE_DEFAULT_GENERATION_SETTINGS' });
     close();
+    setConfirmAction('restore');
   }
 
   function handleLogoutClick() {
     close();
-    onLogout?.();
+    setConfirmAction('logout');
+  }
+
+  async function handleConfirm() {
+    if (confirmAction === 'restore') {
+      dispatch({ type: 'RESTORE_DEFAULT_GENERATION_SETTINGS' });
+      setConfirmAction(null);
+      return;
+    }
+    if (confirmAction === 'logout') {
+      setIsConfirming(true);
+      try {
+        await onLogout?.();
+        setConfirmAction(null);
+      } finally {
+        setIsConfirming(false);
+      }
+    }
   }
 
   const isDark = state.theme === 'dark';
@@ -100,9 +152,17 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
         aria-haspopup="true"
         aria-label="账户与更多选项"
         title="账户与更多选项"
-        className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-200 light:hover:bg-gray-200 light:hover:text-gray-800"
+        className="relative flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-200 light:hover:bg-gray-200 light:hover:text-gray-800"
       >
         <Menu className="h-3.5 w-3.5" />
+        {isAdmin && pendingSummary.count > 0 && (
+          <span
+            data-testid="admin-pending-badge"
+            className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white"
+          >
+            {pendingSummary.count > 99 ? '99+' : pendingSummary.count}
+          </span>
+        )}
       </button>
 
       {isOpen && (
@@ -155,7 +215,12 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
                 className="flex items-center gap-2.5 px-3 py-2 text-[11px] text-gray-300 light:text-gray-700 transition-colors hover:bg-gray-800 light:hover:bg-gray-100"
               >
                 <Shield className="h-3.5 w-3.5 text-gray-500" />
-                管理后台
+                <span className="flex-1">管理后台</span>
+                {pendingSummary.count > 0 && (
+                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    {pendingSummary.count > 99 ? '99+' : pendingSummary.count}
+                  </span>
+                )}
               </a>
             )}
 
@@ -227,6 +292,61 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
           </div>
         </div>
       )}
+
+      {reviewToast && (
+        <div
+          role="status"
+          className="fixed bottom-4 right-4 z-[70] w-[min(22rem,calc(100vw-2rem))] border border-amber-500/40 bg-gray-900 p-3 shadow-2xl light:bg-white"
+        >
+          <div className="flex items-start gap-2.5">
+            <Bell className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-gray-100 light:text-gray-900">
+                {reviewToast.count} 条文案待审核
+              </p>
+              <p className="mt-1 text-[11px] text-gray-400 light:text-gray-600">
+                已合并本次新增任务，请进入用户收藏队列处理。
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReviewToast(null)}
+                  className="rounded border border-gray-600 px-2.5 py-1.5 text-[11px] text-gray-300 light:border-gray-300 light:text-gray-700"
+                >
+                  稍后审核
+                </button>
+                <a
+                  href="/admin?tab=favorites&pending=1"
+                  className="rounded bg-amber-500 px-2.5 py-1.5 text-[11px] font-semibold text-gray-950"
+                >
+                  立刻审核
+                </a>
+              </div>
+            </div>
+            <button type="button" onClick={() => setReviewToast(null)} aria-label="关闭审核提醒" className="rounded p-1 text-gray-500">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction === 'logout' ? '确认退出登录？' : '确认复原创作配置？'}
+        message={
+          confirmAction === 'logout'
+            ? '退出后需要重新登录；已同步的数据不会被删除。'
+            : '将恢复默认创作配置：结构化写作关闭、创作自由度 1、粤语程度 4、中英夹杂 1，并清空目标用户。'
+        }
+        confirmLabel={confirmAction === 'logout' ? '确认退出' : '确认复原'}
+        confirming={isConfirming}
+        confirmingLabel="退出中…"
+        danger={confirmAction === 'restore'}
+        onConfirm={handleConfirm}
+        onCancel={() => {
+          if (!isConfirming) setConfirmAction(null);
+        }}
+      />
     </div>
   );
 }

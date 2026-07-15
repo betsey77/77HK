@@ -9,14 +9,15 @@
  * checkout success, GET orders, GET order detail, 404, 403.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import app from '../app.js';
 
 // ── Mock Supabase auth ───────────────────────────────────────────
 
-const { mockVerifyToken } = vi.hoisted(() => ({
+const { mockVerifyToken, mockGetTrustedSupabase } = vi.hoisted(() => ({
   mockVerifyToken: vi.fn(),
+  mockGetTrustedSupabase: vi.fn(),
 }));
 
 vi.mock('../services/supabase.js', () => ({
@@ -25,6 +26,10 @@ vi.mock('../services/supabase.js', () => ({
     throw new Error('Billing routes are MOCK — no DB access expected');
   },
   verifyToken: mockVerifyToken,
+}));
+
+vi.mock('../services/trustedSupabase.js', () => ({
+  getTrustedSupabase: mockGetTrustedSupabase,
 }));
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -360,7 +365,7 @@ describe('GET /api/billing/plans', () => {
     const proPlan = res.body.plans.find((p: { id: string }) => p.id === 'pro');
     expect(proPlan).toBeDefined();
     expect(proPlan.priceCny).toBe(19);
-    expect(proPlan.quotaPerCycle).toBe(400);
+    expect(proPlan.quotaPerCycle).toBe(250);
   });
 });
 
@@ -377,5 +382,150 @@ describe('Billing request validation', () => {
       .set('Content-Type', 'application/json')
       .send('not-json');
     expect(res.status).toBe(400);
+  });
+});
+
+// ============================================================
+// Slice F1: Sandbox live-smoke fix — public route + notify tests
+// ============================================================
+
+/** Create a chainable mock query builder for sandbox DB reads. */
+function createMockQueryBuilder() {
+  const b: Record<string, any> = {};
+  b.select = vi.fn(() => b);
+  b.eq = vi.fn(() => b);
+  b.order = vi.fn();
+  b.limit = vi.fn(() => b);
+  b.single = vi.fn(() => b);
+  return b;
+}
+
+describe('F1 sandbox — public plans (PAYMENT_MODE=alipay_sandbox)', () => {
+  let sandboxDb: Record<string, any>;
+  let sandboxBuilder: Record<string, any>;
+  const OLD_PAYMENT_MODE = process.env.PAYMENT_MODE;
+
+  beforeAll(() => {
+    process.env.PAYMENT_MODE = 'alipay_sandbox';
+  });
+
+  afterAll(() => {
+    if (OLD_PAYMENT_MODE === undefined) {
+      delete process.env.PAYMENT_MODE;
+    } else {
+      process.env.PAYMENT_MODE = OLD_PAYMENT_MODE;
+    }
+  });
+
+  beforeEach(() => {
+    sandboxBuilder = createMockQueryBuilder();
+    sandboxDb = {
+      from: vi.fn(() => sandboxBuilder),
+      rpc: vi.fn(),
+    };
+    mockGetTrustedSupabase.mockReturnValue(sandboxDb);
+  });
+
+  it('returns 200 with paymentMode=alipay_sandbox, isMock=false, 2 DB plans — no token', async () => {
+    sandboxBuilder.order.mockResolvedValue({
+      data: [
+        {
+          id: 'plan-1', name: 'Free', price_fen: 0, quota_per_cycle: 20,
+          period_unit: 'week', period_count: 1, features: {}, is_public: true,
+        },
+        {
+          id: 'plan-2', name: 'Pro', price_fen: 1900, quota_per_cycle: 250,
+          period_unit: 'month', period_count: 1, features: {}, is_public: true,
+        },
+      ],
+      error: null,
+    });
+
+    const res = await request(app).get('/api/billing/plans');
+
+    expect(res.status).toBe(200);
+    expect(sandboxBuilder.select).toHaveBeenCalledWith(
+      'id, name, price_fen, quota_per_cycle, period_unit, period_count, features, is_public',
+    );
+    expect(sandboxBuilder.eq).toHaveBeenCalledWith('is_public', true);
+    expect(res.body.paymentMode).toBe('alipay_sandbox');
+    expect(res.body.isMock).toBe(false);
+    expect(res.body.plans).toHaveLength(2);
+
+    const freePlan = res.body.plans.find((p: any) => p.id === 'free');
+    expect(freePlan).toBeDefined();
+    expect(freePlan.quotaPerCycle).toBe(20);
+    expect(freePlan.priceCny).toBe(0);
+    expect(freePlan.cycleDescription).toBe('每滚动 7 天');
+    expect(freePlan.features).toContain('每 7 天 20 次完整生成');
+
+    const proPlan = res.body.plans.find((p: any) => p.id === 'pro');
+    expect(proPlan).toBeDefined();
+    expect(proPlan.priceCny).toBe(19);
+    expect(proPlan.quotaPerCycle).toBe(250);
+    expect(proPlan.cycleDescription).toBe('每自然月');
+    expect(proPlan.features).toContain('每自然月 250 次生成');
+  });
+
+  it('does not return 401 (confirm the request reached billing handler)', async () => {
+    sandboxBuilder.order.mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    const res = await request(app).get('/api/billing/plans');
+    expect(res.status).toBe(200);
+    // absence of 401 is the key assertion
+  });
+});
+
+describe('F1 sandbox — notify empty body (no timeout, no auth)', () => {
+  it('returns 200 text/plain "fail" for empty urlencoded body', async () => {
+    const res = await request(app)
+      .post('/api/billing/alipay/notify')
+      .type('form')
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.type).toMatch(/text\/plain/);
+    expect(res.text).toBe('fail');
+  });
+
+  it('does not hang or timeout on empty body (fast response)', async () => {
+    const start = Date.now();
+    const res = await request(app)
+      .post('/api/billing/alipay/notify')
+      .type('form')
+      .send('');
+    const elapsed = Date.now() - start;
+
+    expect(res.status).toBe(200);
+    expect(elapsed).toBeLessThan(500); // must not timeout
+  });
+});
+
+describe('F1 sandbox — alipay/checkout still auth-gated', () => {
+  it('POST /api/billing/alipay/checkout returns 401 without token', async () => {
+    const res = await request(app)
+      .post('/api/billing/alipay/checkout')
+      .send({ planId: 'pro', idempotencyKey: 'test-key' });
+
+    expect(res.status).toBe(401);
+  });
+});
+
+// ============================================================
+// Regression: sync routes still require auth after router reorder
+// ============================================================
+
+describe('Regression — sync routes still require auth', () => {
+  it('GET /api/sync/bootstrap returns 401 without token', async () => {
+    const res = await request(app).get('/api/sync/bootstrap');
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/me/entitlements returns 401 without token (no regression)', async () => {
+    const res = await request(app).get('/api/me/entitlements');
+    expect(res.status).toBe(401);
   });
 });

@@ -1,0 +1,17 @@
+﻿
+ RUN  v4.1.10 D:/work/77娓瘽閫氱ぞ濯掓枃妗?77/client
+
+node.exe : (node:7716) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:7716) Exp...s not provided.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  12:36:30
+   Duration  1.55s (transform 181ms, setup 111ms, import 296ms, tests 278ms, environment 691ms)
+

@@ -33,10 +33,11 @@ export async function diagnoseAndGenerate(
   params: GenerateRequest,
 ): Promise<DiagnoseGenerateResult> {
   const client = getClient();
+  const effectiveTone = params.primaryTone ?? params.tone;
   const userPrompt = buildDiagnoseGeneratePrompt({
     source: params.source,
     platform: params.platform,
-    tone: params.tone,
+    tone: effectiveTone,
     cantoneseLevel: params.cantoneseLevel,
     englishMixingLevel: params.englishMixingLevel,
     brandName: params.brandName,
@@ -48,9 +49,16 @@ export async function diagnoseAndGenerate(
     refresh: params.refresh,
     referenceCases: params.referenceCases,
     calendarEvents: params.calendarEvents,
+    copyType: params.copyType,
+    customCopyType: params.customCopyType,
+    lengthControlEnabled: params.lengthControlEnabled,
+    copyLengthLevel: params.copyLengthLevel,
+    primaryTone: effectiveTone,
+    toneModifiers: params.toneModifiers,
+    caseLibraryContext: params.caseLibraryContext,
   });
 
-  const temperature = TONE_TEMPERATURE[params.tone] ?? 0.7;
+  const temperature = TONE_TEMPERATURE[effectiveTone] ?? 0.7;
 
   const response = await client.chat.completions.create({
     model: DEEPSEEK_MODEL,
@@ -314,7 +322,7 @@ ${variants.ig}
 **版本 4 - Facebook**：
 ${variants.facebook}
 
-**版本 5 - Shorts**：
+**版本 5 - Shorts/TK（YouTube Shorts / TikTok）**：
 ${variants.shorts}
 
 請嚴格按照以下 JSON 格式輸出（只輸出 JSON，唔好加任何其他文字）：

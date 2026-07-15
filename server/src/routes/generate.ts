@@ -14,6 +14,16 @@ import {
 } from '../parsers/parseResponse.js';
 import { validateCalendarCoverage, ensureCalendarCoverage } from '../services/calendarValidation.js';
 import type { GenerateRequest, GenerationEngine, InputLanguage } from '../types/index.js';
+import { resolveW1Fields, VALID_PRIMARY_TONES } from '../prompts/w1Constraints.js';
+import { createUserClient } from '../services/supabase.js';
+import {
+  resolveCaseLibraryContext,
+  budgetReferenceCases,
+  buildCaseLibrarySnapshots,
+  normalizeSelectedCaseLibraryIds,
+  sanitizeCaseLibraryFieldsForPersistence,
+  CASE_LIBRARY_PARTIAL_NOTICE,
+} from '../services/caseLibraryContext.js';
 
 // ============================================================
 // Error classification helpers
@@ -50,7 +60,7 @@ function isUncertainError(err: unknown): boolean {
 const router = Router();
 
 const VALID_PLATFORMS = ['ig', 'facebook', 'shorts', 'all'];
-const VALID_TONES = ['穩妥', '活潑', '高級', '街坊', '年輕'];
+const VALID_TONES = [...VALID_PRIMARY_TONES];
 const VALID_INPUT_LANGUAGES: InputLanguage[] = ['mandarin', 'cantonese'];
 const LEGACY_TONE_MAP: Record<string, string> = {
   '绌╁Ε': '穩妥',
@@ -86,8 +96,16 @@ function validateRequest(body: unknown): GenerateRequest {
     throw new Error(`Invalid platform: ${platform}. Must be one of: ${VALID_PLATFORMS.join(', ')}`);
   }
 
-  const rawTone = (obj.tone as string) ?? '穩妥';
-  const tone = LEGACY_TONE_MAP[rawTone] ?? rawTone;
+  const rawTone = (obj.tone as string) ?? (obj.primaryTone as string) ?? '穩妥';
+  const mappedTone = LEGACY_TONE_MAP[rawTone] ?? rawTone;
+  // Prefer primaryTone when provided; still accept legacy tone-only payloads.
+  if (obj.primaryTone && typeof obj.primaryTone === 'string') {
+    obj.primaryTone = LEGACY_TONE_MAP[obj.primaryTone] ?? obj.primaryTone;
+  }
+  obj.tone = mappedTone;
+
+  const w1 = resolveW1Fields(obj);
+  const tone = w1.tone;
   if (!VALID_TONES.includes(tone)) {
     throw new Error(`Invalid tone: ${tone}. Must be one of: ${VALID_TONES.join(', ')}`);
   }
@@ -149,6 +167,15 @@ function validateRequest(body: unknown): GenerateRequest {
     }
   }
 
+  // W3: accept selectedCaseLibraryIds only (UUIDs, max 3). Never accept client case bodies.
+  // Prefer top-level IDs; fall back to workbenchSettings.selectedCaseLibraryIds.
+  const workbench = (obj.workbenchSettings && typeof obj.workbenchSettings === 'object'
+    ? obj.workbenchSettings
+    : {}) as Record<string, unknown>;
+  const selectedCaseLibraryIds = normalizeSelectedCaseLibraryIds(
+    obj.selectedCaseLibraryIds ?? workbench.selectedCaseLibraryIds,
+  );
+
   // Validate idempotency key if provided
   const idempotencyKey = obj.idempotencyKey as string | undefined;
   if (idempotencyKey !== undefined) {
@@ -177,6 +204,14 @@ function validateRequest(body: unknown): GenerateRequest {
     consumerPersonas,
     referenceCases,
     calendarEvents,
+    copyType: w1.copyType,
+    customCopyType: w1.customCopyType,
+    lengthControlEnabled: w1.lengthControlEnabled,
+    copyLengthLevel: w1.copyLengthLevel,
+    primaryTone: w1.primaryTone,
+    toneModifiers: w1.toneModifiers,
+    selectedCaseLibraryIds: selectedCaseLibraryIds.length > 0 ? selectedCaseLibraryIds : undefined,
+    // caseLibraryContext is filled by route after JWT-scoped resolve — never from client bodies
   };
 }
 
@@ -186,11 +221,37 @@ function validateRequest(body: unknown): GenerateRequest {
 
 router.post('/generate', requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId as string;
+  const userJwt = req.userJwt as string;
   let jobId: string | undefined;
   let reservation: Awaited<ReturnType<typeof reserveQuota>> = null;
 
   try {
     const params = validateRequest(req.body);
+
+    // ---- W3: resolve personal case library via user JWT (RLS), never service role ----
+    // Client may only send selectedCaseLibraryIds; bodies come from DB.
+    const caseResolve = await resolveCaseLibraryContext(
+      userId,
+      userJwt,
+      createUserClient,
+      params.selectedCaseLibraryIds,
+    );
+    params.caseLibraryContext =
+      caseResolve.entries.length > 0 ? caseResolve.entries : undefined;
+    params.selectedCaseLibraryIds =
+      caseResolve.requestedIds.length > 0 ? caseResolve.requestedIds : undefined;
+    // Case library has priority; remaining budget (max 5 total) for bookmark references
+    params.referenceCases = budgetReferenceCases(
+      caseResolve.entries.length,
+      params.referenceCases,
+    );
+
+    if (caseResolve.entries.length > 0) {
+      console.log(
+        `[Generate] Case library context: ${caseResolve.entries.length} resolved` +
+          (caseResolve.partialUnavailable ? ' (partial unavailable)' : ''),
+      );
+    }
 
     // ---- Step 0: Atomic idempotent job creation ----
     // Client MUST provide an idempotency key. If not provided, we reject.
@@ -199,6 +260,26 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       res.status(400).json({ error: 'idempotencyKey is required. Generate a stable key per user action.' });
       return;
     }
+
+    // Enrich brief for historical interpretability (snapshots of resolved cases only)
+    const rawBody = sanitizeCaseLibraryFieldsForPersistence(
+      req.body as Record<string, unknown>,
+    );
+    const incomingWorkbench =
+      rawBody.workbenchSettings && typeof rawBody.workbenchSettings === 'object'
+        ? { ...(rawBody.workbenchSettings as Record<string, unknown>) }
+        : {};
+    const resolvedSnapshots = buildCaseLibrarySnapshots(caseResolve.entries);
+    const brief = {
+      ...rawBody,
+      selectedCaseLibraryIds: caseResolve.requestedIds,
+      workbenchSettings: {
+        ...incomingWorkbench,
+        selectedCaseLibraryIds: caseResolve.requestedIds,
+        resolvedCaseLibrarySnapshots: resolvedSnapshots,
+      },
+      resolvedCaseLibrarySnapshots: resolvedSnapshots,
+    };
 
     const { job: existingJob, created } = await upsertJob(userId, {
       idempotencyKey,
@@ -212,7 +293,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       brandName: params.brandName,
       productName: params.productName,
       brandRedLines: params.brandRedLines,
-      brief: (req.body as Record<string, unknown>),
+      brief,
     });
 
     // Duplicate request handling:
@@ -468,6 +549,10 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
         : undefined,
       consumerFeedback,
       jobId,
+      // W3: generic notice only — no existence leak for foreign/deleted IDs
+      ...(caseResolve.partialUnavailable
+        ? { warnings: [CASE_LIBRARY_PARTIAL_NOTICE] }
+        : {}),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error';

@@ -29,7 +29,29 @@ export interface UserRoles {
 }
 
 export type Platform = 'ig' | 'facebook' | 'shorts' | 'all';
-export type BrandTone = '穩妥' | '活潑' | '高級' | '街坊' | '年輕';
+export type BrandTone =
+  | '穩妥'
+  | '活潑'
+  | '高級'
+  | '街坊'
+  | '年輕'
+  | '專業'
+  | '真誠'
+  | '溫暖'
+  | '幽默'
+  | '克制'
+  | '俏皮'
+  | '激昂';
+export type ToneModifier =
+  | '簡潔'
+  | '敘事'
+  | '促銷感'
+  | '治癒'
+  | '緊迫'
+  | '節日感'
+  | '知識感'
+  | '對話感';
+export type CopyType = 'social' | 'spoken' | 'poster' | 'advertorial' | 'poetry' | 'custom';
 export type InputLanguage = 'mandarin' | 'cantonese';
 
 export interface ConsumerPersona {
@@ -98,6 +120,33 @@ export interface GenerateRequest {
   calendarEventIds?: string[];
   /** 🆕 话题日历：resolve 后的完整事件对象（由路由层注入） */
   calendarEvents?: CalendarEvent[];
+  /** W1 */
+  copyType?: CopyType;
+  customCopyType?: string;
+  lengthControlEnabled?: boolean;
+  copyLengthLevel?: number;
+  primaryTone?: BrandTone;
+  toneModifiers?: ToneModifier[];
+  /**
+   * W3: client sends selected case library IDs only (max 3 UUIDs).
+   * Bodies are never trusted from the client.
+   */
+  selectedCaseLibraryIds?: string[];
+  /**
+   * W3: server-resolved case library context (owner JWT + RLS).
+   * Only this field may enter prompts / rules fallback — never client bodies.
+   */
+  caseLibraryContext?: CaseLibraryContextEntry[];
+}
+
+/** W3: minimal case library snapshot for prompt + generation history */
+export interface CaseLibraryContextEntry {
+  id: string;
+  caseType: 'good' | 'bad';
+  title: string | null;
+  body: string;
+  reason: string;
+  tags: string[];
 }
 
 /** A reference case from user's bookmarked copies for few-shot prompt injection */
@@ -239,9 +288,16 @@ export interface GenerateResponse {
 // Temperature mapping by brand tone
 export const TONE_TEMPERATURE: Record<BrandTone, number> = {
   '高級': 0.4,
+  '克制': 0.4,
+  '專業': 0.45,
   '穩妥': 0.5,
+  '真誠': 0.55,
+  '溫暖': 0.6,
   '活潑': 0.7,
+  '俏皮': 0.8,
   '街坊': 0.8,
+  '幽默': 0.85,
+  '激昂': 0.85,
   '年輕': 0.9,
 };
 
@@ -294,6 +350,8 @@ export interface GenerationJobSummary {
   source: string;
   platform: string;
   tone: string;
+  brandName?: string | null;
+  productName?: string | null;
   createdAt: string;
   completedAt?: string | null;
 }
@@ -317,6 +375,9 @@ export interface CreateGenerationRequest {
 export interface ListGenerationQuery {
   limit?: number;
   offset?: number;
+  query?: string;
+  /** Restrict list/search to the newest accessible records for the current plan. */
+  accessLimit?: number;
 }
 
 // ============================================================
@@ -445,6 +506,22 @@ export interface YoutubeResponse {
 // Slice D: Cloud Sync — favorites, saved_configs, brand_profiles
 // ============================================================
 
+/** Read-only admin review attached to a favorite (owner may read, never write). */
+export interface ReviewAnnotation {
+  id: string;
+  startOffset: number;
+  endOffset: number;
+  quotedText: string;
+  note: string;
+}
+
+export interface FavoriteAdminReview {
+  status: 'adopted' | 'changes_requested';
+  note: string | null;
+  updatedAt: string;
+  annotations?: ReviewAnnotation[];
+}
+
 /** A single favorite/bookmark record stored in the cloud */
 export interface FavoriteRecord {
   id: string;
@@ -464,6 +541,14 @@ export interface FavoriteRecord {
   savedAt: string;
   createdAt: string;
   updatedAt: string;
+  contentRevision?: number;
+  contentEditedAt?: string | null;
+  isUserAuthored: boolean;
+  reviewRequested: boolean;
+  /** Database-owned queue timestamp; never accepted on upsert. */
+  reviewRequestedAt: string | null;
+  /** Populated from favorite_admin_reviews via RLS; never accepted on upsert. */
+  adminReview?: FavoriteAdminReview | null;
 }
 
 /** A saved generation config stored in the cloud */
@@ -510,6 +595,8 @@ export interface SyncFavoriteRequest {
   favoriteReason?: string | null;
   reasonTags?: string[] | null;
   savedAt?: string;
+  isUserAuthored?: boolean;
+  reviewRequested?: boolean;
 }
 
 /** POST /api/sync/configs body */

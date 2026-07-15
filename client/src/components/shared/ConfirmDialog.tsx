@@ -9,6 +9,9 @@ export interface ConfirmDialogProps {
   preview?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Disables both actions while an async confirmation is running. */
+  confirming?: boolean;
+  confirmingLabel?: string;
   /** When true, uses red danger styling instead of the default accent */
   danger?: boolean;
   onConfirm: () => void;
@@ -32,6 +35,8 @@ export default function ConfirmDialog({
   preview,
   confirmLabel = '确认删除',
   cancelLabel = '取消',
+  confirming = false,
+  confirmingLabel = '处理中…',
   danger = false,
   onConfirm,
   onCancel,
@@ -56,7 +61,7 @@ export default function ConfirmDialog({
     (e: React.KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onCancel();
+        if (!confirming) onCancel();
         return;
       }
       if (e.key === 'Tab') {
@@ -70,7 +75,7 @@ export default function ConfirmDialog({
         }
       }
     },
-    [onCancel],
+    [confirming, onCancel],
   );
 
   if (!open) return null;
@@ -146,7 +151,8 @@ export default function ConfirmDialog({
             ref={cancelRef}
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-900 hover:bg-gray-800 light:hover:bg-gray-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
+            disabled={confirming}
+            className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-900 hover:bg-gray-800 light:hover:bg-gray-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -154,16 +160,19 @@ export default function ConfirmDialog({
             ref={confirmRef}
             type="button"
             onClick={onConfirm}
+            disabled={confirming}
+            aria-busy={confirming}
             className={`
               px-3 py-1.5 rounded-md text-xs font-medium transition-colors
               focus:outline-none focus-visible:ring-2
+              disabled:cursor-not-allowed disabled:opacity-60
               ${danger
                 ? 'bg-red-600 hover:bg-red-500 text-white focus-visible:ring-red-400'
                 : 'bg-orange-600 hover:bg-orange-500 light:bg-orange-600 light:hover:bg-orange-500 text-white focus-visible:ring-orange-400 dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:focus-visible:ring-emerald-400'
               }
             `}
           >
-            {confirmLabel}
+            {confirming ? confirmingLabel : confirmLabel}
           </button>
         </div>
       </div>

@@ -7,6 +7,7 @@ import HotTrendsTab from './HotTrendsTab';
 import CompetitorActivityTab from './CompetitorActivityTab';
 import type { InspirationTab, CompetitorAd, HKPost } from '../../types';
 import { INSPIRATION_TABS } from '../../types';
+import { apiUrl } from '../../services/apiBase';
 
 export default function InspirationPanel() {
   const { state, dispatch } = useContext(AppContext);
@@ -36,7 +37,7 @@ export default function InspirationPanel() {
       // Search all selected brands in parallel, merge results
       const results = await Promise.all(
         queries.map((query) =>
-          fetch('/api/competitor/search', {
+          fetch(apiUrl('/competitor/search'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query, limit: 8 }),
@@ -98,7 +99,7 @@ export default function InspirationPanel() {
     setHotLoading(true);
     setHotError(null);
     try {
-      const res = await fetch('/api/inspiration/hot-trends', {
+      const res = await fetch(apiUrl('/inspiration/hot-trends'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

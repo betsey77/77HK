@@ -2,8 +2,9 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import {
-  upsertJob, listJobs, getJob, softDeleteJob,
+  upsertJob, listJobs, getJob, softDeleteJob, isJobWithinHistoryLimit,
 } from '../services/generationJobsService.js';
+import { FREE_HISTORY_LIMIT, resolveUserPlanId } from '../services/planAccessService.js';
 
 const router = Router();
 
@@ -41,6 +42,15 @@ function validateLimitOffset(limit: number, offset: number): void {
   }
 }
 
+function validateSearchQuery(query: string): void {
+  if (query.length > 80) {
+    throw new Error('search query must be 80 characters or fewer');
+  }
+  if (/[,%()\\]/.test(query)) {
+    throw new Error('search query must be free of filter syntax');
+  }
+}
+
 // ============================================================
 // GET /api/generations — list user's non-deleted jobs
 // ============================================================
@@ -52,10 +62,22 @@ router.get('/generations', async (req: Request, res: Response) => {
     const rawOffset = (req.query.offset as string) ?? '';
     const limit = rawLimit !== '' ? Number(rawLimit) : 20;
     const offset = rawOffset !== '' ? Number(rawOffset) : 0;
+    const rawQuery = req.query.q;
+    if (rawQuery !== undefined && typeof rawQuery !== 'string') {
+      throw new Error('search query must be a string');
+    }
+    const query = typeof rawQuery === 'string' ? rawQuery.trim() : '';
 
     validateLimitOffset(limit, offset);
+    validateSearchQuery(query);
 
-    const result = await listJobs(jwt, userId, { limit, offset });
+    const planId = await resolveUserPlanId(userId);
+    const result = await listJobs(jwt, userId, {
+      limit,
+      offset,
+      ...(query ? { query } : {}),
+      ...(planId === 'free' ? { accessLimit: FREE_HISTORY_LIMIT } : {}),
+    });
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error';
@@ -70,6 +92,7 @@ router.get('/generations', async (req: Request, res: Response) => {
 router.get('/generations/:id', async (req: Request, res: Response) => {
   try {
     const jwt = req.userJwt as string;
+    const userId = req.userId as string;
     const jobId = req.params.id as string;
 
     validateUUID(jobId, 'id');
@@ -77,6 +100,18 @@ router.get('/generations/:id', async (req: Request, res: Response) => {
     const job = await getJob(jwt, jobId);
     if (!job) {
       res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+
+    const planId = await resolveUserPlanId(userId);
+    if (
+      planId === 'free'
+      && !(await isJobWithinHistoryLimit(jwt, userId, jobId, FREE_HISTORY_LIMIT))
+    ) {
+      res.status(403).json({
+        error: '该历史记录需要 Pro 解锁',
+        code: 'PLAN_LIMIT',
+      });
       return;
     }
 

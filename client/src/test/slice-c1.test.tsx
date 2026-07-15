@@ -196,6 +196,7 @@ describe('HistoryPage — populated list', () => {
       expect(screen.getByText('First copy')).toBeInTheDocument();
     });
     expect(screen.getByText('Second copy')).toBeInTheDocument();
+    expect(screen.getByRole('note', { name: '历史恢复提示' })).toHaveTextContent('载入工作台');
     expect(screen.getByText('已完成')).toBeInTheDocument();
     expect(screen.getByText('失败')).toBeInTheDocument();
   });
@@ -209,6 +210,59 @@ describe('HistoryPage — populated list', () => {
     const backLink = screen.getByRole('link', { name: '回到工作台' });
     expect(backLink).toHaveAttribute('href', '/app');
   });
+
+  it('默认每页 10 条，并可按品牌、产品或正文检索', async () => {
+    render(<HistoryPage />, { wrapper: Wrapper });
+    await screen.findByText('First copy');
+
+    expect(mockListJobs).toHaveBeenCalledWith({ limit: 10, offset: 0 });
+
+    const search = screen.getByRole('searchbox', { name: '搜索生成历史' });
+    await userEvent.type(search, '思念 煎饺王');
+    await userEvent.click(screen.getByRole('button', { name: '搜索' }));
+
+    await waitFor(() => {
+      expect(mockListJobs).toHaveBeenLastCalledWith({
+        limit: 10,
+        offset: 0,
+        query: '思念 煎饺王',
+      });
+    });
+  });
+
+  it('依据服务端总数翻页', async () => {
+    const firstPage = Array.from({ length: 10 }, (_, index) =>
+      makeSummary(`page-1-${index}`, { source: `第一页 ${index + 1}` }),
+    );
+    mockListJobs.mockImplementation(({ offset }: { offset: number }) => Promise.resolve({
+      jobs: offset === 0
+        ? firstPage
+        : [makeSummary('page-2-1', { source: '第二页唯一记录' })],
+      total: 11,
+    }));
+
+    render(<HistoryPage />, { wrapper: Wrapper });
+    await screen.findByText('第一页 1');
+    expect(screen.getByText('第 1 / 2 页')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '下一页' }));
+    await screen.findByText('第二页唯一记录');
+    expect(mockListJobs).toHaveBeenLastCalledWith({ limit: 10, offset: 10 });
+    expect(screen.getByText('第 2 / 2 页')).toBeInTheDocument();
+  });
+
+  it('Free 历史超额时显示锁定数量与 Pro 解锁入口', async () => {
+    mockListJobs.mockResolvedValue({
+      jobs: [makeSummary('j1', { source: '可访问历史' })],
+      total: 15,
+      lockedCount: 4,
+    });
+    render(<HistoryPage />, { wrapper: Wrapper });
+
+    await screen.findByText('可访问历史');
+    expect(screen.getByText(/另有 4 条较早历史需 Pro 解锁/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '解锁全部历史' })).toHaveAttribute('href', '/app/billing');
+  });
 });
 
 describe('HistoryPage — delete', () => {
@@ -221,7 +275,7 @@ describe('HistoryPage — delete', () => {
     mockDeleteJob.mockResolvedValue(undefined);
   });
 
-  it('removes job from list after successful delete', async () => {
+  it('单条删除先确认，取消不调用接口，确认后才删除', async () => {
     render(<HistoryPage />, { wrapper: Wrapper });
 
     // Wait for the job to appear
@@ -229,13 +283,74 @@ describe('HistoryPage — delete', () => {
       expect(screen.getByText('To be deleted')).toBeInTheDocument();
     });
 
-    // Click delete
     await userEvent.click(screen.getByText('删除'));
+    expect(mockDeleteJob).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('确认删除这条历史记录');
 
-    // After delete, mock resolves and job is removed from state
+    await userEvent.click(screen.getByRole('button', { name: '取消' }));
+    expect(mockDeleteJob).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByText('删除'));
+    await userEvent.click(screen.getByRole('button', { name: '确认删除' }));
+
     await waitFor(() => {
       expect(mockDeleteJob).toHaveBeenCalledWith('j1');
     });
+  });
+
+  it('支持多选并一次确认批量删除所选历史', async () => {
+    mockListJobs.mockResolvedValue({
+      jobs: [
+        makeSummary('j1', { source: '批量第一条' }),
+        makeSummary('j2', { source: '批量第二条' }),
+        makeSummary('j3', { source: '保留第三条' }),
+      ],
+      total: 3,
+    });
+
+    render(<HistoryPage />, { wrapper: Wrapper });
+    await screen.findByText('批量第一条');
+
+    await userEvent.click(screen.getByRole('button', { name: '批量管理' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /选择历史：批量第一条/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /选择历史：批量第二条/ }));
+    expect(screen.getByText('已选 2 / 3')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /删除所选/ }));
+    expect(mockDeleteJob).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: '确认删除 2 条' }));
+
+    await waitFor(() => {
+      expect(mockDeleteJob).toHaveBeenCalledWith('j1');
+      expect(mockDeleteJob).toHaveBeenCalledWith('j2');
+    });
+    expect(screen.queryByText('批量第一条')).not.toBeInTheDocument();
+    expect(screen.queryByText('批量第二条')).not.toBeInTheDocument();
+    expect(screen.getByText('保留第三条')).toBeInTheDocument();
+  });
+
+  it('批量删除部分失败时保留失败项并提示重试', async () => {
+    mockListJobs.mockResolvedValue({
+      jobs: [
+        makeSummary('j1', { source: '成功删除项' }),
+        makeSummary('j2', { source: '失败保留项' }),
+      ],
+      total: 2,
+    });
+    mockDeleteJob.mockImplementation((id: string) =>
+      id === 'j2' ? Promise.reject(new Error('网络错误')) : Promise.resolve(),
+    );
+
+    render(<HistoryPage />, { wrapper: Wrapper });
+    await screen.findByText('成功删除项');
+    await userEvent.click(screen.getByRole('button', { name: '批量管理' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: '全选当前历史' }));
+    await userEvent.click(screen.getByRole('button', { name: /删除所选/ }));
+    await userEvent.click(screen.getByRole('button', { name: '确认删除 2 条' }));
+
+    await waitFor(() => expect(screen.getByText(/1 条删除失败/)).toBeInTheDocument());
+    expect(screen.queryByText('成功删除项')).not.toBeInTheDocument();
+    expect(screen.getByText('失败保留项')).toBeInTheDocument();
   });
 });
 
@@ -314,7 +429,8 @@ describe('HistoryDetailPage', () => {
     render(<HistoryDetailPage />, { wrapper: Wrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('Test source job-detail-1')).toBeInTheDocument();
+    expect(screen.getByText('Test source job-detail-1')).toBeInTheDocument();
+    expect(screen.getByRole('note', { name: '历史恢复提示' })).toHaveTextContent('文字消失');
     });
     // Variants are shown
     expect(screen.getByText('變體內容')).toBeInTheDocument();
@@ -337,7 +453,7 @@ describe('HistoryDetailPage', () => {
     });
   });
 
-  it('shows delete button and can delete', async () => {
+  it('详情删除先确认，取消保留，确认后删除', async () => {
     mockGetJob.mockResolvedValue({ job: makeDetailJob('job-detail-1') });
     mockDeleteJob.mockResolvedValue(undefined);
 
@@ -348,6 +464,14 @@ describe('HistoryDetailPage', () => {
     });
 
     await userEvent.click(screen.getByText('删除'));
+    expect(mockDeleteJob).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('确认删除这条历史记录');
+
+    await userEvent.click(screen.getByRole('button', { name: '取消' }));
+    expect(screen.getByText('Test source job-detail-1')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('删除'));
+    await userEvent.click(screen.getByRole('button', { name: '确认删除' }));
 
     await waitFor(() => {
       expect(screen.getByText('已删除')).toBeInTheDocument();
@@ -851,6 +975,15 @@ describe('useGenerate — dispatch behaviour (C1 v4)', () => {
 
     // Variants must be rendered — proves SET_RESULTS received complete data
     expect(screen.getByTestId('variant').textContent).toBe('標準繁體文案');
+    expect(mockGenerateCopy.mock.calls[0]?.[0]).toMatchObject({
+      workbenchSettings: {
+        platform: 'all',
+        tone: '穩妥',
+        cantoneseLevel: 4,
+        englishMixingLevel: 1,
+        creativityLevel: 1,
+      },
+    });
   });
 
   it('SET_ERROR on generateCopy rejection — never SET_RESULTS', async () => {

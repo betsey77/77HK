@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, MessageSquare, Send, Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { apiUrl } from '../../services/apiBase';
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ async function submitFeedback(
   jwt: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch('/api/feedback', {
+    const response = await fetch(apiUrl('/feedback'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,7 +105,7 @@ async function fetchMyFeedback(
   jwt: string,
 ): Promise<{ items: FeedbackItem[]; total: number } | null> {
   try {
-    const response = await fetch('/api/feedback', {
+    const response = await fetch(apiUrl('/feedback'), {
       headers: { Authorization: `Bearer ${jwt}` },
     });
     if (!response.ok) return null;

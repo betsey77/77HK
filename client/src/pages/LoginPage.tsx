@@ -42,6 +42,15 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
+      <div className="mb-7">
+        <h2 className={`text-xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          欢迎回来
+        </h2>
+        <p className={`mt-1.5 text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          登录账户，继续你的港式文案工作流
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-7">
         {/* Email */}
         <div>

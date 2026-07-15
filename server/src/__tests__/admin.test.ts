@@ -13,7 +13,7 @@
  * - Generation detail endpoint writes audit log (fail-closed)
  * - Error sanitization (no internal details)
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 // ── Mock the trusted Supabase client ───────────────────────────
 
@@ -176,15 +176,18 @@ describe('Slice G1 — Admin security invariants', () => {
     expect(content).toContain('requireAdmin');
   });
 
-  it('admin routes do NOT contain DELETE, PATCH, or PUT methods', () => {
+  it('admin routes only allow review PUT (no DELETE/PATCH/POST; no other PUT)', () => {
     const fs = require('fs');
     const path = require('path');
     const content = fs.readFileSync(
       path.resolve(__dirname, '../routes/admin.ts'),
       'utf-8',
     );
-    // Only GET methods allowed
-    expect(content).not.toMatch(/router\.(delete|patch|put|post)\(/);
+    // R1: only PUT /favorites/:id/review is allowed as mutation
+    expect(content).not.toMatch(/router\.(delete|patch|post)\(/);
+    const putMatches = content.match(/router\.put\(/g) ?? [];
+    expect(putMatches.length).toBe(1);
+    expect(content).toMatch(/router\.put\('\/favorites\/:id\/review'/);
   });
 
   it('admin routes do NOT return passwords, tokens, or secrets', () => {
@@ -238,7 +241,7 @@ describe('Slice G1 — Admin security invariants', () => {
 // ── Route registration test ────────────────────────────────────
 
 describe('Slice G1 — Admin route registration', () => {
-  it('admin routes are registered in app.ts', () => {
+  it('admin routes are registered in app.ts at /api/admin', () => {
     const fs = require('fs');
     const path = require('path');
     const appContent = fs.readFileSync(
@@ -246,18 +249,23 @@ describe('Slice G1 — Admin route registration', () => {
       'utf-8',
     );
     expect(appContent).toContain('adminRouter');
-    expect(appContent).toContain("app.use('/api', adminRouter)");
+    // G1-R fix: admin router is now mounted at /api/admin (not /api)
+    expect(appContent).toContain("app.use('/api/admin', adminRouter)");
   });
 
-  it('admin route handler paths are correct (middleware scoped)', () => {
+  it('admin route middleware applies to all routes (no /admin path prefix)', () => {
     const fs = require('fs');
     const path = require('path');
     const content = fs.readFileSync(
       path.resolve(__dirname, '../routes/admin.ts'),
       'utf-8',
     );
-    // Middleware applies for /admin prefix, so route handlers use bare paths
-    expect(content).toContain("router.use('/admin'");
+    // G1-R fix: middleware is bare router.use(requireAuth) + router.use(requireAdmin)
+    // — applies to ALL routes in this router, not just /admin prefixed
+    expect(content).toContain('router.use(requireAuth)');
+    expect(content).toContain('router.use(requireAdmin)');
+    // No '/admin' path argument in middleware registration
+    expect(content).not.toMatch(/router\.use\s*\(\s*['"]\/admin['"]/);
     expect(content).toContain("router.get('/stats'");
     expect(content).toContain("router.get('/users'");
     expect(content).toContain("router.get('/feedback'");
@@ -349,5 +357,355 @@ describe('Slice G1 — Admin route registration', () => {
     expect(fnBody).not.toContain('diagnosis');
     expect(fnBody).not.toContain('audit');
     expect(fnBody).not.toContain('consumer_feedback');
+  });
+});
+
+// ============================================================================
+// G1-R: Supertest behavior tests — real 401/403/200 coverage
+// ============================================================================
+
+import request from 'supertest';
+
+const { mockVerifyToken, mockCreateUserClient } = vi.hoisted(() => ({
+  mockVerifyToken: vi.fn(),
+  mockCreateUserClient: vi.fn(),
+}));
+
+vi.mock('../services/supabase.js', () => ({
+  getSupabase: () => null,
+  createUserClient: mockCreateUserClient,
+  verifyToken: mockVerifyToken,
+}));
+
+// ── Mock adminService to return controlled data for 200 assertions ──
+const mockAdminStats = vi.fn();
+const mockAdminUsersOverview = vi.fn();
+const mockAdminGenerationMeta = vi.fn();
+const mockAdminGenerationExists = vi.fn();
+const mockAdminGenerationDetail = vi.fn();
+const mockAdminFeedbackSummary = vi.fn();
+const mockAdminSubscriptionsOverview = vi.fn();
+const mockAdminAuditLog = vi.fn();
+const mockAdminFavoritesOverview = vi.fn();
+const mockAdminFavoriteExists = vi.fn();
+const mockAdminFavoriteDetail = vi.fn();
+const mockWriteAdminAuditLog = vi.fn();
+
+vi.mock('../services/adminService.js', () => ({
+  getAdminStats: (...args: any[]) => mockAdminStats(...args),
+  getAdminUsersOverview: (...args: any[]) => mockAdminUsersOverview(...args),
+  getAdminGenerationMeta: (...args: any[]) => mockAdminGenerationMeta(...args),
+  adminGenerationExists: (...args: any[]) => mockAdminGenerationExists(...args),
+  getAdminGenerationDetail: (...args: any[]) => mockAdminGenerationDetail(...args),
+  getAdminFeedbackSummary: (...args: any[]) => mockAdminFeedbackSummary(...args),
+  getAdminSubscriptionsOverview: (...args: any[]) => mockAdminSubscriptionsOverview(...args),
+  getAdminAuditLog: (...args: any[]) => mockAdminAuditLog(...args),
+  getAdminFavoritesOverview: (...args: any[]) => mockAdminFavoritesOverview(...args),
+  adminFavoriteExists: (...args: any[]) => mockAdminFavoriteExists(...args),
+  getAdminFavoriteDetail: (...args: any[]) => mockAdminFavoriteDetail(...args),
+  writeAdminAuditLog: (...args: any[]) => mockWriteAdminAuditLog(...args),
+}));
+
+vi.mock('../services/trustedSupabase.js', () => ({
+  getTrustedSupabase: () => ({}),
+}));
+
+describe('G1-R — Admin route behavior tests (Supertest)', () => {
+  let app: any;
+
+  beforeAll(async () => {
+    app = (await import('../app.js')).default;
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default: no auth
+    mockVerifyToken.mockRejectedValue(new Error('No token'));
+    // Default admin service mocks: return controlled data
+    mockAdminStats.mockResolvedValue({
+      totalUsers: 10, activeSubscriptions: 3, totalGenerations: 100,
+      totalFeedback: 20, adminUsers: 2,
+    });
+    mockAdminUsersOverview.mockResolvedValue({ data: [], total: 0 });
+    mockAdminGenerationMeta.mockResolvedValue({ data: [], total: 0 });
+    mockAdminGenerationExists.mockResolvedValue(true);
+    mockAdminGenerationDetail.mockResolvedValue({ id: 'job-1' });
+    mockAdminFeedbackSummary.mockResolvedValue({ data: [], total: 0 });
+    mockAdminSubscriptionsOverview.mockResolvedValue({ data: [], total: 0 });
+    mockAdminAuditLog.mockResolvedValue({ data: [], total: 0 });
+    mockAdminFavoritesOverview.mockResolvedValue({ favorites: [], total: 0 });
+    mockAdminFavoriteExists.mockResolvedValue(true);
+    mockAdminFavoriteDetail.mockResolvedValue({ id: 'favorite-1', content: '收藏文案' });
+    mockWriteAdminAuditLog.mockResolvedValue(undefined);
+  });
+
+  function authAsUser(userId: string) {
+    mockVerifyToken.mockResolvedValue({ sub: userId, email: `${userId}@test.com` });
+    mockCreateUserClient.mockReturnValue({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            in: () => Promise.resolve({ data: [], error: null }),
+          }),
+        }),
+      }),
+    });
+    return `Bearer mock-jwt-${userId}`;
+  }
+
+  function authAsAdmin(userId: string, role: 'admin' | 'super_admin' = 'admin') {
+    mockVerifyToken.mockResolvedValue({ sub: userId, email: `${userId}@test.com` });
+    mockCreateUserClient.mockReturnValue({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            in: () => Promise.resolve({ data: [{ role }], error: null }),
+          }),
+        }),
+      }),
+    });
+    return `Bearer mock-jwt-${userId}`;
+  }
+
+  // ── 401: No token ───────────────────────────────────────────────
+
+  describe('no token → 401', () => {
+    it('GET /api/admin/stats returns 401 without token', async () => {
+      const res = await request(app).get('/api/admin/stats');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/admin/users returns 401 without token', async () => {
+      const res = await request(app).get('/api/admin/users');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/admin/generations returns 401 without token', async () => {
+      const res = await request(app).get('/api/admin/generations');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/admin/feedback returns 401 without token', async () => {
+      const res = await request(app).get('/api/admin/feedback');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/admin/subscriptions returns 401 without token', async () => {
+      const res = await request(app).get('/api/admin/subscriptions');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/admin/audit-log returns 401 without token', async () => {
+      const res = await request(app).get('/api/admin/audit-log');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/admin/favorites returns 401 without token', async () => {
+      const res = await request(app).get('/api/admin/favorites');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  // ── 403: Authenticated user, not admin ──────────────────────────
+
+  describe('authenticated user → 403', () => {
+    it('GET /api/admin/stats returns 403 for plain user', async () => {
+      const token = authAsUser('plain-user');
+      const res = await request(app)
+        .get('/api/admin/stats')
+        .set('Authorization', token);
+      expect(res.status).toBe(403);
+    });
+
+    it('GET /api/admin/users returns 403 for plain user', async () => {
+      const token = authAsUser('plain-user');
+      const res = await request(app)
+        .get('/api/admin/users')
+        .set('Authorization', token);
+      expect(res.status).toBe(403);
+    });
+
+    it('GET /api/admin/audit-log returns 403 for plain user', async () => {
+      const token = authAsUser('plain-user');
+      const res = await request(app)
+        .get('/api/admin/audit-log')
+        .set('Authorization', token);
+      expect(res.status).toBe(403);
+    });
+
+    it('GET /api/admin/favorites returns 403 for plain user', async () => {
+      const token = authAsUser('plain-user');
+      const res = await request(app)
+        .get('/api/admin/favorites')
+        .set('Authorization', token);
+      expect(res.status).toBe(403);
+    });
+  });
+
+  // ── 200: Admin user (with controlled service mocks) ─────────────
+
+  describe('admin user → 200', () => {
+    it('GET /api/admin/stats returns 200 for admin', async () => {
+      const token = authAsAdmin('admin-user');
+      mockAdminStats.mockResolvedValue({
+        totalUsers: 10,
+        activeSubscriptions: 3,
+        totalGenerations: 100,
+        totalFeedback: 20,
+        adminUsers: 2,
+      });
+      const res = await request(app)
+        .get('/api/admin/stats')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        totalUsers: 10,
+        activeSubscriptions: 3,
+        totalGenerations: 100,
+        totalFeedback: 20,
+        adminUsers: 2,
+        role: 'admin',
+      });
+    });
+
+    it('GET /api/admin/users returns 200 for admin', async () => {
+      const token = authAsAdmin('admin-user');
+      mockAdminUsersOverview.mockResolvedValue({
+        data: [{ id: 'u1', displayName: 'User 1', userIdPrefix: 'abc12345', roles: ['user'], status: 'active', createdAt: '2026-01-01T00:00:00Z', deletionRequestedAt: null, subscriptionPlan: 'Free', generationCount: 5 }],
+        total: 1,
+      });
+      const res = await request(app)
+        .get('/api/admin/users?limit=10')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.total).toBe(1);
+    });
+
+    it('GET /api/admin/feedback returns 200 for admin', async () => {
+      const token = authAsAdmin('admin-user');
+      mockAdminFeedbackSummary.mockResolvedValue({ data: [], total: 0 });
+      const res = await request(app)
+        .get('/api/admin/feedback')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+    });
+
+    it('GET /api/admin/audit-log returns 200 for admin', async () => {
+      const token = authAsAdmin('admin-user');
+      mockAdminAuditLog.mockResolvedValue({ data: [], total: 0 });
+      const res = await request(app)
+        .get('/api/admin/audit-log')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+    });
+
+    it('GET /api/admin/generations returns 200 for admin', async () => {
+      const token = authAsAdmin('admin-user');
+      mockAdminGenerationMeta.mockResolvedValue({ data: [], total: 0 });
+      const res = await request(app)
+        .get('/api/admin/generations')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+    });
+
+    it('GET /api/admin/subscriptions returns 200 for admin', async () => {
+      const token = authAsAdmin('admin-user');
+      mockAdminSubscriptionsOverview.mockResolvedValue({ data: [], total: 0 });
+      const res = await request(app)
+        .get('/api/admin/subscriptions')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+    });
+
+    it('GET /api/admin/generations/:id returns 200 for admin (with audit log)', async () => {
+      const token = authAsAdmin('admin-user');
+      mockAdminGenerationExists.mockResolvedValue(true);
+      mockWriteAdminAuditLog.mockResolvedValue(undefined);
+      mockAdminGenerationDetail.mockResolvedValue({ id: 'job-1', status: 'completed' });
+      const res = await request(app)
+        .get('/api/admin/generations/job-1')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe('job-1');
+    });
+
+    it('GET /api/admin/favorites returns metadata for ordinary admin', async () => {
+      const token = authAsAdmin('admin-user', 'admin');
+      mockAdminFavoritesOverview.mockResolvedValue({
+        favorites: [{
+          id: 'favorite-1', ownerDisplayName: '用户 abc12345', userEmail: 'user@example.com', variantKey: 'ig',
+          rating: 5, notes: '语气贴地', favoriteReason: '开场好', reasonTags: ['hook'],
+          savedAt: '2026-07-13T00:00:00Z',
+        }],
+        total: 1,
+      });
+
+      const res = await request(app)
+        .get('/api/admin/favorites')
+        .set('Authorization', token);
+
+      expect(res.status).toBe(200);
+      expect(res.body.favorites).toHaveLength(1);
+      expect(res.body.favorites[0]).not.toHaveProperty('content');
+    });
+
+    it('GET /api/admin/favorites/:id audits before returning copy content', async () => {
+      const token = authAsAdmin('admin-user', 'admin');
+      mockAdminFavoriteExists.mockResolvedValue(true);
+      mockWriteAdminAuditLog.mockResolvedValue(undefined);
+      mockAdminFavoriteDetail.mockResolvedValue({
+        id: 'favorite-1', ownerDisplayName: '用户 abc12345', userEmail: 'user@example.com', variantKey: 'ig',
+        content: '可复制的收藏文案', rating: 5, notes: null, favoriteReason: null,
+        reasonTags: ['hook'], savedAt: '2026-07-13T00:00:00Z',
+      });
+
+      const res = await request(app)
+        .get('/api/admin/favorites/favorite-1')
+        .set('Authorization', token);
+
+      expect(res.status).toBe(200);
+      expect(res.body.content).toBe('可复制的收藏文案');
+      expect(mockWriteAdminAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+        actorRole: 'admin',
+        action: 'admin_view_favorite_detail',
+        entity: 'favorites',
+        entityId: 'favorite-1',
+      }));
+      expect(mockWriteAdminAuditLog.mock.invocationCallOrder[0])
+        .toBeLessThan(mockAdminFavoriteDetail.mock.invocationCallOrder[0]);
+    });
+
+    it('fails closed when favorite detail audit logging fails', async () => {
+      const token = authAsAdmin('admin-user', 'admin');
+      mockAdminFavoriteExists.mockResolvedValue(true);
+      mockWriteAdminAuditLog.mockRejectedValue(new Error('audit unavailable'));
+
+      const res = await request(app)
+        .get('/api/admin/favorites/favorite-1')
+        .set('Authorization', token);
+
+      expect(res.status).toBe(500);
+      expect(mockAdminFavoriteDetail).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Super admin also passes ─────────────────────────────────────
+
+  describe('super_admin user → 200', () => {
+    it('GET /api/admin/stats returns 200 for super_admin', async () => {
+      const token = authAsAdmin('super-admin-user', 'super_admin');
+      mockAdminStats.mockResolvedValue({
+        totalUsers: 5,
+        activeSubscriptions: 1,
+        totalGenerations: 50,
+        totalFeedback: 10,
+        adminUsers: 1,
+      });
+      const res = await request(app)
+        .get('/api/admin/stats')
+        .set('Authorization', token);
+      expect(res.status).toBe(200);
+    });
   });
 });

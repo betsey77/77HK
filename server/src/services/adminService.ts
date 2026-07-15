@@ -85,6 +85,184 @@ export interface AdminAuditEntry {
   createdAt: string;
 }
 
+/** W4: safe snapshot fields from favorites.settings (null → client shows 未填写). */
+export interface FavoriteSettingsFields {
+  brandName: string | null;
+  productName: string | null;
+  copyType: string | null;
+  platform: string | null;
+  /** Favorite-only publish platform snapshot; null if unset */
+  publishPlatform: string | null;
+}
+
+export type AdminReviewStatus = 'adopted' | 'changes_requested';
+
+export interface AdminReviewAnnotation {
+  id: string;
+  startOffset: number;
+  endOffset: number;
+  quotedText: string;
+  note: string;
+}
+
+export interface AdminFavoriteActorScope {
+  actorId: string;
+  actorRole: 'admin' | 'super_admin';
+}
+
+export interface AdminFavoriteMeta extends FavoriteSettingsFields {
+  id: string;
+  ownerDisplayName: string;
+  userEmail: string;
+  variantKey: string;
+  rating: number | null;
+  notes: string | null;
+  favoriteReason: string | null;
+  reasonTags: string[];
+  savedAt: string;
+  /** Admin review summary — never includes reviewer email/group */
+  reviewStatus: AdminReviewStatus | null;
+  reviewNote: string | null;
+  reviewUpdatedAt: string | null;
+  reviewAnnotations: AdminReviewAnnotation[];
+  contentRevision: number;
+  contentEditedAt: string | null;
+  isUserAuthored: boolean;
+  reviewRequested: boolean;
+  reviewRequestedAt: string | null;
+  isPendingReview: boolean;
+}
+
+export interface AdminPendingReviewSummary {
+  count: number;
+  latestRequestedAt: string | null;
+}
+
+/** Max length for admin favorites metadata search query. */
+export const ADMIN_FAVORITE_SEARCH_MAX_LEN = 80;
+
+/**
+ * Normalize admin favorites `q`: trim, cap length, strip PostgREST filter metacharacters.
+ * Returns null when empty after normalization.
+ */
+export function normalizeAdminFavoriteQuery(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  let q = raw.trim().slice(0, ADMIN_FAVORITE_SEARCH_MAX_LEN);
+  if (!q) return null;
+  // Commas/parens/periods break PostgREST `or=(...)` grammar; never pass raw q into SQL.
+  q = q.replace(/[,.()\\]/g, ' ').replace(/\s+/g, ' ').trim();
+  return q || null;
+}
+
+/** Escape LIKE/ILIKE wildcards so user input cannot broaden the pattern. */
+export function escapeIlikePattern(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+/**
+ * Build a PostgREST `or` filter for favorite metadata only (never content).
+ * Explicit field list only — no select('*') and no body column.
+ */
+export function buildAdminFavoriteSearchOrFilter(q: string): string {
+  const pattern = `%${escapeIlikePattern(q)}%`;
+  // PostgREST accepts JSON paths directly in `or()` filters.
+  const jsonIlike = (path: string) => `settings->>${path}.ilike.${pattern}`;
+  const parts = [
+    `notes.ilike.${pattern}`,
+    `favorite_reason.ilike.${pattern}`,
+    `variant_key.ilike.${pattern}`,
+    jsonIlike('brandName'),
+    jsonIlike('productName'),
+    jsonIlike('copyType'),
+    jsonIlike('platform'),
+    jsonIlike('publishPlatform'),
+  ];
+  // reason_tags is varchar[]; map known Chinese labels → key; never filter content
+  const tagKey = reverseReasonTagLabel(q);
+  if (tagKey) {
+    parts.push(`reason_tags.cs.{${tagKey}}`);
+  } else if (/^[a-zA-Z_]{2,20}$/.test(q)) {
+    parts.push(`reason_tags.cs.{${q}}`);
+  }
+  return parts.join(',');
+}
+
+const REASON_TAG_LABEL_TO_KEY: Record<string, string> = {
+  开场吸睛: 'hook',
+  语气贴地: 'tone',
+  行动引导有力: 'cta',
+  句式节奏好: 'rhythm',
+  表情自然: 'emoji',
+  品牌调性匹配: 'brand',
+  创意突出: 'creative',
+  适合目标受众: 'audience',
+};
+
+function reverseReasonTagLabel(q: string): string | null {
+  return REASON_TAG_LABEL_TO_KEY[q] ?? null;
+}
+
+export interface AdminFavoriteDetail extends AdminFavoriteMeta {
+  content: string;
+}
+
+export interface AdminFavoriteReviewResult {
+  favoriteId: string;
+  reviewStatus: AdminReviewStatus | null;
+  reviewNote: string | null;
+  reviewUpdatedAt: string | null;
+  reviewAnnotations: AdminReviewAnnotation[];
+}
+
+/** Thrown with HTTP-ish status for route mapping (400/403/404). */
+export class AdminFavoriteReviewError extends Error {
+  status: number;
+  code: string;
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = 'AdminFavoriteReviewError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+/** W4: super_admin-only case library review payload (no email/secrets). */
+export interface AdminCaseLibraryDetail {
+  id: string;
+  ownerDisplayName: string;
+  caseType: string;
+  title: string | null;
+  body: string;
+  reason: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Safely extract review context from a favorites.settings JSON snapshot.
+ * Never guesses missing values — returns null so the UI can show「未填写」.
+ */
+export function extractFavoriteSettingsFields(settings: unknown): FavoriteSettingsFields {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    return { brandName: null, productName: null, copyType: null, platform: null, publishPlatform: null };
+  }
+  const s = settings as Record<string, unknown>;
+  const pick = (key: string): string | null => {
+    const v = s[key];
+    if (typeof v !== 'string') return null;
+    const t = v.trim();
+    return t.length > 0 ? t : null;
+  };
+  return {
+    brandName: pick('brandName'),
+    productName: pick('productName'),
+    copyType: pick('copyType'),
+    platform: pick('platform'),
+    publishPlatform: pick('publishPlatform'),
+  };
+}
+
 // ── Internal row shapes (match actual DB columns from migrations) ─
 
 interface ProfileRow {
@@ -149,6 +327,50 @@ interface AuditRow {
   diff: unknown;
   request_id: string | null;
   created_at: string;
+}
+
+interface FavoriteMetaRow {
+  id: string;
+  owner_id: string;
+  variant_key: string;
+  rating: number | null;
+  notes: string | null;
+  favorite_reason: string | null;
+  reason_tags: string[] | null;
+  saved_at: string;
+  settings: unknown;
+  content_revision: number;
+  content_edited_at: string | null;
+  is_user_authored: boolean;
+  review_requested: boolean;
+  review_requested_at: string | null;
+}
+
+interface FavoriteDetailRow extends FavoriteMetaRow {
+  content: string;
+}
+
+interface CaseLibraryDetailRow {
+  id: string;
+  owner_id: string;
+  case_type: string;
+  title: string | null;
+  body: string;
+  reason: string;
+  tags: string[] | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+async function buildUserEmailMap(userIds: string[]): Promise<Map<string, string>> {
+  const db = getTrustedSupabase();
+  const entries = await Promise.all(userIds.map(async (userId) => {
+    const { data, error } = await db.auth.admin.getUserById(userId);
+    if (error) throw new Error('Database query failed');
+    return [userId, data.user?.email ?? '—'] as const;
+  }));
+  return new Map(entries);
 }
 
 interface GenerationJobFullRow {
@@ -488,6 +710,462 @@ export async function getAdminGenerationDetail(
   if (error || !data) return null;
 
   return data as unknown as Record<string, unknown>;
+}
+
+/**
+ * Resolve owner_id allowlist for an admin actor.
+ * - super_admin: null (no filter, all owners)
+ * - ordinary admin with non-null review_group: owners in same group
+ * - ordinary admin with null review_group: empty set (no visibility)
+ *
+ * Service-role BFF must re-check group scope explicitly (does not rely on RLS).
+ */
+export async function resolveAdminFavoriteOwnerScope(
+  scope: AdminFavoriteActorScope,
+): Promise<{ mode: 'all' } | { mode: 'none' } | { mode: 'owners'; ownerIds: string[] }> {
+  if (scope.actorRole === 'super_admin') {
+    return { mode: 'all' };
+  }
+
+  const db = getTrustedSupabase();
+  const { data: actorProfile, error: actorErr } = await db
+    .from('profiles')
+    .select('review_group')
+    .eq('id', scope.actorId)
+    .maybeSingle();
+  if (actorErr) throw new Error('Database query failed');
+
+  const actorGroup =
+    actorProfile && typeof (actorProfile as { review_group?: unknown }).review_group === 'string'
+      ? ((actorProfile as { review_group: string }).review_group)
+      : null;
+
+  if (!actorGroup) {
+    return { mode: 'none' };
+  }
+
+  const { data: peers, error: peersErr } = await db
+    .from('profiles')
+    .select('id')
+    .eq('review_group', actorGroup);
+  if (peersErr) throw new Error('Database query failed');
+
+  const ownerIds = ((peers ?? []) as { id: string }[]).map((p) => p.id);
+  if (ownerIds.length === 0) return { mode: 'none' };
+  return { mode: 'owners', ownerIds };
+}
+
+async function loadFavoriteReviewMap(
+  favoriteIds: string[],
+): Promise<Map<string, { reviewStatus: AdminReviewStatus; reviewNote: string | null; reviewUpdatedAt: string; reviewAnnotations: AdminReviewAnnotation[] }>> {
+  const map = new Map<string, { reviewStatus: AdminReviewStatus; reviewNote: string | null; reviewUpdatedAt: string; reviewAnnotations: AdminReviewAnnotation[] }>();
+  if (favoriteIds.length === 0) return map;
+
+  const db = getTrustedSupabase();
+  for (let i = 0; i < favoriteIds.length; i += 100) {
+    const batch = favoriteIds.slice(i, i + 100);
+    const { data, error } = await db
+      .from('favorite_admin_reviews')
+      .select('favorite_id,review_status,note,annotations,updated_at')
+      .in('favorite_id', batch);
+    if (error) throw new Error('Database query failed');
+    for (const row of (data ?? []) as {
+      favorite_id: string;
+      review_status: string;
+      note: string | null;
+      annotations: unknown;
+      updated_at: string;
+    }[]) {
+      if (row.review_status !== 'adopted' && row.review_status !== 'changes_requested') continue;
+      map.set(row.favorite_id, {
+        reviewStatus: row.review_status,
+        reviewNote: row.note ?? null,
+        reviewUpdatedAt: row.updated_at,
+        reviewAnnotations: Array.isArray(row.annotations)
+          ? row.annotations as AdminReviewAnnotation[]
+          : [],
+      });
+    }
+  }
+  return map;
+}
+
+export async function getAdminFavoritesOverview(
+  limit: unknown,
+  offset: unknown,
+  searchQuery?: unknown,
+  actorScope?: AdminFavoriteActorScope,
+  pendingOnly = false,
+): Promise<{ favorites: AdminFavoriteMeta[]; total: number }> {
+  const db = getTrustedSupabase();
+  const l = clampLimit(limit);
+  const o = clampOffset(offset);
+  const q = normalizeAdminFavoriteQuery(searchQuery);
+
+  // Explicit actor scope required for group isolation (service_role bypasses RLS).
+  const scope = actorScope
+    ? await resolveAdminFavoriteOwnerScope(actorScope)
+    : { mode: 'all' as const };
+
+  if (scope.mode === 'none') {
+    return { favorites: [], total: 0 };
+  }
+
+  // Deliberately exclude content from the list. Full copy text is available
+  // only through the audited detail endpoint below. settings is read only for
+  // safe brand/product/copyType/platform/publishPlatform snapshot fields.
+  // Explicit column list — never select('*') or content.
+  const baseListSelect =
+    'id,owner_id,variant_key,rating,notes,favorite_reason,reason_tags,saved_at,settings,content_revision,content_edited_at,is_user_authored,review_requested,review_requested_at';
+  const listSelect = pendingOnly
+    ? `${baseListSelect},favorite_admin_reviews!left(favorite_id)`
+    : baseListSelect;
+
+  let countQuery = db.from('favorites').select(
+    pendingOnly ? 'id,favorite_admin_reviews!left(favorite_id)' : 'id',
+    { count: 'exact', head: true },
+  );
+  let dataQuery = db
+    .from('favorites')
+    .select(listSelect)
+    .order('saved_at', { ascending: false })
+    .range(o, o + l - 1);
+
+  if (scope.mode === 'owners') {
+    countQuery = countQuery.in('owner_id', scope.ownerIds);
+    dataQuery = dataQuery.in('owner_id', scope.ownerIds);
+  }
+
+  if (q) {
+    const orFilter = buildAdminFavoriteSearchOrFilter(q);
+    countQuery = countQuery.or(orFilter);
+    dataQuery = dataQuery.or(orFilter);
+  }
+
+  if (pendingOnly) {
+    countQuery = countQuery.eq('review_requested', true).is('favorite_admin_reviews', null);
+    dataQuery = dataQuery.eq('review_requested', true).is('favorite_admin_reviews', null);
+  }
+
+  const { count, error: countError } = await countQuery;
+  if (countError) throw new Error('Database query failed');
+
+  const { data, error } = await dataQuery;
+  if (error) throw new Error('Database query failed');
+
+  const rows = (data ?? []) as unknown as FavoriteMetaRow[];
+  if (rows.length === 0) return { favorites: [], total: count ?? 0 };
+
+  const ownerIds = [...new Set(rows.map((row) => row.owner_id))];
+  const reviewMap = await loadFavoriteReviewMap(rows.map((r) => r.id));
+  const [displayNameMap, emailMap] = await Promise.all([
+    buildDisplayNameMap(ownerIds),
+    buildUserEmailMap(ownerIds),
+  ]);
+
+  return {
+    favorites: rows.map((row) => {
+      const snap = extractFavoriteSettingsFields(row.settings);
+      const review = reviewMap.get(row.id);
+      return {
+        id: row.id,
+        ownerDisplayName: displayNameMap.get(row.owner_id) ?? `用户 ${userIdPrefix(row.owner_id)}`,
+        userEmail: emailMap.get(row.owner_id) ?? '—',
+        variantKey: row.variant_key,
+        rating: row.rating ?? null,
+        notes: row.notes ?? null,
+        favoriteReason: row.favorite_reason ?? null,
+        reasonTags: row.reason_tags ?? [],
+        savedAt: row.saved_at,
+        brandName: snap.brandName,
+        productName: snap.productName,
+        copyType: snap.copyType,
+        platform: snap.platform,
+        publishPlatform: snap.publishPlatform,
+        reviewStatus: review?.reviewStatus ?? null,
+        reviewNote: review?.reviewNote ?? null,
+        reviewUpdatedAt: review?.reviewUpdatedAt ?? null,
+        reviewAnnotations: review?.reviewAnnotations ?? [],
+        contentRevision: row.content_revision ?? 1,
+        contentEditedAt: row.content_edited_at ?? null,
+        isUserAuthored: row.is_user_authored === true,
+        reviewRequested: row.review_requested === true,
+        reviewRequestedAt: row.review_requested_at ?? null,
+        isPendingReview: row.review_requested === true && !review,
+      };
+    }),
+    total: count ?? 0,
+  };
+}
+
+/** Same-group queue signal only. It never selects favorite content or user identity. */
+export async function getAdminPendingReviewSummary(
+  actorScope: AdminFavoriteActorScope,
+): Promise<AdminPendingReviewSummary> {
+  const db = getTrustedSupabase();
+  const scope = await resolveAdminFavoriteOwnerScope(actorScope);
+  if (scope.mode === 'none') return { count: 0, latestRequestedAt: null };
+
+  let query = db
+    .from('favorites')
+    .select('review_requested_at,favorite_admin_reviews!left(favorite_id)', { count: 'exact' })
+    .eq('review_requested', true)
+    .is('favorite_admin_reviews', null)
+    .order('review_requested_at', { ascending: false })
+    .limit(1);
+
+  if (scope.mode === 'owners') {
+    query = query.in('owner_id', scope.ownerIds);
+  }
+
+  const { data, count, error } = await query;
+  if (error) throw new Error('Database query failed');
+  const latest = Array.isArray(data) && data.length > 0
+    ? (data[0] as { review_requested_at?: string | null }).review_requested_at ?? null
+    : null;
+  return { count: count ?? 0, latestRequestedAt: latest };
+}
+
+/**
+ * Existence + scope check that never reads the favorite body.
+ * Cross-group for ordinary admin → false (route returns 404, no audit, no body).
+ */
+export async function adminFavoriteExists(
+  favoriteId: string,
+  actorScope?: AdminFavoriteActorScope,
+): Promise<boolean> {
+  const db = getTrustedSupabase();
+  const { data, error } = await db
+    .from('favorites')
+    .select('id,owner_id')
+    .eq('id', favoriteId)
+    .maybeSingle();
+  if (error) throw new Error('Database query failed');
+  if (!data) return false;
+
+  if (!actorScope) return true;
+
+  const scope = await resolveAdminFavoriteOwnerScope(actorScope);
+  if (scope.mode === 'all') return true;
+  if (scope.mode === 'none') return false;
+  const ownerId = (data as { owner_id: string }).owner_id;
+  return scope.ownerIds.includes(ownerId);
+}
+
+/** Read one favorite after the route has durably written its access audit. */
+export async function getAdminFavoriteDetail(
+  favoriteId: string,
+  actorScope?: AdminFavoriteActorScope,
+): Promise<AdminFavoriteDetail | null> {
+  // Re-check scope before body read (fail-closed if scope changed).
+  if (actorScope) {
+    const inScope = await adminFavoriteExists(favoriteId, actorScope);
+    if (!inScope) return null;
+  }
+
+  const db = getTrustedSupabase();
+  const { data, error } = await db
+    .from('favorites')
+    .select('id,owner_id,variant_key,content,rating,notes,favorite_reason,reason_tags,saved_at,settings,content_revision,content_edited_at,is_user_authored,review_requested,review_requested_at')
+    .eq('id', favoriteId)
+    .maybeSingle();
+  if (error) throw new Error('Database query failed');
+  if (!data) return null;
+
+  const row = data as unknown as FavoriteDetailRow;
+  const snap = extractFavoriteSettingsFields(row.settings);
+  const [displayNameMap, emailMap, reviewMap] = await Promise.all([
+    buildDisplayNameMap([row.owner_id]),
+    buildUserEmailMap([row.owner_id]),
+    loadFavoriteReviewMap([row.id]),
+  ]);
+  const review = reviewMap.get(row.id);
+  return {
+    id: row.id,
+    ownerDisplayName: displayNameMap.get(row.owner_id) ?? `用户 ${userIdPrefix(row.owner_id)}`,
+    userEmail: emailMap.get(row.owner_id) ?? '—',
+    variantKey: row.variant_key,
+    content: row.content,
+    rating: row.rating ?? null,
+    notes: row.notes ?? null,
+    favoriteReason: row.favorite_reason ?? null,
+    reasonTags: row.reason_tags ?? [],
+    savedAt: row.saved_at,
+    brandName: snap.brandName,
+    productName: snap.productName,
+    copyType: snap.copyType,
+    platform: snap.platform,
+    publishPlatform: snap.publishPlatform,
+    reviewStatus: review?.reviewStatus ?? null,
+    reviewNote: review?.reviewNote ?? null,
+    reviewUpdatedAt: review?.reviewUpdatedAt ?? null,
+    reviewAnnotations: review?.reviewAnnotations ?? [],
+    contentRevision: row.content_revision ?? 1,
+    contentEditedAt: row.content_edited_at ?? null,
+    isUserAuthored: row.is_user_authored === true,
+    reviewRequested: row.review_requested === true,
+    reviewRequestedAt: row.review_requested_at ?? null,
+    isPendingReview: row.review_requested === true && !review,
+  };
+}
+
+const REVIEW_NOTE_MAX = 2000;
+const REVIEW_ANNOTATION_MAX = 50;
+const REVIEW_ANNOTATION_TEXT_MAX = 1000;
+
+/**
+ * Normalize review note: trim; empty string → null; enforce max length.
+ */
+export function normalizeReviewNote(raw: unknown): string | null {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'string') {
+    throw new AdminFavoriteReviewError(400, 'invalid_note', 'Invalid note');
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > REVIEW_NOTE_MAX) {
+    throw new AdminFavoriteReviewError(400, 'note_too_long', 'Note too long');
+  }
+  return trimmed;
+}
+
+export function normalizeReviewAnnotations(raw: unknown): AdminReviewAnnotation[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.length > REVIEW_ANNOTATION_MAX) {
+    throw new AdminFavoriteReviewError(400, 'invalid_annotations', 'Invalid annotations');
+  }
+  const normalized = raw.map((item): AdminReviewAnnotation => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new AdminFavoriteReviewError(400, 'invalid_annotation', 'Invalid annotation');
+    }
+    const value = item as Record<string, unknown>;
+    const id = typeof value.id === 'string' ? value.id.trim() : '';
+    const quotedText = typeof value.quotedText === 'string' ? value.quotedText : '';
+    const note = typeof value.note === 'string' ? value.note.trim() : '';
+    const startOffset = value.startOffset;
+    const endOffset = value.endOffset;
+    if (!id || id.length > 100 || !Number.isInteger(startOffset) || !Number.isInteger(endOffset)
+        || (startOffset as number) < 0 || (endOffset as number) <= (startOffset as number)
+        || !quotedText || quotedText.length > REVIEW_ANNOTATION_TEXT_MAX
+        || !note || note.length > REVIEW_ANNOTATION_TEXT_MAX) {
+      throw new AdminFavoriteReviewError(400, 'invalid_annotation', 'Invalid annotation');
+    }
+    return { id, startOffset: startOffset as number, endOffset: endOffset as number, quotedText, note };
+  });
+  normalized.sort((a, b) => a.startOffset - b.startOffset);
+  return normalized;
+}
+
+/**
+ * Atomically upsert/clear favorite review via service-role-only RPC.
+ * Does NOT write review + audit from separate JS statements.
+ */
+export async function updateAdminFavoriteReview(
+  scope: AdminFavoriteActorScope,
+  favoriteId: string,
+  status: AdminReviewStatus | null,
+  noteRaw: unknown,
+  annotationsRaw: unknown = [],
+): Promise<AdminFavoriteReviewResult> {
+  if (status !== null && status !== 'adopted' && status !== 'changes_requested') {
+    throw new AdminFavoriteReviewError(400, 'invalid_status', 'Invalid status');
+  }
+
+  let note: string | null = null;
+  const annotations = status === null ? [] : normalizeReviewAnnotations(annotationsRaw);
+  if (status !== null) {
+    note = normalizeReviewNote(noteRaw);
+    if (status === 'changes_requested' && !note) {
+      throw new AdminFavoriteReviewError(400, 'note_required', 'Note required for changes_requested');
+    }
+  }
+
+  const db = getTrustedSupabase();
+  const { data, error } = await db.rpc('admin_save_favorite_review', {
+    _actor_id: scope.actorId,
+    _favorite_id: favoriteId,
+    _status: status,
+    _note: status === null ? null : note,
+    _annotations: annotations,
+  });
+
+  if (error) {
+    const msg = (error.message ?? '').toLowerCase();
+    const code = (error as { code?: string }).code ?? '';
+    if (code === 'P0002' || msg.includes('not_found') || msg.includes('p0002')) {
+      throw new AdminFavoriteReviewError(404, 'not_found', 'Favorite not found');
+    }
+    if (code === '42501' || msg.includes('forbidden')) {
+      throw new AdminFavoriteReviewError(403, 'forbidden', 'Admin access required');
+    }
+    if (msg.includes('note_required') || msg.includes('invalid_status') || msg.includes('note_too_long') || msg.includes('invalid_args') || msg.includes('annotation') || code === '22023') {
+      throw new AdminFavoriteReviewError(400, 'invalid_body', 'Invalid review payload');
+    }
+    throw new Error('Database query failed');
+  }
+
+  const payload = (data ?? {}) as Record<string, unknown>;
+  const reviewStatus =
+    payload.reviewStatus === 'adopted' || payload.reviewStatus === 'changes_requested'
+      ? payload.reviewStatus
+      : null;
+  return {
+    favoriteId: typeof payload.favoriteId === 'string' ? payload.favoriteId : favoriteId,
+    reviewStatus,
+    reviewNote: typeof payload.reviewNote === 'string' ? payload.reviewNote : null,
+    reviewUpdatedAt: typeof payload.reviewUpdatedAt === 'string' ? payload.reviewUpdatedAt : null,
+    reviewAnnotations: Array.isArray(payload.annotations)
+      ? payload.annotations as AdminReviewAnnotation[]
+      : [],
+  };
+}
+
+/**
+ * Existence check for case_library_entries — id only, excludes soft-deleted.
+ * Never reads body. Soft-deleted rows are treated as not found (404 upstream).
+ */
+export async function adminCaseLibraryExists(caseId: string): Promise<boolean> {
+  const db = getTrustedSupabase();
+  const { data, error } = await db
+    .from('case_library_entries')
+    .select('id')
+    .eq('id', caseId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) throw new Error('Database query failed');
+  return data !== null;
+}
+
+/**
+ * Read one case library entry after durable audit write.
+ * Explicit allowlist only — no select(*), no email/password/token.
+ */
+export async function getAdminCaseLibraryDetail(
+  caseId: string,
+): Promise<AdminCaseLibraryDetail | null> {
+  const db = getTrustedSupabase();
+  const { data, error } = await db
+    .from('case_library_entries')
+    .select('id,owner_id,case_type,title,body,reason,tags,created_at,updated_at,deleted_at')
+    .eq('id', caseId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) throw new Error('Database query failed');
+  if (!data) return null;
+
+  const row = data as unknown as CaseLibraryDetailRow;
+  const displayNameMap = await buildDisplayNameMap([row.owner_id]);
+  return {
+    id: row.id,
+    ownerDisplayName: displayNameMap.get(row.owner_id) ?? `用户 ${userIdPrefix(row.owner_id)}`,
+    caseType: row.case_type,
+    title: row.title ?? null,
+    body: row.body,
+    reason: row.reason,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 export async function getAdminFeedbackSummary(

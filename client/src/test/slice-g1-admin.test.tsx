@@ -9,7 +9,7 @@
  * - No new dependencies introduced
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // ── Mock api module ────────────────────────────────────────────
@@ -22,6 +22,9 @@ const mockApi = vi.hoisted(() => ({
   getAdminFeedback: vi.fn().mockResolvedValue({ feedback: [], total: 0 }),
   getAdminSubscriptions: vi.fn().mockResolvedValue({ subscriptions: [], total: 0 }),
   getAdminAuditLog: vi.fn().mockResolvedValue({ entries: [], total: 0 }),
+  getAdminFavorites: vi.fn().mockResolvedValue({ favorites: [], total: 0 }),
+  getAdminFavoriteDetail: vi.fn().mockResolvedValue(null),
+  getAdminCaseLibraryDetail: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('../services/api', () => mockApi);
@@ -113,6 +116,7 @@ describe('Slice G1 — AdminPage loading / forbidden / error states', () => {
       expect(screen.getByText('反馈')).toBeInTheDocument();
       expect(screen.getByText('订阅')).toBeInTheDocument();
       expect(screen.getByText('审计日志')).toBeInTheDocument();
+      expect(screen.getByText('用户收藏')).toBeInTheDocument();
     });
   });
 });
@@ -345,10 +349,63 @@ describe('Slice G1 — No mutations in admin page', () => {
       path.resolve(__dirname, '../pages/AdminPage.tsx'),
       'utf-8',
     );
-    // No dangerous action labels
-    const forbiddenActions = ['删除', '封禁', '移除', '修改权限', '调整额度', '修改角色', '提升', '降级'];
+    // R2 allows deleting an unsaved inline-review draft, but still forbids
+    // destructive user/account/subscription administration actions.
+    const forbiddenActions = ['封禁', '移除用户', '修改权限', '调整额度', '修改角色', '提升权限', '降级账户'];
     for (const action of forbiddenActions) {
       expect(content).not.toContain(action);
     }
+  });
+});
+
+describe('Slice G1 — Ordinary admin favorite detail and copy', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockApi.checkAdminAccess.mockResolvedValue(true);
+    mockApi.getAdminStats.mockResolvedValue({
+      totalUsers: 1, activeSubscriptions: 0,
+      totalGenerations: 0, totalFeedback: 0, adminUsers: 1,
+    });
+    mockApi.getAdminUsers.mockResolvedValue({ users: [], total: 0 });
+    mockApi.getAdminFavorites.mockResolvedValue({
+      favorites: [{
+        id: 'favorite-1', ownerDisplayName: '用户 abc12345', userEmail: 'user@example.com', variantKey: 'ig',
+        rating: 5, notes: '语气贴地', favoriteReason: '开场吸睛',
+        reasonTags: ['hook', 'cta'], savedAt: '2026-07-13T00:00:00Z',
+        brandName: '港饮', productName: '冻柠茶', copyType: 'social', platform: 'ig',
+      }],
+      total: 1,
+    });
+    mockApi.getAdminFavoriteDetail.mockResolvedValue({
+      id: 'favorite-1', ownerDisplayName: '用户 abc12345', userEmail: 'user@example.com', variantKey: 'ig',
+      content: '这是一段可复制的收藏文案', rating: 5, notes: '语气贴地',
+      favoriteReason: '开场吸睛', reasonTags: ['hook', 'cta'],
+      savedAt: '2026-07-13T00:00:00Z',
+      brandName: '港饮', productName: '冻柠茶', copyType: 'social', platform: 'ig',
+    });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+  });
+
+  it('opens audited favorite detail and copies one copy body without mutation actions', async () => {
+    const { default: AdminPage } = await import('../pages/AdminPage');
+    render(<AdminPage />);
+
+    await waitFor(() => expect(screen.getByText('用户收藏')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('用户收藏'));
+    await waitFor(() => expect(screen.getByText('语气贴地')).toBeInTheDocument());
+    expect(screen.getByText('user@example.com')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '查看收藏详情' }));
+
+    await waitFor(() => expect(screen.getByText('这是一段可复制的收藏文案')).toBeInTheDocument());
+    expect(mockApi.getAdminFavoriteDetail).toHaveBeenCalledWith('favorite-1');
+
+    fireEvent.click(screen.getByRole('button', { name: '复制文案' }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('这是一段可复制的收藏文案');
+    expect(screen.queryByText('删除')).not.toBeInTheDocument();
+    expect(screen.queryByText('编辑')).not.toBeInTheDocument();
+    expect(screen.queryByText('导出')).not.toBeInTheDocument();
   });
 });

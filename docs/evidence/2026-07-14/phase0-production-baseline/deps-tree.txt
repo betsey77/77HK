@@ -1,0 +1,17 @@
+﻿hk-cantonese-copywriter@0.2.0 D:\work\77娓瘽閫氱ぞ濯掓枃妗圽77
++-- concurrently@9.2.4
+| `-- shell-quote@1.8.4 overridden
+`-- hk-cantonese-copywriter-server@0.1.0 -> .\server
+  +-- @types/supertest@6.0.3
+  | `-- @types/superagent@8.1.10
+  |   `-- form-data@4.0.6
+  +-- alipay-sdk@4.14.0
+  | `-- urllib@4.9.0
+  |   `-- form-data@4.0.6 deduped
+  +-- openai@4.104.0
+  | `-- @types/node-fetch@2.6.13
+  |   `-- form-data@4.0.6 deduped
+  `-- supertest@7.2.2
+    `-- superagent@10.3.0
+      `-- form-data@4.0.6 deduped
+

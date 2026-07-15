@@ -1,0 +1,5 @@
+﻿
+> hk-cantonese-copywriter@0.2.0 audit:all
+> npm audit
+
+found 0 vulnerabilities

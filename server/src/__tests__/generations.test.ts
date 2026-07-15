@@ -27,9 +27,10 @@ function resolveMigrationsDir(): string {
 // Mock Supabase — vi.hoisted to avoid hoisting issues
 // ============================================================
 
-const { mockCreateUserClient, mockGetTrustedSupabase } = vi.hoisted(() => ({
+const { mockCreateUserClient, mockGetTrustedSupabase, mockResolveUserPlanId } = vi.hoisted(() => ({
   mockCreateUserClient: vi.fn(),
   mockGetTrustedSupabase: vi.fn(),
+  mockResolveUserPlanId: vi.fn(),
 }));
 
 vi.mock('../services/supabase.js', () => ({
@@ -40,6 +41,11 @@ vi.mock('../services/supabase.js', () => ({
 
 vi.mock('../services/trustedSupabase.js', () => ({
   getTrustedSupabase: mockGetTrustedSupabase,
+}));
+
+vi.mock('../services/planAccessService.js', () => ({
+  resolveUserPlanId: mockResolveUserPlanId,
+  FREE_HISTORY_LIMIT: 15,
 }));
 
 // ============================================================
@@ -127,7 +133,7 @@ function makeQueryResult(terminal: {
   error?: { code?: string; message: string } | null;
   count?: number;
 }) {
-  const methods = ['select', 'insert', 'update', 'eq', 'is', 'order', 'range', 'lte', 'gt'] as const;
+  const methods = ['select', 'insert', 'update', 'eq', 'is', 'or', 'order', 'range', 'limit', 'lte', 'gt'] as const;
 
   // The base result that await resolves to
   const result = {
@@ -256,6 +262,7 @@ function setupWithQuota() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockResolveUserPlanId.mockResolvedValue('pro');
 });
 
 // ============================================================
@@ -400,6 +407,14 @@ describe('Input validation', () => {
       .get('/api/generations?limit=10&offset=0')
       .set('Authorization', VALID_TOKEN);
     expect(res.status).toBe(200);
+  });
+
+  it('rejects unsafe history search syntax', async () => {
+    const res = await request(app)
+      .get('/api/generations?q=brand%2Cowner_id.eq.other')
+      .set('Authorization', VALID_TOKEN);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/search/i);
   });
 
   it('rejects non-UUID id', async () => {
@@ -603,6 +618,67 @@ describe('GET /api/generations', () => {
     expect(res.body.jobs).toHaveLength(0);
     expect(res.body.total).toBe(0);
   });
+
+  it('searches owner-scoped brand, product and source fields and returns them in the summary', async () => {
+    const client = setupClient();
+    const chain = makeQueryResult({
+      data: [makeDbJob({ brand_name: '思念', product_name: '煎饺王' })],
+      count: 1,
+    }) as Record<string, unknown>;
+    const orSpy = vi.fn(() => chain);
+    chain.or = orSpy;
+    client.from.mockReturnValue(chain);
+
+    const res = await request(app)
+      .get('/api/generations?q=%E6%80%9D%E5%BF%B5')
+      .set('Authorization', VALID_TOKEN);
+
+    expect(res.status).toBe(200);
+    expect(orSpy).toHaveBeenCalledWith(expect.stringContaining('brand_name.ilike.%思念%'));
+    expect(res.body.jobs[0]).toMatchObject({ brandName: '思念', productName: '煎饺王' });
+  });
+
+  it('Free 仅返回最新 15 条并报告锁定数量，第二页最多 5 条', async () => {
+    mockResolveUserPlanId.mockResolvedValue('free');
+    const client = setupClient();
+    const latest = Array.from({ length: 15 }, (_, index) =>
+      makeDbJob({
+        id: `00000000-0000-4000-a000-${String(index + 1).padStart(12, '0')}`,
+        source: `latest-${index + 1}`,
+      }),
+    );
+    mockFromReturns(client, { data: latest, count: 18 });
+
+    const first = await request(app)
+      .get('/api/generations?limit=10&offset=0')
+      .set('Authorization', VALID_TOKEN);
+    const second = await request(app)
+      .get('/api/generations?limit=10&offset=10')
+      .set('Authorization', VALID_TOKEN);
+
+    expect(first.status).toBe(200);
+    expect(first.body.jobs).toHaveLength(10);
+    expect(first.body.total).toBe(15);
+    expect(first.body.lockedCount).toBe(3);
+    expect(second.body.jobs).toHaveLength(5);
+  });
+
+  it('Free 搜索只发生在最新 15 条内，不能找到锁定历史', async () => {
+    mockResolveUserPlanId.mockResolvedValue('free');
+    const client = setupClient();
+    const latest = Array.from({ length: 15 }, (_, index) =>
+      makeDbJob({ source: `可访问 ${index + 1}` }),
+    );
+    mockFromReturns(client, { data: latest, count: 18 });
+
+    const res = await request(app)
+      .get('/api/generations?q=%E9%94%81%E5%AE%9A%E6%97%A7%E6%96%87%E6%A1%88')
+      .set('Authorization', VALID_TOKEN);
+
+    expect(res.status).toBe(200);
+    expect(res.body.jobs).toHaveLength(0);
+    expect(res.body.lockedCount).toBe(3);
+  });
 });
 
 describe('GET /api/generations/:id', () => {
@@ -627,6 +703,22 @@ describe('GET /api/generations/:id', () => {
       .set('Authorization', VALID_TOKEN);
 
     expect(res.status).toBe(404);
+  });
+
+  it('Free 访问锁定历史详情返回 403 PLAN_LIMIT', async () => {
+    mockResolveUserPlanId.mockResolvedValue('free');
+    const client = setupClient();
+    mockFromSequence(client, [
+      { data: makeDbJob() },
+      { data: [{ id: '00000000-0000-4000-a000-000000000099' }] },
+    ]);
+
+    const res = await request(app)
+      .get(`/api/generations/${JOB_UUID}`)
+      .set('Authorization', VALID_TOKEN);
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('PLAN_LIMIT');
   });
 });
 

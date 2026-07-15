@@ -16,9 +16,12 @@ Purpose: Prevent future slices from silently deleting, hiding, downgrading, or m
 | 7 | Favorites Cloud Sync | ✅ Real | Slice D | sync API | slice-d.test.tsx, slice-d-hook.test.tsx | Slice D final | 2026-07-12 |
 | 8 | Feedback (User) | ✅ Real | Slice H1-R | feedback API | slice-h1.test.tsx | Slice H1-R | 2026-07-12 |
 | 9 | Quota (trusted write) | ✅ Real | Slice C2a/C2b | quotaService.ts | quota.test.ts, generations.test.ts | Slice C2b remote | 2026-07-12 |
-| 10 | Pricing/Billing Mock | ✅ Mock | Slice E | PricingPage, BillingPage | slice-g1-regression.test.tsx | Task C tests pass | 2026-07-12 |
+| 10 | Pricing/Billing | ✅ Mock+Sandbox | Slice E + F1 | PricingPage, BillingPage, BillingResultPage | slice-g1-regression.test.tsx, billing.test.ts | Slice F1 final | 2026-07-13 |
 | 11 | Header IA (Menu) | ✅ Real | UX-F1 | HeaderMenu.tsx | slice-ux-f1.test.tsx | UX-F1 | 2026-07-12 |
 | 12 | Dual Theme (dark/light) | ✅ Real | docs/design-system.md | Theme in AppContext | slice-ux-f1.test.tsx | 2026-07-11 | 2026-07-11 |
+| 13 | Payment/Alipay F1 | ⚠️ Sandbox E2E Pending | Slice F1 | alipayService/Adapter/Config + billing routes | billing.test.ts, alipayAdapter.test.ts, admin.test.ts | F1 migration pushed; preflight passed | 2026-07-13 |
+| 14 | History → Workbench Full Restore | ✅ Real | History recovery | workbenchSnapshot + brief.workbenchSettings | slice-history-settings.test.ts, slice-h1-r-history.test.ts, slice-c1.test.tsx | 2026-07-13 | 2026-07-13 |
+| 15 | Favorites Card Brand/Product Metadata | ✅ Real | 收藏卡片识别信息 | FavoritesPanel.tsx | slice-ui-polish.test.tsx | 2026-07-13 | 2026-07-13 |
 
 ## Anti-Regression Gates
 
@@ -68,7 +71,8 @@ Purpose: Prevent future slices from silently deleting, hiding, downgrading, or m
 - **Must NOT**: Replace cloud hydration with localStorage-only
 - **Must NOT**: Remove legacy import flow
 - **Must NOT**: Remove owner-scoped outbox and retry
-- **Guard test**: slice-d.test.tsx, slice-d-hook.test.tsx
+- **Must NOT**: Hide an available favorite brand/product summary or move it behind the highlighted platform label
+- **Guard test**: slice-d.test.tsx, slice-d-hook.test.tsx, slice-ui-polish.test.tsx
 
 ### Gate 7: Feedback
 - **Must NOT**: Remove authenticated feedback submission
@@ -83,13 +87,29 @@ Purpose: Prevent future slices from silently deleting, hiding, downgrading, or m
 - **Must NOT**: Change Free/Pro limits without updating PricingPage
 - **Guard test**: quota.test.ts, generations.test.ts
 
-### Gate 9: Pricing/Billing
+### Gate 9: Pricing/Billing (Mock + Sandbox)
 - **Must NOT**: Remove /pricing route
 - **Must NOT**: Remove pricing links from MarketingPage nav
 - **Must NOT**: Change Free CTA from signup or Pro CTA from login+next
 - **Must NOT**: Weaken nextPath allowlist security
 - **Must NOT**: Add new top-right nav entries (use HeaderMenu)
-- **Guard test**: slice-g1-regression.test.tsx — Area C tests
+- **Must NOT**: Trust client-submitted amounts (server reads from DB/config)
+- **Must NOT**: Grant Pro entitlement from sync return page
+- **Must NOT**: Mix mock state with real DB entitlements
+- **Guard test**: slice-g1-regression.test.tsx — Area C tests; billing.test.ts; admin.test.ts
+
+### Gate 12: Payment/Alipay F1 (Migration Pushed — Sandbox E2E Pending)
+- **Migration pushed**: `20260713000000_slice_f1_payment_sandbox.sql` is registered remotely as `20260713000000 slice_f1_payment_sandbox`
+- **E2E NOT executed**: Authenticated checkout → Alipay sandbox payment → notify/query entitlement grant still requires manual sandbox verification
+- **Must NOT**: Re-push/alter the F1 migration or enable production mode without explicit user auth
+- **Must NOT**: Replace authoritative `plans.is_public` / `period_unit in ('week','month')` with non-schema fields
+- **Must NOT**: Remove PKCS8/PKCS1 private-key detection or leave a payment order pending after page-pay initialization fails
+- **Must NOT**: Store full Alipay notify payload in DB (hash only)
+- **Must NOT**: Log private keys, signatures, or full payment params
+- **Must NOT**: Perform DB mutation before signature verification
+- **Must NOT**: Return `paid: true` from reconcile when RPC fails
+- **PAYMENT_MODE default**: `mock` (all existing functionality preserved)
+- **Guard test**: billing.test.ts, alipayAdapter.test.ts, admin.test.ts
 
 ### Gate 10: Header IA
 - **Must NOT**: Move low-frequency items from HeaderMenu back to header row
@@ -101,10 +121,25 @@ Purpose: Prevent future slices from silently deleting, hiding, downgrading, or m
 - **Must NOT**: Hardcode colors to dark-only (emerald) without light (orange) variants
 - **Guard**: docs/design-system.md color specs
 
+### Gate 14: History → Workbench Full Restore
+- **Must NOT**: 只恢复生成结果而把左侧输入配置静默重置为默认值
+- **Must NOT**: 移除 `brief.workbenchSettings` 持久化或旧 `brief` 兼容解析
+- **Must NOT**: 让非法历史配置绕过运行时校验，或改变 owner-scoped session 隔离
+- **Must NOT**: 移除历史列表/详情的文字消失恢复提示
+- **Guard test**: `slice-history-settings.test.ts`, `slice-h1-r-history.test.ts`, `slice-c1.test.tsx`
+
+### Gate 15: Free 收藏与历史容量权益
+- **Must NOT**: 仅在客户端隐藏超额数据而移除服务端 `PLAN_LIMIT` 门禁
+- **Must NOT**: 删除、覆盖或静默迁移既有超额收藏/历史
+- **Must NOT**: 让锁定收藏进入参考案例选择或生成 Prompt
+- **Must NOT**: 允许关键词搜索或详情 URL 绕过最新 15 条历史范围
+- **Must NOT**: 阻止 Free 更新/删除已有收藏，或在删除后仍拒绝释放的容量
+- **Guard test**: `slice-plan-limits.test.tsx`, `slice-c1.test.tsx`, `generations.test.ts`, `sync.test.ts`
+
 ## Slice Pre-Commit Checklist
 
 Before marking any new slice as complete, verify:
-1. [ ] All 12 domains' guard tests still pass
+1. [ ] All 15 domains' guard tests still pass
 2. [ ] No real capability replaced with Mock unless explicitly authorized
 3. [ ] No existing endpoint removed or weakened
 4. [ ] No existing component hidden or conditionally removed

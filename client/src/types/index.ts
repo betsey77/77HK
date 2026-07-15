@@ -18,7 +18,32 @@ export interface SupabaseUser {
 // ============================================================
 
 export type Platform = 'ig' | 'facebook' | 'shorts' | 'all';
-export type BrandTone = '穩妥' | '活潑' | '高級' | '街坊' | '年輕';
+/** Primary brand tone. Expanded in W1; legacy 5 values remain first. */
+export type BrandTone =
+  | '穩妥'
+  | '活潑'
+  | '高級'
+  | '街坊'
+  | '年輕'
+  | '專業'
+  | '真誠'
+  | '溫暖'
+  | '幽默'
+  | '克制'
+  | '俏皮'
+  | '激昂';
+/** W1: up to 2 modifier tones layered on primaryTone */
+export type ToneModifier =
+  | '簡潔'
+  | '敘事'
+  | '促銷感'
+  | '治癒'
+  | '緊迫'
+  | '節日感'
+  | '知識感'
+  | '對話感';
+/** W1: generation copy type — still always produces 5 platform variants */
+export type CopyType = 'social' | 'spoken' | 'poster' | 'advertorial' | 'poetry' | 'custom';
 export type InputLanguage = 'mandarin' | 'cantonese';
 
 export interface ConsumerPersona {
@@ -50,6 +75,25 @@ export interface GenerateRequest {
   referenceCases?: ReferenceCase[];
   /** 🆕 话题日历：用户选择的节日/事件 ID */
   calendarEventIds?: string[];
+  /** W1: 文案类型（默认 social）；custom 时需 customCopyType */
+  copyType?: CopyType;
+  /** W1: custom 类型补充说明，2–20 字 */
+  customCopyType?: string;
+  /** W1: 是否注入软长度目标 */
+  lengthControlEnabled?: boolean;
+  /** W1: 1–5 长度档（仅开关开启时生效） */
+  copyLengthLevel?: number;
+  /** W1: 主语气；缺省时回退 tone */
+  primaryTone?: BrandTone;
+  /** W1: 修饰语气，最多 2 个 */
+  toneModifiers?: ToneModifier[];
+  /**
+   * W3: 个人案例库所选 ID（最多 3 个 UUID）。
+   * 仅发送 ID；正文/原因由服务端 JWT+RLS 解析，客户端不得伪造 body。
+   */
+  selectedCaseLibraryIds?: string[];
+  /** 生成历史恢复：保存当次完整工作台配置，不参与模型 Prompt。 */
+  workbenchSettings?: AppSettings;
   /** 🆕 Slice C1: Stable idempotency key — one per user action, reused on retry */
   idempotencyKey?: string;
 }
@@ -267,8 +311,43 @@ export interface SavedConfig {
   consumerPersonas: ConsumerPersona[];
   targetDate?: string;           // 🆕 P2
   competitorQueries?: string[];   // 🆕 P2 — multi-select competitor brands
+  selectedReferenceCaseIds?: string[]; // 收藏案例 Few-Shot 参考
   selectedCalendarEventIds?: string[]; // 🆕 话题日历
+  /** W2: 个人案例库选择（仅 ID，最多 3） */
+  selectedCaseLibraryIds?: string[];
+  /** W1 */
+  copyType?: CopyType;
+  customCopyType?: string;
+  lengthControlEnabled?: boolean;
+  copyLengthLevel?: number;
+  primaryTone?: BrandTone;
+  toneModifiers?: ToneModifier[];
   createdAt: string;
+}
+
+// ============================================================
+// W2 Personal case library
+// ============================================================
+
+export type CaseLibraryType = 'good' | 'bad';
+
+export interface CaseLibraryEntry {
+  id: string;
+  caseType: CaseLibraryType;
+  title: string | null;
+  body: string;
+  reason: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CaseLibraryInput {
+  caseType: CaseLibraryType;
+  title?: string | null;
+  body: string;
+  reason: string;
+  tags?: string[];
 }
 
 // ============================================================
@@ -318,6 +397,25 @@ export interface AppSettings {
   selectedReferenceCaseIds?: string[];
   /** 🆕 话题日历：用户选择注入的节日/事件 ID */
   selectedCalendarEventIds?: string[];
+  /** W2/W3: 个人案例库选择 ID（最多 3；生成时只发 ID，正文由服务端 JWT 解析注入） */
+  selectedCaseLibraryIds?: string[];
+  /** W1: 文案类型，默认 social */
+  copyType: CopyType;
+  /** W1: custom 补充说明 */
+  customCopyType: string;
+  /** W1: 长度控制开关，默认 false */
+  lengthControlEnabled: boolean;
+  /** W1: 长度档 1–5，默认 3 */
+  copyLengthLevel: number;
+  /** W1: 主语气（与 tone 同步写入） */
+  primaryTone: BrandTone;
+  /** W1: 修饰语气，最多 2 个 */
+  toneModifiers: ToneModifier[];
+  /**
+   * Favorite-only snapshot: intended publish platform for this saved copy.
+   * Must not replace historical generation `platform` or global workbench platform.
+   */
+  publishPlatform?: string;
 }
 
 export interface AppState {
@@ -369,6 +467,12 @@ export type AppAction =
   | { type: 'SET_SOURCE'; payload: string }
   | { type: 'SET_PLATFORM'; payload: Platform }
   | { type: 'SET_TONE'; payload: BrandTone }
+  | { type: 'SET_PRIMARY_TONE'; payload: BrandTone }
+  | { type: 'SET_TONE_MODIFIERS'; payload: ToneModifier[] }
+  | { type: 'SET_COPY_TYPE'; payload: CopyType }
+  | { type: 'SET_CUSTOM_COPY_TYPE'; payload: string }
+  | { type: 'SET_LENGTH_CONTROL_ENABLED'; payload: boolean }
+  | { type: 'SET_COPY_LENGTH_LEVEL'; payload: number }
   | { type: 'SET_CANTO_LEVEL'; payload: number }
   | { type: 'SET_ENGLISH_LEVEL'; payload: number }
   | { type: 'SET_CREATIVITY_LEVEL'; payload: number }
@@ -393,10 +497,16 @@ export type AppAction =
   | { type: 'SET_COMPETITOR_QUERIES'; payload: string[] }      // 🆕 P2 — multi-select
   | { type: 'ADD_BOOKMARK'; payload: BookmarkedCopy }           // 🆕 收藏
   | { type: 'REMOVE_BOOKMARK'; payload: string }                // 🆕 取消收藏 (id)
+  | { type: 'REMOVE_BOOKMARKS'; payload: string[] }
   | { type: 'UPDATE_BOOKMARK_NOTES'; payload: { id: string; notes: string } }  // 🆕 收藏备注
   | { type: 'UPDATE_BOOKMARK_RATING'; payload: { id: string; rating?: number; favoriteReason?: string; reasonTags?: string[] } }  // 🆕 Phase B 收藏评价
+  | { type: 'UPDATE_BOOKMARK_PUBLISH_PLATFORM'; payload: { id: string; publishPlatform: string } }  // 收藏专属发布平台
+  | { type: 'UPDATE_BOOKMARK_COPY_TYPE'; payload: { id: string; copyType: CopyType; customCopyType: string } }
+  | { type: 'UPDATE_BOOKMARK_REVIEW_REQUEST'; payload: { id: string; reviewRequested: boolean } }
+  | { type: 'UPDATE_BOOKMARK_CONTENT'; payload: { id: string; content: string; contentRevision: number; contentEditedAt: string | null; reviewRequested: boolean; reviewRequestedAt: string | null; adminReview: BookmarkAdminReview | null } }
   | { type: 'SET_SELECTED_REFERENCE_CASES'; payload: string[] }  // 🆕 Phase B 正例注入
   | { type: 'SET_SELECTED_CALENDAR_EVENTS'; payload: string[] }   // 🆕 话题日历勾选
+  | { type: 'SET_SELECTED_CASE_LIBRARY_IDS'; payload: string[] }  // W2 个人案例库
   | { type: 'RESTORE_DEFAULT_GENERATION_SETTINGS' }
   | { type: 'RESET' }
   // UX-F1: Generation progress
@@ -500,6 +610,22 @@ export interface CompetitorAd {
 // Bookmarked Copy (Favorites)
 // ============================================================
 
+/** Read-only admin review on a bookmark (user cannot edit). */
+export interface ReviewAnnotation {
+  id: string;
+  startOffset: number;
+  endOffset: number;
+  quotedText: string;
+  note: string;
+}
+
+export interface BookmarkAdminReview {
+  status: 'adopted' | 'changes_requested';
+  note: string | null;
+  updatedAt: string;
+  annotations?: ReviewAnnotation[];
+}
+
 export interface BookmarkedCopy {
   id: string;
   savedAt: string;
@@ -525,6 +651,15 @@ export interface BookmarkedCopy {
   favoriteReason?: string;
   /** 🆕 Phase B: 结构化原因标签 */
   reasonTags?: string[];
+  /** Admin review from cloud bootstrap; display-only, never user-writable */
+  adminReview?: BookmarkAdminReview | null;
+  /** Database-owned revision metadata; never sent by SyncFavoriteRequest. */
+  contentRevision?: number;
+  contentEditedAt?: string | null;
+  isUserAuthored?: boolean;
+  reviewRequested?: boolean;
+  /** Database-owned queue timestamp; display-only. */
+  reviewRequestedAt?: string | null;
 }
 
 /** Predefined reason tags for bookmark rating (P2.10 Phase B) */
@@ -587,6 +722,8 @@ export interface GenerationJobSummary {
   source: string;
   platform: string;
   tone: string;
+  brandName?: string | null;
+  productName?: string | null;
   createdAt: string;
   completedAt?: string | null;
 }
@@ -618,6 +755,7 @@ export interface GenerationJob extends GenerationJobSummary {
 export interface GenerationListResponse {
   jobs: GenerationJobSummary[];
   total: number;
+  lockedCount?: number;
 }
 
 export interface GenerationDetailResponse {
@@ -652,6 +790,13 @@ export interface FavoriteRecord {
   savedAt: string;
   createdAt: string;
   updatedAt: string;
+  contentRevision?: number;
+  contentEditedAt?: string | null;
+  isUserAuthored?: boolean;
+  reviewRequested?: boolean;
+  reviewRequestedAt?: string | null;
+  /** Read-only admin review; never sent on SyncFavoriteRequest */
+  adminReview?: BookmarkAdminReview | null;
 }
 
 /** Cloud-synced saved config record */
@@ -698,6 +843,8 @@ export interface SyncFavoriteRequest {
   favoriteReason?: string | null;
   reasonTags?: string[] | null;
   savedAt?: string;
+  isUserAuthored?: boolean;
+  reviewRequested?: boolean;
 }
 
 /** POST /api/sync/configs body */
@@ -767,7 +914,8 @@ export const FREE_PLAN: PlanInfo = {
     '5 类港式平台文案',
     '质量审核与诊断',
     '消费者反馈模拟',
-    '历史记录与收藏',
+    '最多 10 条收藏',
+    '最新 15 条生成历史',
   ],
   isCurrent: true,
   isMock: true,
@@ -778,12 +926,13 @@ export const PRO_PLAN: PlanInfo = {
   name: 'Pro',
   nameZh: '专业版',
   priceCny: 19,
-  quotaPerCycle: 400,
+  quotaPerCycle: 250,
   cycleDescription: '每自然月',
   cycleDays: null,
   features: [
-    '每自然月 400 次生成',
+    '每自然月 250 次生成',
     'Free 全部功能',
+    '收藏与生成历史全部解锁',
     '优先模型队列',
     '更多消费者画像',
     '高级品牌档案',
@@ -810,14 +959,19 @@ export interface CheckoutRequest {
   planId: PlanId;
 }
 
-/** POST /api/billing/checkout response */
+/** POST /api/billing/checkout response (mock) or /api/billing/alipay/checkout response (sandbox) */
 export interface CheckoutResponse {
   orderId: string;
   planId: PlanId;
   planName: string;
   amountCny: number;
-  redirectUrl: string;         // MOCK — simulates Alipay redirect
-  isMock: true;
+  amountFen?: number;          // sandbox: amount in fen (分)
+  amountYuan?: string;         // sandbox: amount in yuan string
+  outTradeNo?: string;         // sandbox: Alipay trade number
+  redirectUrl: string;         // mock: local URL; sandbox: Alipay gateway URL
+  paymentMode?: 'mock' | 'alipay_sandbox';
+  isMock?: boolean;
+  mockMode?: boolean;          // sandbox alias
 }
 
 /** GET /api/billing/orders item */
@@ -826,10 +980,13 @@ export interface PaymentOrder {
   planId: PlanId;
   planName: string;
   amountCny: number;
-  status: 'pending' | 'paid' | 'cancelled' | 'expired' | 'failed';
+  amountFen?: number;          // sandbox: amount in fen
+  outTradeNo?: string;         // sandbox: Alipay trade number
+  status: 'pending' | 'paid' | 'cancelled' | 'expired' | 'failed' | 'closed';
   createdAt: string;
   paidAt: string | null;
-  isMock: true;
+  paymentMode?: 'mock' | 'alipay_sandbox';
+  isMock?: boolean;
 }
 
 /** GET /api/billing/orders response */

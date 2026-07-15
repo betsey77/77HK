@@ -134,6 +134,7 @@ function makeSavedConfig(overrides: Partial<SavedConfig> = {}): SavedConfig {
     platform: 'ig',
     inputLanguage: 'mandarin',
     consumerPersonas: [],
+    selectedReferenceCaseIds: ['favorite-a', 'favorite-b'],
     createdAt: '2026-07-12T10:00:00Z',
     ...overrides,
   };
@@ -157,6 +158,7 @@ function makeSavedConfigRecord(overrides: Partial<SavedConfigRecord> = {}): Save
       platform: 'ig',
       inputLanguage: 'mandarin',
       consumerPersonas: [],
+      selectedReferenceCaseIds: ['favorite-a', 'favorite-b'],
       createdAt: '2026-07-12T10:00:00Z',
     },
     createdAt: '2026-07-12T10:00:00Z',
@@ -885,6 +887,8 @@ describe('configToSyncConfig', () => {
     expect(result.config).toBeDefined();
     expect((result.config as Record<string, unknown>).brandName).toBe('Brand X');
     expect((result.config as Record<string, unknown>).platform).toBe('facebook');
+    expect((result.config as Record<string, unknown>).selectedReferenceCaseIds)
+      .toEqual(['favorite-a', 'favorite-b']);
   });
 });
 
@@ -909,6 +913,7 @@ describe('configRecordToSavedConfig', () => {
         platform: 'shorts',
         inputLanguage: 'cantonese',
         consumerPersonas: [],
+        selectedReferenceCaseIds: ['favorite-a', 'favorite-b'],
         createdAt: '2026-06-01T00:00:00Z',
       },
     });
@@ -923,6 +928,7 @@ describe('configRecordToSavedConfig', () => {
     expect(result.platform).toBe('shorts');
     expect(result.inputLanguage).toBe('cantonese');
     expect(result.creativityLevel).toBe(4);
+    expect(result.selectedReferenceCaseIds).toEqual(['favorite-a', 'favorite-b']);
   });
 });
 

@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { Check, ArrowRight, AlertTriangle } from 'lucide-react';
 import { FREE_PLAN, PRO_PLAN, type PlanInfo } from '../types';
+import TeamContactDialog from '../components/marketing/TeamContactDialog';
 
 const primaryButton =
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-emerald-400 px-5 text-sm font-semibold text-gray-950 transition-colors hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950 light:bg-orange-500 light:text-white light:hover:bg-orange-600 light:focus-visible:ring-orange-500 light:focus-visible:ring-offset-white';
@@ -16,6 +17,7 @@ const secondaryButton =
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-gray-700 bg-gray-900/60 px-5 text-sm font-medium text-gray-200 transition-colors hover:border-gray-600 hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 light:border-gray-300 light:bg-white light:text-gray-700 light:hover:bg-gray-100';
 
 export default function PricingPage() {
+  const [teamContactOpen, setTeamContactOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('hk-cantonese-theme');
     return saved === 'light' ? 'light' : 'dark';
@@ -61,7 +63,7 @@ export default function PricingPage() {
         <p className="flex items-center justify-center gap-2 text-xs text-amber-400">
           <AlertTriangle className="h-3.5 w-3.5" />
           <span>
-            <strong>[MOCK]</strong> 此为演示定价页。所有套餐、价格和额度仅为前端展示，尚未接入真实支付宝支付。实际价格可能变更。
+            <strong>[MOCK]</strong> 此为演示定价页。Pro 在线支付仍为演示；团队协作版通过微信联系人工开通，不会在本站扣款。
           </span>
         </p>
       </div>
@@ -81,9 +83,10 @@ export default function PricingPage() {
 
       {/* ── Plan Cards ── */}
       <section className="mx-auto max-w-5xl px-4 pb-16">
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <PlanCard plan={FREE_PLAN} theme={theme} isPrimary={false} />
           <PlanCard plan={PRO_PLAN} theme={theme} isPrimary={true} />
+          <TeamPlanCard theme={theme} onContact={() => setTeamContactOpen(true)} />
         </div>
 
         {/* ── FAQ ── */}
@@ -92,7 +95,7 @@ export default function PricingPage() {
           <dl className="max-w-2xl mx-auto space-y-6">
             {[
               ['Free 的 20 次是什么概念？', '每滚动 7 天内可完成最多 20 次完整生成流程（诊断→变体→审核→反馈）。到达上限后需等待周期刷新，或升级到 Pro。'],
-              ['Pro 每月 400 次够用吗？', '按每个工作日生成 18–20 篇文案计算，400 次可覆盖一个全职运营的月度需求。自然月结束时自动重置。'],
+              ['Pro 每月 250 次够用吗？', '按每个工作日生成约 11 篇文案计算，250 次可覆盖高频品牌运营的月度需求。自然月结束时自动重置。'],
               ['现在可以付费吗？', '目前尚未接入真实支付宝支付。此页面为前端演示，点击「升级到 Pro」会跳转到 Mock 结算流程。'],
               ['可以随时取消吗？', 'Pro 为月度订阅，MVP 阶段不支持降级到 Free。正式支付上线后将提供完整的自助管理功能。'],
               ['数据安全吗？', '我们使用 Supabase 提供数据隔离和 RLS 保护，你的文案和品牌数据只有你自己能访问。'],
@@ -110,6 +113,47 @@ export default function PricingPage() {
       <footer className="border-t border-gray-800 light:border-gray-200 px-4 py-6 text-center text-xs text-gray-600 light:text-gray-400">
         <p>© 2026 77港话通社媒文案器 — 定价页为 Mock 演示，不构成实际要约。</p>
       </footer>
+      <TeamContactDialog open={teamContactOpen} onClose={() => setTeamContactOpen(false)} />
+    </div>
+  );
+}
+
+function TeamPlanCard({ theme, onContact }: { theme: string; onContact: () => void }) {
+  const dark = theme === 'dark';
+  const features = ['审核分组', '管理员句子批注', '待审核队列与提醒'];
+
+  return (
+    <div className={`relative flex flex-col rounded-xl border-2 p-6 ${
+      dark ? 'border-gray-700 bg-gray-900/40' : 'border-gray-200 bg-white'
+    }`}>
+      <h3 className="text-lg font-bold">团队协作版</h3>
+      <p className="text-xs text-gray-500 light:text-gray-400">Team · 每自然月</p>
+      <div className="mt-4 flex items-baseline gap-1">
+        <span className="text-4xl font-bold">¥99</span>
+        <span className="text-sm text-gray-500 light:text-gray-400">/月</span>
+      </div>
+      <p className="mt-1 text-xs text-gray-500 light:text-gray-400">人工联系开通</p>
+      <ul className="mt-6 flex-1 space-y-3">
+        {features.map((feature) => (
+          <li key={feature} className="flex items-start gap-2 text-sm">
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" />
+            <span className="text-gray-300 light:text-gray-700">{feature}</span>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={onContact}
+        aria-label="联系开通团队协作版"
+        className={`mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-md border-2 px-5 text-sm font-semibold transition-colors ${
+          dark
+            ? 'border-gray-700 text-gray-200 hover:border-emerald-500 hover:text-emerald-300'
+            : 'border-gray-300 text-gray-700 hover:border-orange-500 hover:text-orange-600'
+        }`}
+      >
+        联系开通 <ArrowRight className="h-4 w-4" />
+      </button>
+      <p className="mt-3 text-center text-[10px] text-gray-500">微信联系，非在线扣款</p>
     </div>
   );
 }

@@ -1,7 +1,10 @@
-import { useCallback, useContext, useRef } from 'react';
+import { useCallback, useContext, useRef, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { generateCopy } from '../services/api';
-import type { GenerationProgress, GenerationStage, StageProgress } from '../types';
+import { usePlanAccess } from '../context/PlanAccessContext';
+import { ApiError, generateCopy } from '../services/api';
+import { getAccessibleBookmarks } from '../services/planLimits';
+import { canGenerateWithCopyType } from '../utils/w1Settings';
+import type { GenerationProgress, GenerationStage } from '../types';
 
 const STAGE_LABELS: Record<GenerationStage, string> = {
   diagnosis: '诊断原文',
@@ -44,7 +47,9 @@ function buildProgress(stages: GenerationStage[]): GenerationProgress {
 
 export function useGenerate() {
   const { state, dispatch } = useContext(AppContext);
+  const { planId } = usePlanAccess();
   const stageTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false);
 
   /** Clear all active stage timers */
   function clearAllTimers() {
@@ -125,8 +130,12 @@ export function useGenerate() {
       const referenceCases =
         state.settings.selectedReferenceCaseIds &&
         state.settings.selectedReferenceCaseIds.length > 0
-          ? state.bookmarkedCopies
-              .filter((b) => state.settings.selectedReferenceCaseIds?.includes(b.id))
+          ? getAccessibleBookmarks(state.bookmarkedCopies, planId)
+              .filter((b) =>
+                (b.rating ?? 0) >= 4 &&
+                state.settings.selectedReferenceCaseIds?.includes(b.id),
+              )
+              .slice(0, 3)
               .map((b) => ({
                 id: b.id,
                 content: b.content,
@@ -137,11 +146,12 @@ export function useGenerate() {
               }))
           : undefined;
 
+      const primaryTone = state.settings.primaryTone ?? state.settings.tone;
       const result = await generateCopy(
         {
           source: state.source,
           platform: state.settings.platform,
-          tone: state.settings.tone,
+          tone: primaryTone,
           cantoneseLevel: state.settings.cantoneseLevel,
           englishMixingLevel: state.settings.englishMixingLevel,
           useEnhancement: false,
@@ -162,6 +172,22 @@ export function useGenerate() {
             state.settings.selectedCalendarEventIds.length > 0
               ? state.settings.selectedCalendarEventIds
               : undefined,
+          copyType: state.settings.copyType,
+          customCopyType:
+            state.settings.copyType === 'custom'
+              ? state.settings.customCopyType.trim() || undefined
+              : undefined,
+          lengthControlEnabled: state.settings.lengthControlEnabled,
+          copyLengthLevel: state.settings.copyLengthLevel,
+          primaryTone,
+          toneModifiers: state.settings.toneModifiers ?? [],
+          // W3: IDs only — never send case body/reason; server resolves via JWT+RLS
+          selectedCaseLibraryIds:
+            state.settings.selectedCaseLibraryIds &&
+            state.settings.selectedCaseLibraryIds.length > 0
+              ? state.settings.selectedCaseLibraryIds.slice(0, 3)
+              : undefined,
+          workbenchSettings: state.settings,
         },
         idempotencyKey,
       );
@@ -173,18 +199,32 @@ export function useGenerate() {
       dispatch({ type: 'SET_RESULTS', payload: result });
     } catch (err) {
       clearAllTimers();
-      // Mark current and remaining stages as failed
-      failPendingStages(-1); // fail all
+
+      // HTTP 402 only — upgrade dialog; branch on status, never message text
+      if (err instanceof ApiError && err.status === 402) {
+        dispatch({ type: 'CLEAR_PROGRESS' });
+        dispatch({ type: 'SET_ERROR', payload: '账户配额不足' });
+        setQuotaDialogOpen(true);
+        return;
+      }
+
+      // Non-402: mark stages failed then clear (same order as before)
+      failPendingStages(-1);
       dispatch({ type: 'CLEAR_PROGRESS' });
       const message = err instanceof Error ? err.message : '生成失败，请重试';
       dispatch({ type: 'SET_ERROR', payload: message });
     }
-  }, [state.source, state.settings, dispatch]);
+  }, [state.source, state.settings, state.bookmarkedCopies, planId, dispatch]);
 
   return {
     generate,
     isLoading: state.uiState === 'loading',
     error: state.error,
-    canGenerate: state.source.trim().length > 0 && state.uiState !== 'loading',
+    canGenerate:
+      state.source.trim().length > 0 &&
+      state.uiState !== 'loading' &&
+      canGenerateWithCopyType(state.settings.copyType, state.settings.customCopyType),
+    quotaDialogOpen,
+    closeQuotaDialog: () => setQuotaDialogOpen(false),
   };
 }

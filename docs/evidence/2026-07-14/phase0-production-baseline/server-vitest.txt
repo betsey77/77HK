@@ -1,0 +1,17 @@
+﻿
+> hk-cantonese-copywriter@0.2.0 test:server
+> cd server && npm test
+
+
+> hk-cantonese-copywriter-server@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.10 D:/work/77娓瘽閫氱ぞ濯掓枃妗?77/server
+
+
+ Test Files  22 passed (22)
+      Tests  509 passed (509)
+   Start at  15:54:08
+   Duration  5.45s (transform 35.47s, setup 1.24s, import 37.13s, tests 10.94s, environment 4ms)
+

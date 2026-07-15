@@ -11,12 +11,16 @@ import type {
   SyncImportRequest,
   SyncImportResponse,
 } from '../types/index.js';
+import { FREE_FAVORITE_LIMIT, resolveUserPlanId } from './planAccessService.js';
 
 // ============================================================
 // Column mapping: snake_case (DB) ↔ camelCase (TS)
 // ============================================================
 
-function toFavorite(row: Record<string, unknown>): FavoriteRecord {
+function toFavorite(
+  row: Record<string, unknown>,
+  adminReview?: FavoriteRecord['adminReview'],
+): FavoriteRecord {
   return {
     id: row.id as string,
     ownerId: row.owner_id as string,
@@ -35,6 +39,12 @@ function toFavorite(row: Record<string, unknown>): FavoriteRecord {
     savedAt: row.saved_at as string,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
+    contentRevision: typeof row.content_revision === 'number' ? row.content_revision : 1,
+    contentEditedAt: (row.content_edited_at as string | null) ?? null,
+    isUserAuthored: row.is_user_authored === true,
+    reviewRequested: row.review_requested === true,
+    reviewRequestedAt: (row.review_requested_at as string | null) ?? null,
+    adminReview: adminReview ?? null,
   };
 }
 
@@ -83,6 +93,8 @@ function favoriteToDb(data: SyncFavoriteRequest, ownerId: string): Record<string
     favorite_reason: data.favoriteReason ?? null,
     reason_tags: Array.isArray(data.reasonTags) ? data.reasonTags : [],
     saved_at: data.savedAt ?? new Date().toISOString(),
+    is_user_authored: data.isUserAuthored ?? false,
+    review_requested: data.reviewRequested ?? false,
   };
 }
 
@@ -141,8 +153,40 @@ export async function getBootstrap(
   if (cfgRes.error) throw new Error('Failed to load saved configs');
   if (bpRes.error) throw new Error('Failed to load brand profile');
 
+  const favRows = (favRes.data ?? []) as Record<string, unknown>[];
+  const favoriteIds = favRows.map((r) => r.id as string).filter(Boolean);
+
+  // Owner-readable admin reviews via RLS (status/note/updated_at only).
+  const reviewByFavoriteId = new Map<string, NonNullable<FavoriteRecord['adminReview']>>();
+  if (favoriteIds.length > 0) {
+    const reviewRes = await client
+      .from('favorite_admin_reviews')
+      .select('favorite_id,review_status,note,annotations,updated_at')
+      .in('favorite_id', favoriteIds);
+    if (reviewRes.error) throw new Error('Failed to load favorite reviews');
+    for (const row of (reviewRes.data ?? []) as {
+      favorite_id: string;
+      review_status: string;
+      note: string | null;
+      annotations: unknown;
+      updated_at: string;
+    }[]) {
+      if (row.review_status !== 'adopted' && row.review_status !== 'changes_requested') continue;
+      reviewByFavoriteId.set(row.favorite_id, {
+        status: row.review_status,
+        note: row.note ?? null,
+        annotations: Array.isArray(row.annotations)
+          ? row.annotations as NonNullable<FavoriteRecord['adminReview']>['annotations']
+          : [],
+        updatedAt: row.updated_at,
+      });
+    }
+  }
+
   return {
-    favorites: (favRes.data ?? []).map(toFavorite),
+    favorites: favRows.map((row) =>
+      toFavorite(row, reviewByFavoriteId.get(row.id as string) ?? null),
+    ),
     savedConfigs: (cfgRes.data ?? []).map(toSavedConfig),
     brandProfile: bpRes.data ? toBrandProfile(bpRes.data) : null,
   };
@@ -155,6 +199,34 @@ export async function upsertFavorite(
   data: SyncFavoriteRequest,
 ): Promise<FavoriteRecord> {
   const client = createUserClient(jwt);
+
+  if (await resolveUserPlanId(ownerId) === 'free') {
+    const existing = await client
+      .from('favorites')
+      .select('id')
+      .eq('owner_id', ownerId)
+      .eq('client_id', data.clientId)
+      .maybeSingle();
+
+    if (existing.error) throw new Error('Failed to verify favorite capacity');
+
+    if (!existing.data) {
+      const { count, error: countError } = await client
+        .from('favorites')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', ownerId);
+
+      if (countError) throw new Error('Failed to verify favorite capacity');
+      if ((count ?? 0) >= FREE_FAVORITE_LIMIT) {
+        throw {
+          status: 403,
+          code: 'PLAN_LIMIT',
+          message: `Free 最多保存 ${FREE_FAVORITE_LIMIT} 条收藏`,
+        };
+      }
+    }
+  }
+
   // owner_id is set from the trusted BFF (JWT), never from the request body.
   // The route layer already calls rejectOverpost() to block body owner_id/ownerId/id.
   const dbRow = favoriteToDb(data, ownerId);
@@ -171,6 +243,52 @@ export async function upsertFavorite(
   }
 
   return toFavorite(row);
+}
+
+/** Explicit owner-scoped content edit. Every revision enters the admin review queue. */
+export async function updateFavoriteContent(
+  jwt: string,
+  ownerId: string,
+  clientId: string,
+  content: string,
+): Promise<FavoriteRecord> {
+  const client = createUserClient(jwt);
+  const { data: row, error } = await client
+    .from('favorites')
+    .update({ content, review_requested: true })
+    .eq('owner_id', ownerId)
+    .eq('client_id', clientId)
+    .select('*')
+    .maybeSingle();
+
+  if (error) throw new Error('Failed to update favorite content');
+  if (!row) throw { status: 404, message: 'Favorite not found' };
+
+  const reviewRes = await client
+    .from('favorite_admin_reviews')
+    .select('review_status,note,annotations,updated_at')
+    .eq('favorite_id', row.id)
+    .maybeSingle();
+  if (reviewRes.error) throw new Error('Failed to load favorite review');
+  const reviewRow = reviewRes.data as {
+    review_status: string;
+    note: string | null;
+    annotations: unknown;
+    updated_at: string;
+  } | null;
+  const adminReview = reviewRow
+    && (reviewRow.review_status === 'adopted' || reviewRow.review_status === 'changes_requested')
+    ? {
+        status: reviewRow.review_status,
+        note: reviewRow.note ?? null,
+        annotations: Array.isArray(reviewRow.annotations)
+          ? reviewRow.annotations as NonNullable<FavoriteRecord['adminReview']>['annotations']
+          : [],
+        updatedAt: reviewRow.updated_at,
+      } satisfies NonNullable<FavoriteRecord['adminReview']>
+    : null;
+
+  return toFavorite(row as Record<string, unknown>, adminReview);
 }
 
 /** Delete a favorite by (owner_id, client_id). Returns true if deleted, false if not found. */
@@ -293,6 +411,29 @@ export async function importData(
   let cfgUpdated = 0;
 
   const client = createUserClient(jwt);
+
+  if (favorites.length > 0 && await resolveUserPlanId(ownerId) === 'free') {
+    const { data: existingRows, error } = await client
+      .from('favorites')
+      .select('client_id')
+      .eq('owner_id', ownerId);
+
+    if (error) throw new Error('Failed to verify favorite capacity');
+    const existingIds = new Set(
+      (existingRows ?? []).map((row: Record<string, unknown>) => row.client_id as string),
+    );
+    const newIds = new Set(
+      favorites.map((favorite) => favorite.clientId).filter((clientId) => !existingIds.has(clientId)),
+    );
+
+    if (existingIds.size + newIds.size > FREE_FAVORITE_LIMIT) {
+      throw {
+        status: 403,
+        code: 'PLAN_LIMIT',
+        message: `导入后将超过 Free 的 ${FREE_FAVORITE_LIMIT} 条收藏上限`,
+      };
+    }
+  }
 
   // Import favorites
   for (const fav of favorites) {

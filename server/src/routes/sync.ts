@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import {
   getBootstrap,
   upsertFavorite,
+  updateFavoriteContent,
   deleteFavorite,
   upsertConfig,
   deleteConfig,
@@ -34,6 +35,8 @@ const MAX_JSON_SIZE = 1_000_000; // 1 MiB per JSON field
 const MAX_REASON_TAGS = 20;
 const MAX_REASON_TAG_LENGTH = 100;
 const MAX_ARRAY_LENGTH = 100;
+const VALID_COPY_TYPES = new Set(['social', 'spoken', 'poster', 'advertorial', 'poetry', 'custom']);
+const VALID_PUBLISH_PLATFORMS = new Set([...VALID_VARIANT_KEYS, 'all']);
 
 // ============================================================
 // Validation helpers
@@ -71,6 +74,12 @@ function assertOptionalInteger(value: unknown, field: string, min: number, max: 
   }
 }
 
+function assertOptionalBoolean(value: unknown, field: string): void {
+  if (value !== undefined && typeof value !== 'boolean') {
+    throw { status: 400, message: `${field} must be a boolean if provided` };
+  }
+}
+
 function assertOptionalArrayOfStrings(value: unknown, field: string): void {
   if (value === undefined || value === null) return;
   if (!Array.isArray(value) || !value.every((v) => typeof v === 'string')) {
@@ -85,8 +94,36 @@ function assertVariantKey(value: string): void {
 }
 
 function rejectOverpost(body: Record<string, unknown>): void {
-  if ('owner_id' in body || 'ownerId' in body || 'id' in body) {
-    throw { status: 400, message: 'Body must not contain owner_id, ownerId, or id fields' };
+  if ('owner_id' in body || 'ownerId' in body || 'id' in body || 'reviewRequestedAt' in body) {
+    throw { status: 400, message: 'Body must not contain owner_id, ownerId, id, or reviewRequestedAt fields' };
+  }
+}
+
+function assertUserAuthoredFavorite(body: Record<string, unknown>): void {
+  assertOptionalBoolean(body.isUserAuthored, 'isUserAuthored');
+  assertOptionalBoolean(body.reviewRequested, 'reviewRequested');
+  if (body.isUserAuthored !== true) return;
+
+  if (typeof body.reviewRequested !== 'boolean') {
+    throw { status: 400, message: 'reviewRequested must be explicitly selected for user-authored favorites' };
+  }
+  const settings = body.settings as Record<string, unknown>;
+  const brandName = typeof settings.brandName === 'string' ? settings.brandName.trim() : '';
+  if (!brandName || brandName.length > MAX_BRAND_NAME_LENGTH) {
+    throw { status: 400, message: `settings.brandName must be 1-${MAX_BRAND_NAME_LENGTH} characters` };
+  }
+  if (typeof settings.copyType !== 'string' || !VALID_COPY_TYPES.has(settings.copyType)) {
+    throw { status: 400, message: 'settings.copyType is invalid' };
+  }
+  if (settings.copyType === 'custom') {
+    const custom = typeof settings.customCopyType === 'string' ? settings.customCopyType.trim() : '';
+    if (custom.length < 2 || custom.length > 20) {
+      throw { status: 400, message: 'settings.customCopyType must be 2-20 characters' };
+    }
+  }
+  if (typeof settings.publishPlatform !== 'string'
+    || !VALID_PUBLISH_PLATFORMS.has(settings.publishPlatform)) {
+    throw { status: 400, message: 'settings.publishPlatform is invalid' };
   }
 }
 
@@ -176,6 +213,7 @@ router.post('/sync/favorites', async (req: Request, res: Response) => {
     assertNonEmptyString(body.content, 'content', MAX_CONTENT_LENGTH);
     assertNonEmptyString(body.source, 'source', MAX_CONTENT_LENGTH);
     assertObject(body.settings, 'settings');
+    assertUserAuthoredFavorite(body);
 
     assertOptionalString(body.notes, 'notes', MAX_NOTES_LENGTH);
     assertOptionalInteger(body.rating, 'rating', 1, 5);
@@ -194,6 +232,7 @@ router.post('/sync/favorites', async (req: Request, res: Response) => {
     res.status(201).json(result);
   } catch (err: any) {
     if (err?.status === 400) { res.status(400).json({ error: err.message }); return; }
+    if (err?.status === 403) { res.status(403).json({ error: err.message, code: err.code ?? 'PLAN_LIMIT' }); return; }
     if (err?.status === 404) { res.status(404).json({ error: err.message }); return; }
     if (err?.status === 409) { res.status(409).json({ error: err.message }); return; }
     // Config limit error from service
@@ -201,6 +240,33 @@ router.post('/sync/favorites', async (req: Request, res: Response) => {
       res.status(400).json({ error: err.message });
       return;
     }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================
+// PUT /api/sync/favorites/:clientId/content — explicit owner edit
+// ============================================================
+router.put('/sync/favorites/:clientId/content', async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId as string;
+    const jwt = req.userJwt as string;
+    const clientId = req.params.clientId as string;
+    const body = req.body ?? {};
+
+    assertNonEmptyString(clientId, 'clientId', MAX_CLIENT_ID_LENGTH);
+    if (typeof body !== 'object' || body === null || Array.isArray(body)
+        || Object.keys(body).some((key) => key !== 'content')) {
+      throw { status: 400, message: 'Body may only contain content' };
+    }
+    assertNonEmptyString(body.content, 'content', MAX_CONTENT_LENGTH);
+    if (!body.content.trim()) throw { status: 400, message: 'content must not be blank' };
+
+    const result = await updateFavoriteContent(jwt, userId, clientId, body.content);
+    res.json(result);
+  } catch (err: any) {
+    if (err?.status === 400) { res.status(400).json({ error: err.message }); return; }
+    if (err?.status === 404) { res.status(404).json({ error: 'Favorite not found' }); return; }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -363,6 +429,7 @@ router.post('/sync/import', async (req: Request, res: Response) => {
         assertNonEmptyString(fav.content, 'favorite content', MAX_CONTENT_LENGTH);
         assertNonEmptyString(fav.source, 'favorite source', MAX_CONTENT_LENGTH);
         assertObject(fav.settings, 'favorite settings');
+        assertUserAuthoredFavorite(fav);
         assertJsonSize(fav.settings, 'favorite settings');
         assertOptionalObject(fav.variantMeta, 'favorite variantMeta');
         assertJsonSize(fav.variantMeta, 'favorite variantMeta');
@@ -402,6 +469,7 @@ router.post('/sync/import', async (req: Request, res: Response) => {
     res.json(result);
   } catch (err: any) {
     if (err?.status === 400) { res.status(400).json({ error: err.message }); return; }
+    if (err?.status === 403) { res.status(403).json({ error: err.message, code: err.code ?? 'PLAN_LIMIT' }); return; }
     if (err?.status === 404) { res.status(404).json({ error: err.message }); return; }
     if (err?.status === 409) { res.status(409).json({ error: err.message }); return; }
     // Config limit error from service

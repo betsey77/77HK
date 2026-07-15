@@ -8,6 +8,10 @@ import type {
   Replacement,
   Variants,
 } from '../types/index.js';
+import {
+  applyCaseLibraryStyle,
+  deriveCaseLibraryStyleHints,
+} from './caseLibraryContext.js';
 
 const MAINLAND_REPLACEMENTS: Array<{ phrase: string; suggestion: string }> = [
   // === 稱呼（內地腔 → 港式） ===
@@ -120,20 +124,91 @@ function diagnose(source: string): Diagnosis {
   };
 }
 
+/**
+ * The rules fallback cannot perform semantic few-shot learning, but it must not
+ * silently discard a user's selected references. Map explicit tags (and a few
+ * observable style signals) to deterministic, non-copying presentation cues.
+ */
+function applyReferenceStyle(text: string, params: GenerateRequest): string {
+  const references = params.referenceCases ?? [];
+  if (references.length === 0) return text;
+
+  const tags = new Set(references.flatMap((reference) => reference.reasonTags ?? []));
+  const referenceText = references.map((reference) => reference.content).join('\n');
+  const wantsHook = tags.has('hook') || /[？?]/.test(referenceText);
+  const wantsEmoji = tags.has('emoji') || /\p{Extended_Pictographic}/u.test(referenceText);
+  const wantsCta = tags.has('cta') || /(留言|話我知|即刻|了解更多|link)/i.test(referenceText);
+
+  let styled = wantsHook ? `講真，${text}` : text;
+  if (wantsEmoji) styled = `✨ ${styled}`;
+  if (wantsCta) styled = `${styled}\n\n想知多啲？留言話我知。`;
+  return styled;
+}
+
+/** W3: compose bookmark style + case-library style without copying case bodies. */
+function applyAllStyleHints(text: string, params: GenerateRequest): string {
+  // Case library first (user just selected), then bookmark references
+  const withCases = applyCaseLibraryStyle(text, params.caseLibraryContext);
+  return applyReferenceStyle(withCases, params);
+}
+
+function softLengthLimit(text: string, enabled: boolean | undefined, level: number | undefined): string {
+  if (!enabled) return text;
+  const lv = Math.min(5, Math.max(1, Math.round(level ?? 3)));
+  // Soft guidance only for rules engine — never mid-sentence hard cut for legal/CTA safety.
+  const caps: Record<number, number> = { 1: 80, 2: 120, 3: 200, 4: 280, 5: 400 };
+  const cap = caps[lv] ?? 200;
+  if (text.length <= cap) return text;
+  const slice = text.slice(0, cap);
+  const breakAt = Math.max(slice.lastIndexOf('。'), slice.lastIndexOf('！'), slice.lastIndexOf('\n'));
+  return (breakAt > 40 ? slice.slice(0, breakAt + 1) : slice).trim();
+}
+
 export function fallbackGenerate(params: GenerateRequest): DiagnoseGenerateResult {
   const base = basicNormalize(params.source);
   const concise = base.length > 140 ? `${base.slice(0, 140)}...` : base;
+  const primary = params.primaryTone ?? params.tone;
+  const copyType = params.copyType ?? 'social';
 
-  const variants: Variants = {
-    standardHK: `各位，${concise}\n\n我們已將重點整理成更貼近香港市場嘅表達，語氣保持清晰、穩妥，適合品牌正式發布使用。`,
+  const baseVariants: Variants = {
+    standardHK: `各位，${concise}\n\n我們已將重點整理成更貼近香港市場嘅表達，語氣保持清晰、${primary}，適合品牌正式發布使用。`,
     lightCantonese: `講真，呢個重點幾啱香港日常場景：${concise}\n\n想了解詳情，可以睇睇內容，再揀最啱自己嘅選擇。`,
     ig: `${concise}\n\n日常用得上，語氣輕鬆啲，IG caption 可以再配合產品相或者短片畫面。`,
     facebook: `各位街坊朋友，${concise}\n\n如果想了解更多詳情，歡迎留言或 inbox 查詢。我哋會盡快回覆。`,
-    shorts: `呢個位，香港人應該會有感。\n\n${concise}\n\n用短句講清楚重點，再用畫面補充細節，節奏會更啱 Shorts。`,
+    shorts: `呢個位，香港人應該會有感。\n\n${concise}\n\n用短句講清楚重點，再用畫面補充細節，節奏會更啱 Shorts/TK。`,
   };
 
+  // Spoken / poster soft shaping (still five platforms)
+  if (copyType === 'spoken') {
+    baseVariants.shorts = `【口播】\n${baseVariants.shorts}\n（停一停）想知多啲可以留言。`;
+  } else if (copyType === 'poster') {
+    baseVariants.ig = `【主標題】${concise.slice(0, 24)}\n【副標題】值得一試`;
+  }
+
+  const variants: Variants = {
+    standardHK: softLengthLimit(applyAllStyleHints(baseVariants.standardHK, params), params.lengthControlEnabled, params.copyLengthLevel),
+    lightCantonese: softLengthLimit(applyAllStyleHints(baseVariants.lightCantonese, params), params.lengthControlEnabled, params.copyLengthLevel),
+    ig: softLengthLimit(applyAllStyleHints(baseVariants.ig, params), params.lengthControlEnabled, params.copyLengthLevel),
+    facebook: softLengthLimit(applyAllStyleHints(baseVariants.facebook, params), params.lengthControlEnabled, params.copyLengthLevel),
+    shorts: softLengthLimit(applyAllStyleHints(baseVariants.shorts, params), params.lengthControlEnabled, params.copyLengthLevel),
+  };
+
+  const diagnosis = diagnose(params.source);
+  const w1Notes: string[] = [];
+  if (copyType !== 'social') w1Notes.push(`文案類型：${copyType}${params.customCopyType ? `（${params.customCopyType}）` : ''}`);
+  if (params.lengthControlEnabled) w1Notes.push(`長度軟目標已開啟：檔 ${params.copyLengthLevel ?? 3}`);
+  if ((params.toneModifiers?.length ?? 0) > 0) w1Notes.push(`修飾語氣：${params.toneModifiers!.join('、')}`);
+  // W3: surface bad-case avoid rules without echoing case bodies
+  const caseHints = deriveCaseLibraryStyleHints(params.caseLibraryContext);
+  if (caseHints.avoidNotes.length > 0) {
+    w1Notes.push(...caseHints.avoidNotes);
+  }
+  if (w1Notes.length > 0) {
+    diagnosis.issues = [...(diagnosis.issues ?? []), ...w1Notes];
+  }
+
   return {
-    diagnosis: diagnose(params.source),
+    diagnosis,
     variants,
   };
 }

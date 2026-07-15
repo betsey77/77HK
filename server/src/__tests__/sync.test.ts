@@ -16,14 +16,20 @@ import app from '../app.js';
 // Mock Supabase — vi.hoisted to avoid hoisting issues
 // ============================================================
 
-const { mockCreateUserClient } = vi.hoisted(() => ({
+const { mockCreateUserClient, mockResolveUserPlanId } = vi.hoisted(() => ({
   mockCreateUserClient: vi.fn(),
+  mockResolveUserPlanId: vi.fn(),
 }));
 
 vi.mock('../services/supabase.js', () => ({
   getSupabase: () => null,
   createUserClient: mockCreateUserClient,
   verifyToken: vi.fn(async () => ({ sub: 'user-001', email: 'test@example.com' })),
+}));
+
+vi.mock('../services/planAccessService.js', () => ({
+  resolveUserPlanId: mockResolveUserPlanId,
+  FREE_FAVORITE_LIMIT: 10,
 }));
 
 // ============================================================
@@ -58,7 +64,7 @@ function makeRecordingQuery(terminal: {
     };
   }
 
-  ['select','insert','delete','eq','order','range','limit','maybeSingle','single','head','upsert'].forEach(addMethod);
+  ['select','insert','delete','eq','in','order','range','limit','maybeSingle','single','head','upsert'].forEach(addMethod);
 
   chain.then = (resolve: (v: unknown) => void) => {
     resolve({ data: terminal.data ?? null, error: terminal.error ?? null, count: terminal.count ?? 0 });
@@ -144,6 +150,7 @@ function makeBrandProfileRow(overrides: Record<string, unknown> = {}): Record<st
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockResolveUserPlanId.mockResolvedValue('pro');
   recordedCalls = [];
 });
 
@@ -205,10 +212,12 @@ describe('Auth gate', () => {
 describe('GET /api/sync/bootstrap', () => {
   it('returns favorites + configs + brandProfile for authenticated user', async () => {
     const client = setupClient();
+    // R1: when favorites exist, bootstrap also loads favorite_admin_reviews
     mockFromSequence(client, [
       { data: [makeFavoriteRow()], count: 1 },
       { data: [makeConfigRow()], count: 1 },
       { data: makeBrandProfileRow() },
+      { data: [] }, // admin reviews (none)
     ]);
 
     const res = await request(app)
@@ -218,6 +227,7 @@ describe('GET /api/sync/bootstrap', () => {
     expect(res.status).toBe(200);
     expect(res.body.favorites).toHaveLength(1);
     expect(res.body.favorites[0].clientId).toBe('client-fav-1');
+    expect(res.body.favorites[0].adminReview).toBeNull();
     expect(res.body.savedConfigs).toHaveLength(1);
     expect(res.body.savedConfigs[0].clientId).toBe('client-cfg-1');
     expect(res.body.brandProfile).not.toBeNull();
@@ -226,6 +236,7 @@ describe('GET /api/sync/bootstrap', () => {
 
   it('returns null brandProfile when none exists', async () => {
     const client = setupClient();
+    // Empty favorites → no review query
     mockFromSequence(client, [
       { data: [], count: 0 },
       { data: [], count: 0 },
@@ -240,6 +251,36 @@ describe('GET /api/sync/bootstrap', () => {
     expect(res.body.favorites).toHaveLength(0);
     expect(res.body.savedConfigs).toHaveLength(0);
     expect(res.body.brandProfile).toBeNull();
+  });
+
+  it('attaches adminReview from favorite_admin_reviews when present', async () => {
+    const client = setupClient();
+    const fav = makeFavoriteRow();
+    mockFromSequence(client, [
+      { data: [fav], count: 1 },
+      { data: [], count: 0 },
+      { data: null },
+      {
+        data: [{
+          favorite_id: fav.id,
+          review_status: 'adopted',
+          note: '很好',
+          updated_at: '2026-07-14T12:00:00.000Z',
+        }],
+      },
+    ]);
+
+    const res = await request(app)
+      .get('/api/sync/bootstrap')
+      .set('Authorization', VALID_TOKEN);
+
+    expect(res.status).toBe(200);
+    expect(res.body.favorites[0].adminReview).toEqual({
+      status: 'adopted',
+      note: '很好',
+      updatedAt: '2026-07-14T12:00:00.000Z',
+      annotations: [],
+    });
   });
 });
 
@@ -284,6 +325,123 @@ describe('POST /api/sync/favorites', () => {
     expect(res.status).toBe(201);
     expect(res.body.content).toBe('Updated content');
     expect(res.body.rating).toBe(4);
+  });
+
+  it('accepts an explicit user-authored review request and persists only client-owned fields', async () => {
+    const client = setupClient();
+    mockFromReturns(client, {
+      data: makeFavoriteRow({
+        is_user_authored: true,
+        review_requested: true,
+        review_requested_at: '2026-07-15T12:30:00.000Z',
+      }),
+    });
+
+    const res = await request(app)
+      .post('/api/sync/favorites')
+      .set('Authorization', VALID_TOKEN)
+      .send({
+        ...validFavorite,
+        source: '用户自写',
+        settings: {
+          brandName: '港饮',
+          copyType: 'spoken',
+          publishPlatform: 'ig',
+        },
+        isUserAuthored: true,
+        reviewRequested: true,
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      isUserAuthored: true,
+      reviewRequested: true,
+      reviewRequestedAt: '2026-07-15T12:30:00.000Z',
+    });
+    const upsert = recordedCalls.flat().find((call) => call.method === 'upsert');
+    expect(upsert?.args[0]).toMatchObject({
+      is_user_authored: true,
+      review_requested: true,
+    });
+    expect(upsert?.args[0]).not.toHaveProperty('review_requested_at');
+  });
+
+  it('rejects incomplete or implicit user-authored review metadata', async () => {
+    const client = setupClient();
+    mockFromReturns(client, { data: makeFavoriteRow() });
+
+    const missingBrand = await request(app)
+      .post('/api/sync/favorites')
+      .set('Authorization', VALID_TOKEN)
+      .send({
+        ...validFavorite,
+        settings: { copyType: 'social', publishPlatform: 'ig' },
+        isUserAuthored: true,
+        reviewRequested: true,
+      });
+    expect(missingBrand.status).toBe(400);
+
+    const missingDecision = await request(app)
+      .post('/api/sync/favorites')
+      .set('Authorization', VALID_TOKEN)
+      .send({
+        ...validFavorite,
+        settings: { brandName: '港饮', copyType: 'social', publishPlatform: 'ig' },
+        isUserAuthored: true,
+      });
+    expect(missingDecision.status).toBe(400);
+
+    const invalidCustom = await request(app)
+      .post('/api/sync/favorites')
+      .set('Authorization', VALID_TOKEN)
+      .send({
+        ...validFavorite,
+        settings: {
+          brandName: '港饮',
+          copyType: 'custom',
+          customCopyType: '一',
+          publishPlatform: 'ig',
+        },
+        isUserAuthored: true,
+        reviewRequested: false,
+      });
+    expect(invalidCustom.status).toBe(400);
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it('Free 已有 10 条时拒绝新增收藏并返回 PLAN_LIMIT', async () => {
+    mockResolveUserPlanId.mockResolvedValue('free');
+    const client = setupClient();
+    mockFromSequence(client, [
+      { data: null },
+      { data: null, count: 10 },
+    ]);
+
+    const res = await request(app)
+      .post('/api/sync/favorites')
+      .set('Authorization', VALID_TOKEN)
+      .send({ ...validFavorite, clientId: 'new-favorite' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('PLAN_LIMIT');
+    expect(client.from).toHaveBeenCalledTimes(2);
+  });
+
+  it('Free 达到上限后仍可更新既有收藏', async () => {
+    mockResolveUserPlanId.mockResolvedValue('free');
+    const client = setupClient();
+    mockFromSequence(client, [
+      { data: { id: 'existing-favorite' } },
+      { data: makeFavoriteRow({ content: 'Updated content' }) },
+    ]);
+
+    const res = await request(app)
+      .post('/api/sync/favorites')
+      .set('Authorization', VALID_TOKEN)
+      .send({ ...validFavorite, content: 'Updated content' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.content).toBe('Updated content');
   });
 });
 
@@ -518,6 +676,23 @@ describe('POST /api/sync/import', () => {
     expect(res.body.favorites.updated).toBe(0);
     expect(res.body.savedConfigs.imported).toBe(1);
     expect(res.body.savedConfigs.updated).toBe(0);
+  });
+
+  it('Free 导入会在写入前预检，超出 10 条时整批拒绝', async () => {
+    mockResolveUserPlanId.mockResolvedValue('free');
+    const client = setupClient();
+    mockFromReturns(client, {
+      data: Array.from({ length: 10 }, (_, index) => ({ client_id: `existing-${index + 1}` })),
+    });
+
+    const res = await request(app)
+      .post('/api/sync/import')
+      .set('Authorization', VALID_TOKEN)
+      .send({ favorites: [validFavorite] });
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('PLAN_LIMIT');
+    expect(client.from).toHaveBeenCalledTimes(1);
   });
 
   it('idempotent — running twice does not increase count', async () => {

@@ -1,12 +1,14 @@
 # 🧭 思念文案引擎 — 综合产品规格书 V2
 
-> 撰写日期：2026-06-14
+> 撰写日期：2026-06-14 | 最后更新：2026-07-13
 > 分析来源：
 > - `pm-skills-main`（68 个 PM 技能，9 个插件，42 个链式工作流）
 > - 环境已加载技能：`xhs-marketing-strategy`、`marketing-skills:copywriting`、`marketing-skills:copy-editing`、`facebook-ads-library-search`、`hk-cantonese-social-voice` 等
 > - 前置文档：`optimization-roadmap任务关联到设计文档.md`、`inspiration-design功能设计策略.md`
 >
 > 目标：将 pm-skills 方法论 + 旧有优化发现 + 灵感面板设计 整合为一版可执行的完整产品规格
+>
+> **⚠️ 2026-07-13 开发状态**：Slice F1 支付宝沙箱前置架构已本地完成（Server 408/408、Client 250/250），F1 Migration `20260713000000_slice_f1_payment_sandbox.sql` 已推送并通过远端结构/RLS/权限核验。真实支付宝 sandbox E2E 尚未执行；PAYMENT_MODE 默认 `mock`。所有支付配置、真实交易与生产动作仍需单独授权。详见 `spec/ACCEPTANCE.md`、`spec/CHANGELOG.md`。
 
 ---
 
@@ -1126,7 +1128,16 @@ interface BookmarkedCopy {
   rating?: number;               // 用户评分 1-5
   favoriteReason?: string;       // 收藏原因（结构化标签）
   reasonTags?: string[];         // 原因标签，如 ['hook吸睛', '语气贴地', 'CTA有力', '句式节奏好']
+  // ↓ R1 管理员审核（只读，来自 bootstrap；用户不可写）
+  adminReview?: {
+    status: 'adopted' | 'changes_requested';
+    note: string | null;
+    updatedAt: string;
+  } | null;
 }
+
+// R1（2026-07-14）：收藏卡折叠态展示管理员审核高亮（已采纳正向 / 需修改警示）；
+// 同步 upsert 不得发送或覆盖 adminReview。运维分组见 docs/admin/review-group-management.md。
 ```
 
 **收藏库面板**（`FavoritesPanel`）：
@@ -1247,6 +1258,24 @@ interface UserPreferenceProfile {
 #### B.3 多选收藏案例注入 Prompt ✅ 已实现（2026-07-10）
 
 > 实现方式：`ReferenceCaseSelector` 组件始终嵌入并显示在 `InputPanel`。折叠态必须展示“可用 N 条 · 已选 N/3”，避免用户误以为功能消失；只有评分 ≥★4 的收藏进入可选列表，最多选 3 条注入。选中的案例随 generate 请求传递到服务端，在 Prompt Layer 3 注入 Few-Shot 参考段。无合格案例时保留入口并展示空状态。
+
+> 2026-07-13 可靠性补充：已失效或低于 4 星的历史 ID 不得计入“已选”；DeepSeek 与自部署模型必须让每个平台版本实际应用至少 2 项可辨识技法，同时不得把正例主题/事实当成新文案资料；当模型不可用并降级到规则引擎时，也必须按 Hook、Emoji、CTA 等标签进行确定性风格映射，不得静默忽略参考案例。
+
+### G1.1 管理员收藏只读访问
+
+- `admin` 与 `super_admin` 均可进入管理后台“用户收藏”页签。
+- 列表只返回用户显示名、邮箱、平台、评分、备注、收藏原因、标签和收藏时间，不返回正文。
+- 正文仅通过单条详情接口读取；顺序必须为 `exists → 写 audit_log → 读取正文`，审计失败时拒绝返回正文。
+- 前端允许单条复制正文；禁止编辑、删除、调整评分及批量导出。
+- 服务端通过受信 `service_role` 跨用户读取；浏览器端 Supabase RLS 不作放宽。
+
+### 配置管理中的参考案例参数
+
+- `SavedConfig` 必须保存 `selectedReferenceCaseIds`，与语气、平台、粤语程度等参数同属一份生成配置。
+- 已登录用户的配置先写入账号隔离的本地状态，再由云同步写入 Supabase `saved_configs.config` JSON；不新增数据库列。
+- `configToSyncConfig` 与 `configRecordToSavedConfig` 必须双向保留该字段；旧配置缺少字段时按 `[]` 处理。
+- 加载配置时恢复参考案例 ID；若对应收藏已删除或评分低于 4 星，参考案例选择器与生成请求仍按有效性规则过滤，不能注入失效案例。
+- 配置管理列表的提示信息显示“参考 N”，用户可确认该配置包含多少条参考案例。
 
 **UI 交互**：
 
@@ -1531,3 +1560,20 @@ interface AppSettings {
 ---
 
 > **下一步**：请确认优先级排序，然后可以开始执行 Phase 0 或 Phase 1 中不依赖 Phase 0 的项目（P1.1、P1.2、P1.4）。
+
+## 运行时不变量：生成历史恢复（2026-07-13 补充）
+
+1. 完成状态的历史记录可把原文、生成结果、诊断、审核、评分、消费者反馈及当次工作台配置载回 `/app`。
+2. 新生成任务必须将完整 `AppSettings` 写入现有 `generation_jobs.brief.workbenchSettings`；该字段只用于恢复，不得改变 Prompt 或模型输入语义。
+3. 旧任务继续从 `brief` 的既有字段恢复结构化写作、消费者画像、参考收藏案例和话题日历选择；历史中从未保存过的字段不可伪造。
+4. 历史配置载入必须进行运行时校验并保持 owner-scoped session 隔离；不得放宽 RLS 或跨用户读取。
+5. 后续切片不得删除历史列表/详情的“文字消失 → 打开对应历史 → 载入工作台”恢复路径。
+
+## 运行时不变量：Free 收藏与生成历史容量（2026-07-13 补充）
+
+1. Free 最多新增 10 条收藏；Pro 不受本切片收藏容量限制。达到上限后，更新和删除已有收藏仍必须可用。
+2. 既有超额收藏不得删除或覆盖；Free 只访问按 `savedAt` 倒序的最新 10 条，Pro 解锁全部。
+3. Free 只访问按 `createdAt` 倒序的最新 15 条生成历史；搜索只发生在这 15 条内，详情 URL 不得绕过。
+4. 当前套餐不可访问的收藏不得进入参考案例列表或生成 Prompt。
+5. 收藏新增、批量导入预检、历史列表和详情必须由服务端实施套餐门禁；套餐解析失败按 Free。
+6. 变更本容量必须同步更新 PRD、SDD、测试、Pricing 展示和回归矩阵；不得借容量调整修改生成额度、支付验签或 RLS。

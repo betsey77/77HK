@@ -29,7 +29,7 @@ ${variants.ig}
 ### Facebook 版本
 ${variants.facebook}
 
-### YouTube Shorts 版本
+### Shorts/TK 版本（YouTube Shorts / TikTok）
 ${variants.shorts}
 
 ---
@@ -69,9 +69,9 @@ t**🚨 評分規則（必須遵守）**：
 
 評分錨點：
 - 15-25：五個版本幾乎一樣，根本冇做平台適配。IG版同FB版冇分別。
-- 35-50：有嘗試區分但效果差——IG版太長（超過150字）、FB版太casual唔似品牌post、Shorts版冇節奏感。
+- 35-50：有嘗試區分但效果差——IG版太長（超過150字）、FB版太casual唔似品牌post、Shorts/TK版冇節奏感。
 - 55-70：基本適配。每個版本有啲平台特性，但可以更精準。
-- 75-88：每個版本都符合平台特性。IG精簡有hashtag、FB有互動感、Shorts有節奏。
+- 75-88：每個版本都符合平台特性。IG精簡有hashtag、FB有互動感、Shorts/TK有節奏。
 - 90-98：完美適配。格式、長度、語氣、CTA都針對平台最佳化。
 
 **可讀性 (0-100)** — 權重 15%
@@ -108,7 +108,7 @@ t**🚨 評分規則（必須遵守）**：
 Emoji 使用係咪恰當？Hashtag 係咪相關、數量合理？
 
 評分錨點：
-- 15-25：完全冇 emoji/hashtag（對 IG/Shorts 嚟講係大問題），或者 emoji 濫用到影響閱讀
+- 15-25：完全冇 emoji/hashtag（對 IG/Shorts/TK 嚟講係大問題），或者 emoji 濫用到影響閱讀
 - 35-50：Emoji 使用不當（例如正式版本用太多 emoji），hashtag 唔相關或太少
 - 55-70：基本合理。emoji 同 hashtag 都係預期範圍內
 - 75-88：Emoji 用得恰到好處、增強咗節奏；hashtag 精選且相關
@@ -145,9 +145,9 @@ Emoji 使用係咪恰當？Hashtag 係咪相關、數量合理？
 - 30：完全自然融入內容，唔似廣告
 
 **CTA 平台匹配度 (0-40)**：
-- 0：CTA 完全不適合呢個平台（例如 Shorts 叫人填 form）
+- 0：CTA 完全不適合呢個平台（例如 Shorts/TK 叫人填 form）
 - 20：CTA 方向正確但執行一般
-- 40：CTA 完美匹配平台特性（IG → link in bio、FB → 留言/分享、Shorts → like/subscribe）
+- 40：CTA 完美匹配平台特性（IG → link in bio、FB → 留言/分享、Shorts/TK → like/follow/subscribe）
 
 每個版本 CTA 總分 = 存在性 + 自然度 + 平台匹配度
 
@@ -397,7 +397,7 @@ ${variants.ig}
 Facebook 版本：
 ${variants.facebook}
 
-YouTube Shorts 版本：
+Shorts/TK 版本（YouTube Shorts / TikTok）：
 ${variants.shorts}
 
 ### 寫作指引
@@ -434,7 +434,7 @@ ${variants.shorts}
 - \`lightCantonese\` — 輕粵語版本
 - \`ig\` — IG 版本
 - \`facebook\` — Facebook 版本
-- \`shorts\` — YouTube Shorts 版本
+- \`shorts\` — Shorts/TK 版本（YouTube Shorts / TikTok）
 
 規則：
 - 如果你嘅建議係針對某個特定平台（例如「IG 版本太長」），targetPlatforms 就係 \`["ig"]\`

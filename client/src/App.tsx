@@ -1,30 +1,34 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AppProvider, AppContext } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PlanAccessProvider } from './context/PlanAccessContext';
 import { useCloudSync } from './hooks/useCloudSync';
 import { resolveNextPath } from './services/nextPath';
-import Header from './components/layout/Header';
-import Footer from './components/layout/Footer';
-import ThreePanel from './components/layout/ThreePanel';
-import InputPanel from './components/input/InputPanel';
-import ResultsPanel from './components/results/ResultsPanel';
-import AuditPanel from './components/audit/AuditPanel';
-import InspirationPanel from './components/inspiration/InspirationPanel';
-import FavoritesPanel from './components/favorites/FavoritesPanel';
-import FeedbackCenter from './components/feedback/FeedbackCenter';
-import MarketingPage from './components/marketing/MarketingPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import AuthCallback from './pages/AuthCallback';
-import HistoryPage from './pages/HistoryPage';
-import HistoryDetailPage from './pages/HistoryDetailPage';
-import PricingPage from './pages/PricingPage';
-import BillingPage from './pages/BillingPage';
-import BillingResultPage from './pages/BillingResultPage';
-import AdminPage from './pages/AdminPage';
+import { OPEN_REVIEWED_FAVORITE_EVENT } from './services/reviewResultNotifications';
+
+const Header = lazy(() => import('./components/layout/Header'));
+const Footer = lazy(() => import('./components/layout/Footer'));
+const ThreePanel = lazy(() => import('./components/layout/ThreePanel'));
+const InputPanel = lazy(() => import('./components/input/InputPanel'));
+const ResultsPanel = lazy(() => import('./components/results/ResultsPanel'));
+const AuditPanel = lazy(() => import('./components/audit/AuditPanel'));
+const InspirationPanel = lazy(() => import('./components/inspiration/InspirationPanel'));
+const FavoritesPanel = lazy(() => import('./components/favorites/FavoritesPanel'));
+const ReviewResultNotifier = lazy(() => import('./components/favorites/ReviewResultNotifier'));
+const FeedbackCenter = lazy(() => import('./components/feedback/FeedbackCenter'));
+const MarketingPage = lazy(() => import('./components/marketing/MarketingPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const HistoryDetailPage = lazy(() => import('./pages/HistoryDetailPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const BillingPage = lazy(() => import('./pages/BillingPage'));
+const BillingResultPage = lazy(() => import('./pages/BillingResultPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 // ============================================================
 // Center content (unchanged from original App.tsx)
@@ -84,16 +88,29 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 function AppShellWithAuth() {
   const { logout, state: authState } = useAuth();
   const [showFavorites, setShowFavorites] = useState(false);
+  const [favoriteFocusId, setFavoriteFocusId] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
 
   const handleToggleFavorites = useCallback(() => {
+    setFavoriteFocusId(null);
     setShowFavorites(prev => !prev);
+  }, []);
+
+  const handleOpenReviewedFavorite = useCallback((event: Event) => {
+    const favoriteId = (event as CustomEvent<{ favoriteId?: string }>).detail?.favoriteId;
+    if (!favoriteId) return;
+    setFavoriteFocusId(favoriteId);
+    setShowFavorites(true);
   }, []);
 
   useEffect(() => {
     window.addEventListener('toggle-favorites', handleToggleFavorites);
-    return () => window.removeEventListener('toggle-favorites', handleToggleFavorites);
-  }, [handleToggleFavorites]);
+    window.addEventListener(OPEN_REVIEWED_FAVORITE_EVENT, handleOpenReviewedFavorite);
+    return () => {
+      window.removeEventListener('toggle-favorites', handleToggleFavorites);
+      window.removeEventListener(OPEN_REVIEWED_FAVORITE_EVENT, handleOpenReviewedFavorite);
+    };
+  }, [handleOpenReviewedFavorite, handleToggleFavorites]);
 
   async function handleLogout() {
     await logout();
@@ -113,7 +130,14 @@ function AppShellWithAuth() {
         right={<AuditPanel />}
       />
       <Footer />
-      <FavoritesPanel isOpen={showFavorites} onClose={() => setShowFavorites(false)} />
+      <FavoritesPanel
+        isOpen={showFavorites}
+        focusBookmarkId={favoriteFocusId}
+        onClose={() => {
+          setShowFavorites(false);
+          setFavoriteFocusId(null);
+        }}
+      />
       <FeedbackCenter
         isOpen={showFeedback}
         onClose={() => setShowFeedback(false)}
@@ -128,12 +152,31 @@ function AccountScopedWorkbench() {
   if (!state.user) return null;
 
   return (
+    <PlanAccessProvider>
+      <AppProvider key={state.user.id} ownerId={state.user.id}>
+        <CloudSyncGate>
+          <AppShellWithAuth />
+        </CloudSyncGate>
+      </AppProvider>
+    </PlanAccessProvider>
+  );
+}
+
+function AccountScopedBilling() {
+  const { state } = useAuth();
+  if (!state.user) return null;
+
+  return (
     <AppProvider key={state.user.id} ownerId={state.user.id}>
-      <CloudSyncGate>
-        <AppShellWithAuth />
-      </CloudSyncGate>
+      <BillingPage />
     </AppProvider>
   );
+}
+
+function AccountScopedAdmin() {
+  const { state } = useAuth();
+  if (state.isLoading) return <AuthLoading />;
+  return <AdminPage userEmail={state.user?.email ?? null} />;
 }
 
 /**
@@ -148,6 +191,14 @@ function CloudSyncGate({ children }: { children: ReactNode }) {
     authState.user?.id ?? 'anonymous',
     authState.isAuthenticated,
   );
+
+  useEffect(() => {
+    const refreshOnFocus = () => {
+      if (cloudSync.syncStatus === 'ready') cloudSync.retryHydration();
+    };
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
+  }, [cloudSync.retryHydration, cloudSync.syncStatus]);
 
   // Hydration loading state
   if (cloudSync.syncStatus === 'hydrating') {
@@ -213,6 +264,10 @@ function CloudSyncGate({ children }: { children: ReactNode }) {
             </button>
           </div>
         </div>
+      )}
+
+      {cloudSync.syncStatus === 'ready' && authState.user?.id && (
+        <ReviewResultNotifier ownerId={authState.user.id} />
       )}
 
       {children}
@@ -312,7 +367,7 @@ function PublicAuthRoute({ children }: { children: ReactNode }) {
 // Main App — path-based router
 // ============================================================
 
-export default function App() {
+function AppRoutes() {
   const path = window.location.pathname;
 
   // ---- Public landing ----
@@ -351,7 +406,7 @@ export default function App() {
     return (
       <ThemeProvider>
         <AuthProvider>
-          <AdminPage />
+          <AccountScopedAdmin />
         </AuthProvider>
       </ThemeProvider>
     );
@@ -445,7 +500,7 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <ProtectedRoute>
-            <BillingPage />
+            <AccountScopedBilling />
           </ProtectedRoute>
         </AuthProvider>
       </ThemeProvider>
@@ -468,4 +523,12 @@ export default function App() {
   // ---- Unknown routes → redirect to / ----
   window.location.replace('/');
   return null;
+}
+
+export default function App() {
+  return (
+    <Suspense fallback={<AuthLoading />}>
+      <AppRoutes />
+    </Suspense>
+  );
 }

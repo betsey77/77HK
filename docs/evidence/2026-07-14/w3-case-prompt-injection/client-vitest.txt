@@ -1,0 +1,51 @@
+﻿
+ RUN  v4.1.10 D:/work/77娓瘽閫氱ぞ濯掓枃妗?77/client
+
+node.exe : (node:33516) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided
+.
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:33516) Ex...s not provided.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26912) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6944) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34184) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ 鉁?src/test/slice-w3-case-prompt-injection.test.ts > W3 client generate payload 鈥?IDs only > useGenerate includes selectedCaseLibraryIds and does not fetch/send case bodies 2ms
+ 鉁?src/test/slice-w3-case-prompt-injection.test.ts > W3 client generate payload 鈥?IDs only > GenerateRequest type documents IDs-only contract 1ms
+ 鉁?src/test/slice-w3-case-prompt-injection.test.ts > W3 history load 鈥?IDs only; snapshots stay in brief for interpretability > restores selectedCaseLibraryIds without promoting snapshot bodies into settings 1ms
+ 鉁?src/test/slice-w3-case-prompt-injection.test.ts > W3 history load 鈥?IDs only; snapshots stay in brief for interpretability > deleted case still leaves historical IDs for non-blocking selection restore 0ms
+ 鉁?src/test/slice-history-settings.test.ts > 鐢熸垚鍘嗗彶鎭㈠宸︿晶杈撳叆閰嶇疆 > 鍏煎鎭㈠鏃у巻鍙蹭腑宸茬粡淇濆瓨鐨勭粨鏋勫寲鍐欎綔銆佺敾鍍忋€佹敹钘忔渚嬪拰鏃ュ巻浜嬩欢 2ms
+ 鉁?src/test/slice-history-settings.test.ts > 鐢熸垚鍘嗗彶鎭㈠宸︿晶杈撳叆閰嶇疆 > 浼樺厛鎭㈠鏂板巻鍙蹭繚瀛樼殑瀹屾暣宸ヤ綔鍙伴厤缃?0ms
+ 鉁?src/test/slice-history-settings.test.ts > 鐢熸垚鍘嗗彶鎭㈠宸︿晶杈撳叆閰嶇疆 > 鎻愪緵鏄庣‘鐨勫巻鍙叉仮澶嶆彁绀烘枃妗?0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 defaults and legacy settings fallback > DEFAULT_SETTINGS uses social / length off / 3 / 绋冲Ε / empty modifiers 2ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 defaults and legacy settings fallback > normalizeSettings fills W1 defaults when old payload lacks fields 1ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 defaults and legacy settings fallback > maps legacy tone to primaryTone and clamps modifiers to 2 0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 custom copy type validation > requires 2鈥?0 chars only for custom 0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 tone modifiers > drops invalid entries and enforces max two 0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 saved config / history / bookmark labels > getCopyTypeLabel shows legacy label when field missing 0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 saved config / history / bookmark labels > saved config shape can retain W1 fields 0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 saved config / history / bookmark labels > history load restores W1 from workbenchSettings 0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 saved config / history / bookmark labels > history without W1 fields falls back safely 0ms
+ 鉁?src/test/slice-w1-parameters.test.ts > W1 cloud-sync-friendly payload > bookmark settings snapshot retains W1 keys for sync payload 0ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 case library utils > validates fields and derives unnamed display names 1ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 case library utils > reconcile drops deleted ids without silent replacement of others 1ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 CaseLibraryPanel UI > lists cases, supports search, max 3 selection, create validation, delete confirm 172ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 CaseLibraryPanel UI > shows validation errors on short body 17ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 config save / load + deleted notice > saves selectedCaseLibraryIds in config and prunes deleted on load with notice 53ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 settings / history / generate boundary > normalizeSettings defaults selectedCaseLibraryIds 0ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 settings / history / generate boundary > history workbench restore keeps case library IDs only 1ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 settings / history / generate boundary > InputPanel wires CaseLibraryPanel near ReferenceCaseSelector without accordion/collapsible 2ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2 settings / history / generate boundary > saved config shape retains selectedCaseLibraryIds 0ms
+ 鉁?src/test/slice-w2-case-library.test.tsx > W2/W3 does not put case body into generate client path > useGenerate sends selectedCaseLibraryIds only 鈥?never case body/reason 1ms
+
+ Test Files  4 passed (4)
+      Tests  27 passed (27)
+   Start at  13:33:20
+   Duration  1.51s (transform 297ms, setup 386ms, import 460ms, tests 265ms, environment 2.94s)
+

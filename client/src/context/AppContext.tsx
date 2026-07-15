@@ -14,6 +14,8 @@ import type {
   VariantKey,
 } from '../types';
 import { DEFAULT_SETTINGS, PLATFORMS, TONES, INPUT_LANGUAGES } from '../constants';
+import { normalizeW1Fields } from '../utils/w1Settings';
+import { getHongKongDateString } from '../utils/hongKongDate';
 import { saveWorkbenchSnapshot, loadWorkbenchSnapshot, clearWorkbenchSnapshot, type WorkbenchSnapshot } from '../services/workbenchSnapshot';
 
 const VALID_PLATFORM_VALUES = new Set(PLATFORMS.map((platform) => platform.value));
@@ -34,19 +36,17 @@ function normalizePersonas(raw: unknown): ConsumerPersona[] {
   return [];
 }
 
-function normalizeSettings(settings: unknown): AppSettings {
-  if (!settings || typeof settings !== 'object') return { ...DEFAULT_SETTINGS };
+export function normalizeSettings(settings: unknown): AppSettings {
+  if (!settings || typeof settings !== 'object') return { ...DEFAULT_SETTINGS, toneModifiers: [] };
 
   const raw = settings as Record<string, unknown>;
+  const w1 = normalizeW1Fields(raw, DEFAULT_SETTINGS.primaryTone);
   return {
     platform:
       typeof raw.platform === 'string' && VALID_PLATFORM_VALUES.has(raw.platform as never)
         ? (raw.platform as Platform)
         : DEFAULT_SETTINGS.platform,
-    tone:
-      typeof raw.tone === 'string' && VALID_TONE_VALUES.has(raw.tone as never)
-        ? (raw.tone as BrandTone)
-        : DEFAULT_SETTINGS.tone,
+    tone: w1.tone,
     cantoneseLevel: normalizeNumber(raw.cantoneseLevel, DEFAULT_SETTINGS.cantoneseLevel),
     englishMixingLevel: normalizeNumber(raw.englishMixingLevel, DEFAULT_SETTINGS.englishMixingLevel),
     creativityLevel: normalizeNumber(raw.creativityLevel, DEFAULT_SETTINGS.creativityLevel, 4),
@@ -77,6 +77,16 @@ function normalizeSettings(settings: unknown): AppSettings {
       Array.isArray(raw.selectedCalendarEventIds)
         ? raw.selectedCalendarEventIds.filter((id: unknown) => typeof id === 'string')
         : DEFAULT_SETTINGS.selectedCalendarEventIds,
+    selectedCaseLibraryIds:
+      Array.isArray(raw.selectedCaseLibraryIds)
+        ? raw.selectedCaseLibraryIds.filter((id: unknown) => typeof id === 'string').slice(0, 3)
+        : DEFAULT_SETTINGS.selectedCaseLibraryIds,
+    copyType: w1.copyType,
+    customCopyType: w1.customCopyType,
+    lengthControlEnabled: w1.lengthControlEnabled,
+    copyLengthLevel: w1.copyLengthLevel,
+    primaryTone: w1.primaryTone,
+    toneModifiers: w1.toneModifiers,
   };
 }
 
@@ -132,7 +142,7 @@ function createInitialState(ownerId: string): AppState {
   if (snapshot && snapshot.uiState === 'success') {
     return {
       source: snapshot.source,
-      settings: { ...saved, ...snapshot.settings },
+      settings: normalizeSettings({ ...saved, ...snapshot.settings }),
       diagnosis: snapshot.diagnosis,
       variants: snapshot.variants,
       audit: snapshot.audit,
@@ -195,7 +205,54 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
       return next;
     }
     case 'SET_TONE': {
-      const next = { ...state, settings: { ...state.settings, tone: action.payload } };
+      // Compat: legacy SET_TONE also drives primaryTone
+      const next = {
+        ...state,
+        settings: { ...state.settings, tone: action.payload, primaryTone: action.payload },
+      };
+      persistSettings(ownerId, next);
+      return next;
+    }
+    case 'SET_PRIMARY_TONE': {
+      const next = {
+        ...state,
+        settings: { ...state.settings, primaryTone: action.payload, tone: action.payload },
+      };
+      persistSettings(ownerId, next);
+      return next;
+    }
+    case 'SET_TONE_MODIFIERS': {
+      const mods = action.payload.slice(0, 2);
+      const next = { ...state, settings: { ...state.settings, toneModifiers: mods } };
+      persistSettings(ownerId, next);
+      return next;
+    }
+    case 'SET_COPY_TYPE': {
+      const copyType = action.payload;
+      const next = {
+        ...state,
+        settings: {
+          ...state.settings,
+          copyType,
+          customCopyType: copyType === 'custom' ? state.settings.customCopyType : '',
+        },
+      };
+      persistSettings(ownerId, next);
+      return next;
+    }
+    case 'SET_CUSTOM_COPY_TYPE': {
+      const next = { ...state, settings: { ...state.settings, customCopyType: action.payload } };
+      persistSettings(ownerId, next);
+      return next;
+    }
+    case 'SET_LENGTH_CONTROL_ENABLED': {
+      const next = { ...state, settings: { ...state.settings, lengthControlEnabled: action.payload } };
+      persistSettings(ownerId, next);
+      return next;
+    }
+    case 'SET_COPY_LENGTH_LEVEL': {
+      const level = Math.min(5, Math.max(1, Math.round(action.payload)));
+      const next = { ...state, settings: { ...state.settings, copyLengthLevel: level } };
       persistSettings(ownerId, next);
       return next;
     }
@@ -324,12 +381,15 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
 
     case 'LOAD_CONFIG': {
       const config = action.payload;
+      const w1 = normalizeW1Fields(config as unknown as Record<string, unknown>, config.tone ?? DEFAULT_SETTINGS.primaryTone);
+      const legacyMissingDate =
+        typeof config.targetDate !== 'string' || config.targetDate.trim().length === 0;
       const next = {
         ...state,
         settings: {
           ...state.settings,
           platform: config.platform,
-          tone: config.tone,
+          tone: w1.tone,
           cantoneseLevel: config.cantoneseLevel,
           englishMixingLevel: config.englishMixingLevel,
           creativityLevel: config.creativityLevel,
@@ -339,9 +399,20 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
           brandRedLines: config.brandRedLines,
           structuredBriefEnabled: config.structuredBriefEnabled,
           consumerPersonas: config.consumerPersonas,
-          targetDate: config.targetDate,
+          // Legacy configs without targetDate → current HK calendar day
+          targetDate: legacyMissingDate ? getHongKongDateString() : config.targetDate,
           competitorQueries: config.competitorQueries ?? [],
-          selectedCalendarEventIds: config.selectedCalendarEventIds ?? [],
+          selectedReferenceCaseIds: config.selectedReferenceCaseIds ?? [],
+          selectedCalendarEventIds: Array.isArray(config.selectedCalendarEventIds)
+            ? [...config.selectedCalendarEventIds]
+            : [],
+          selectedCaseLibraryIds: (config.selectedCaseLibraryIds ?? []).slice(0, 3),
+          copyType: w1.copyType,
+          customCopyType: w1.customCopyType,
+          lengthControlEnabled: w1.lengthControlEnabled,
+          copyLengthLevel: w1.copyLengthLevel,
+          primaryTone: w1.primaryTone,
+          toneModifiers: w1.toneModifiers,
         },
       };
       persistSettings(ownerId, next);
@@ -368,6 +439,17 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
       const next = {
         ...state,
         bookmarkedCopies: state.bookmarkedCopies.filter(b => b.id !== action.payload),
+      };
+      persistBookmarks(ownerId, next.bookmarkedCopies);
+      return next;
+    }
+
+    case 'REMOVE_BOOKMARKS': {
+      const ids = new Set(action.payload);
+      if (ids.size === 0) return state;
+      const next = {
+        ...state,
+        bookmarkedCopies: state.bookmarkedCopies.filter(b => !ids.has(b.id)),
       };
       persistBookmarks(ownerId, next.bookmarkedCopies);
       return next;
@@ -402,6 +484,87 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
       return next;
     }
 
+    case 'UPDATE_BOOKMARK_PUBLISH_PLATFORM': {
+      // Favorite snapshot only — must not touch global workbench settings.platform
+      const next = {
+        ...state,
+        bookmarkedCopies: state.bookmarkedCopies.map(b =>
+          b.id === action.payload.id
+            ? {
+                ...b,
+                settings: {
+                  ...b.settings,
+                  publishPlatform: action.payload.publishPlatform,
+                },
+              }
+            : b,
+        ),
+      };
+      persistBookmarks(ownerId, next.bookmarkedCopies);
+      return next;
+    }
+
+    case 'UPDATE_BOOKMARK_COPY_TYPE': {
+      const next = {
+        ...state,
+        bookmarkedCopies: state.bookmarkedCopies.map(b =>
+          b.id === action.payload.id
+            ? {
+                ...b,
+                settings: {
+                  ...b.settings,
+                  copyType: action.payload.copyType,
+                  customCopyType: action.payload.copyType === 'custom'
+                    ? action.payload.customCopyType
+                    : '',
+                },
+              }
+            : b,
+        ),
+      };
+      persistBookmarks(ownerId, next.bookmarkedCopies);
+      return next;
+    }
+
+    case 'UPDATE_BOOKMARK_REVIEW_REQUEST': {
+      const next = {
+        ...state,
+        bookmarkedCopies: state.bookmarkedCopies.map(b =>
+          b.id === action.payload.id
+            ? {
+                ...b,
+                reviewRequested: action.payload.reviewRequested,
+                reviewRequestedAt: action.payload.reviewRequested ? b.reviewRequestedAt ?? null : null,
+                adminReview: action.payload.reviewRequested ? b.adminReview : null,
+              }
+            : b,
+        ),
+      };
+      persistBookmarks(ownerId, next.bookmarkedCopies);
+      return next;
+    }
+
+    case 'UPDATE_BOOKMARK_CONTENT': {
+      const next = {
+        ...state,
+        bookmarkedCopies: state.bookmarkedCopies.map(b =>
+          b.id === action.payload.id
+            ? {
+                ...b,
+                content: action.payload.content,
+                contentRevision: action.payload.contentRevision,
+                contentEditedAt: action.payload.contentEditedAt,
+                reviewRequested: action.payload.reviewRequested,
+                reviewRequestedAt: action.payload.reviewRequestedAt,
+                adminReview: action.payload.adminReview,
+              }
+            : b,
+        ),
+      };
+      persistBookmarks(ownerId, next.bookmarkedCopies);
+      return next;
+    }
+
     case 'SET_SELECTED_REFERENCE_CASES': {
       const next = {
         ...state,
@@ -420,6 +583,18 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
       return next;
     }
 
+    case 'SET_SELECTED_CASE_LIBRARY_IDS': {
+      const next = {
+        ...state,
+        settings: {
+          ...state.settings,
+          selectedCaseLibraryIds: action.payload.slice(0, 3),
+        },
+      };
+      persistSettings(ownerId, next);
+      return next;
+    }
+
     case 'RESTORE_DEFAULT_GENERATION_SETTINGS': {
       const next = {
         ...state,
@@ -430,6 +605,9 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
           cantoneseLevel: 4,
           englishMixingLevel: 1,
           consumerPersonas: [],
+          // Call-time HK natural day — not stale DEFAULT_SETTINGS.targetDate
+          targetDate: getHongKongDateString(),
+          selectedCalendarEventIds: [],
         },
       };
       persistSettings(ownerId, next);
@@ -516,7 +694,7 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
       return {
         ...state,
         source: snap.source,
-        settings: { ...state.settings, ...snap.settings },
+        settings: normalizeSettings({ ...state.settings, ...snap.settings }),
         diagnosis: snap.diagnosis,
         variants: snap.variants,
         audit: snap.audit,

@@ -12,9 +12,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthProvider, useAuth, type AuthState } from '../context/AuthContext';
+import { AppProvider } from '../context/AppContext';
 import PricingPage from '../pages/PricingPage';
 import BillingPage from '../pages/BillingPage';
-import BillingResultPage from '../pages/BillingResultPage';
+import BillingResultPage, { getVerifiedBillingRedirect } from '../pages/BillingResultPage';
 import { FREE_PLAN, PRO_PLAN, PLANS } from '../types';
 import type { PlanEntitlements, CheckoutResponse, PaymentOrder } from '../types';
 
@@ -98,7 +99,7 @@ describe('PricingPage', () => {
   it('renders plan quotas', () => {
     render(<PricingPage />);
     expect(screen.getByText(/20 次生成/)).toBeInTheDocument();
-    const proQuota = screen.getAllByText(/400 次生成/);
+    const proQuota = screen.getAllByText(/250 次生成/);
     expect(proQuota.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -168,12 +169,88 @@ describe('BillingPage', () => {
       return Promise.resolve({ ok: true, status: 200, json: async () => ({ orders: [], total: 0 }) });
     }));
 
-    render(<AuthProvider><BillingPage /></AuthProvider>);
+    render(
+      <AuthProvider>
+        <AppProvider ownerId="user-001">
+          <BillingPage />
+        </AppProvider>
+      </AuthProvider>,
+    );
 
     expect(await screen.findByText('套餐与结算')).toBeInTheDocument();
     expect(screen.getByText(/此为演示结算页/)).toBeInTheDocument();
     const logo = screen.getByRole('link', { name: /77港话通社媒文案器/ }).querySelector('img');
     expect(logo?.parentElement).toHaveClass('overflow-hidden', 'bg-black');
+  });
+
+  it('collapses the signed-in account details into the shared header menu', async () => {
+    setSignedIn();
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/api/me/entitlements')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            planId: 'free', planName: '免费版', quotaUsed: 0, quotaTotal: 20,
+            cycleStart: '2026-07-05T00:00:00.000Z', cycleEnd: '2026-07-12T00:00:00.000Z', isMock: true,
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ orders: [], total: 0 }) });
+    }));
+
+    render(
+      <AuthProvider>
+        <AppProvider ownerId="user-001">
+          <BillingPage />
+        </AppProvider>
+      </AuthProvider>,
+    );
+
+    const trigger = await screen.findByRole('button', { name: '账户与更多选项' });
+    expect(screen.queryByText('test@example.com')).not.toBeInTheDocument();
+    await userEvent.click(trigger);
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+  });
+
+  it('shows the success dialog only when the returned order is verified as paid', async () => {
+    setSignedIn();
+    const paidOrder: PaymentOrder = {
+      id: 'paid-order-001', planId: 'pro', planName: '专业版', amountCny: 19,
+      status: 'paid', createdAt: '2026-07-13T00:00:00.000Z', paidAt: '2026-07-13T00:01:00.000Z', isMock: false,
+    };
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, search: '?payment=success&orderId=paid-order-001' },
+      writable: true,
+      configurable: true,
+    });
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/api/me/entitlements')) {
+        return Promise.resolve({
+          ok: true, status: 200, json: async () => ({
+            planId: 'pro', planName: '专业版', quotaUsed: 0, quotaTotal: 250,
+            cycleStart: '2026-07-13T00:00:00.000Z', cycleEnd: '2026-08-13T00:00:00.000Z', isMock: false,
+          }),
+        });
+      }
+      if (url.includes('/api/billing/orders')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ orders: [paidOrder], total: 1 }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ paymentMode: 'alipay_sandbox', isMock: false }) });
+    }));
+
+    render(
+      <AuthProvider>
+        <AppProvider ownerId="user-001">
+          <BillingPage />
+        </AppProvider>
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByRole('dialog', { name: '支付成功' })).toBeInTheDocument();
+    expect(screen.getByText(/Pro 套餐已开通/)).toBeInTheDocument();
   });
 });
 
@@ -245,6 +322,17 @@ describe('BillingResultPage — success', () => {
 
     const mockElements = screen.getAllByText(/\[MOCK\]/);
     expect(mockElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('builds an automatic billing return only for a server-verified paid order', () => {
+    const paidOrder: PaymentOrder = {
+      id: 'paid-order-001', planId: 'pro', planName: '专业版', amountCny: 19,
+      status: 'paid', createdAt: '2026-07-13T00:00:00.000Z', paidAt: '2026-07-13T00:01:00.000Z', isMock: false,
+    };
+    expect(getVerifiedBillingRedirect('success', paidOrder))
+      .toBe('/app/billing?payment=success&orderId=paid-order-001');
+    expect(getVerifiedBillingRedirect('success', { ...paidOrder, status: 'pending' })).toBeNull();
+    expect(getVerifiedBillingRedirect('cancel', paidOrder)).toBeNull();
   });
 });
 
@@ -329,7 +417,7 @@ describe('Slice E type constants', () => {
   it('PRO_PLAN has expected shape', () => {
     expect(PRO_PLAN.id).toBe('pro');
     expect(PRO_PLAN.priceCny).toBe(19);
-    expect(PRO_PLAN.quotaPerCycle).toBe(400);
+    expect(PRO_PLAN.quotaPerCycle).toBe(250);
     expect(PRO_PLAN.cycleDays).toBeNull();
     expect(PRO_PLAN.isMock).toBe(true);
     expect(PRO_PLAN.features.length).toBeGreaterThan(0);

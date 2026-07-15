@@ -1,0 +1,12 @@
+﻿
+> hk-cantonese-copywriter@0.2.0 typecheck
+> npm run typecheck:client && npm run typecheck:server
+
+
+> hk-cantonese-copywriter@0.2.0 typecheck:client
+> cd client && npx tsc --noEmit
+
+
+> hk-cantonese-copywriter@0.2.0 typecheck:server
+> cd server && npx tsc --noEmit
+

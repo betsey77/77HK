@@ -14,8 +14,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { type ReactNode } from 'react';
-import { AppProvider } from '../context/AppContext';
+import { useContext, type ReactNode } from 'react';
+import { AppProvider, AppContext } from '../context/AppContext';
 import ReferenceCaseSelector from '../components/input/ReferenceCaseSelector';
 import type { BookmarkedCopy } from '../types';
 
@@ -118,8 +118,8 @@ describe('GenerationProgress Component', () => {
     expect(screen.getByText('质量审核')).toBeInTheDocument();
     expect(screen.getByText('消费者反馈')).toBeInTheDocument();
 
-    // Estimated indicator
-    expect(screen.getByText(/预估/)).toBeInTheDocument();
+    // Estimated indicator (timing disclaimer — not SSE)
+    expect(screen.getByText(/预估阶段/)).toBeInTheDocument();
   });
 
   it('shows distinct visual states for pending, active, done, and failed', async () => {
@@ -182,8 +182,8 @@ describe('GenerationProgress Component', () => {
     const progress = makeProgress();
     render(<GenerationProgress progress={progress} />, { wrapper: AppWrapper });
 
-    // The 预估 marker distinguishes this from real SSE progress
-    const estimated = screen.getByText(/预估/);
+    // The 预估阶段 marker distinguishes this from real SSE progress
+    const estimated = screen.getByText(/预估阶段/);
     expect(estimated).toBeInTheDocument();
     // Should be visually subtle
     expect(estimated.className).toMatch(/text-\[10px\]|text-xs/);
@@ -278,7 +278,7 @@ describe('HeaderMenu Component', () => {
     });
   });
 
-  it('calls onLogout when 退出登录 is clicked', async () => {
+  it('退出登录先确认，取消不退出，确认后只调用一次', async () => {
     const mod = await import('../components/layout/HeaderMenu');
     const HeaderMenu = mod.default;
     const onLogout = vi.fn();
@@ -293,7 +293,50 @@ describe('HeaderMenu Component', () => {
 
     // Click the logout item
     await userEvent.click(screen.getByText(/退出登录/));
+    expect(onLogout).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('确认退出登录');
+
+    await userEvent.click(screen.getByRole('button', { name: '取消' }));
+    expect(onLogout).not.toHaveBeenCalled();
+
+    await userEvent.click(trigger);
+    await userEvent.click(screen.getByText(/退出登录/));
+    await userEvent.click(screen.getByRole('button', { name: '确认退出' }));
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('复原创作配置先确认，取消保留原值，确认后恢复默认值', async () => {
+    const mod = await import('../components/layout/HeaderMenu');
+    const HeaderMenu = mod.default;
+
+    function Harness() {
+      const { state, dispatch } = useContext(AppContext);
+      return (
+        <>
+          <button onClick={() => dispatch({ type: 'SET_CANTO_LEVEL', payload: 2 })}>设为2</button>
+          <span data-testid="cantonese-level">{state.settings.cantoneseLevel}</span>
+          <HeaderMenu userEmail="test@example.com" onLogout={vi.fn()} />
+        </>
+      );
+    }
+
+    render(<Harness />, { wrapper: AppWrapper });
+    await userEvent.click(screen.getByText('设为2'));
+    expect(screen.getByTestId('cantonese-level')).toHaveTextContent('2');
+
+    const trigger = screen.getByRole('button', { name: '账户与更多选项' });
+    await userEvent.click(trigger);
+    await userEvent.click(screen.getByText('复原创作配置'));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('确认复原创作配置');
+    expect(screen.getByTestId('cantonese-level')).toHaveTextContent('2');
+
+    await userEvent.click(screen.getByRole('button', { name: '取消' }));
+    expect(screen.getByTestId('cantonese-level')).toHaveTextContent('2');
+
+    await userEvent.click(trigger);
+    await userEvent.click(screen.getByText('复原创作配置'));
+    await userEvent.click(screen.getByRole('button', { name: '确认复原' }));
+    expect(screen.getByTestId('cantonese-level')).toHaveTextContent('4');
   });
 
   it('closes menu when a non-logout item is clicked', async () => {
@@ -377,6 +420,18 @@ describe('Header Refactoring', () => {
     expect(homeLink.querySelector('img')).toHaveAttribute('src', '/brand/77-logo.png');
   });
 
+  it('marketing hero uses product stage mock without replacing logo', async () => {
+    const { default: MarketingPage } = await import('../components/marketing/MarketingPage');
+    render(<MarketingPage />);
+
+    // Homepage v2: sharp CSS product stage (not blurry photo)
+    expect(screen.getByTestId('marketing-product-stage')).toBeInTheDocument();
+    expect(screen.getByLabelText('产品示意')).toBeInTheDocument();
+    // Logo path must remain the confirmed brand asset
+    expect(screen.getByRole('link', { name: '77港话通社媒文案器首页' }).querySelector('img'))
+      .toHaveAttribute('src', '/brand/77-logo.png');
+  });
+
   it('low-frequency items (官网 nav, 复原配置, 主题 toggle) are in menu, not header row', async () => {
     const mod = await import('../components/layout/Header');
     const Header = mod.default;
@@ -440,5 +495,15 @@ describe('ReferenceCaseSelector — Always Visible', () => {
 
     const toggle = screen.getByRole('button', { name: /参考收藏案例/ });
     expect(toggle).toBeInTheDocument();
+  });
+
+  it('renders with data-testid="reference-case-selector"', async () => {
+    render(<ReferenceCaseSelector />, { wrapper: AppWrapper });
+
+    const el = screen.getByTestId('reference-case-selector');
+    expect(el).toBeInTheDocument();
+    expect(el).toHaveClass('shrink-0');
+    // The inner toggle button is still accessible
+    expect(screen.getByRole('button', { name: /参考收藏案例/ })).toBeInTheDocument();
   });
 });

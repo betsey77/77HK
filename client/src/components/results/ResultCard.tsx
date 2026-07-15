@@ -74,7 +74,11 @@ export default function ResultCard({ title, variantKey, content, originalText, e
     variantKey,
     content,
     source: state.source,
-    settings: state.settings,
+    // Keep historical generation platform; default publish platform = this variant
+    settings: {
+      ...state.settings,
+      publishPlatform: variantKey,
+    },
     variantMeta: variantMeta ?? null,
     scores: state.scores ?? null,
     consumerFeedback: state.consumerFeedback ?? null,

@@ -1,0 +1,9 @@
+﻿Client: 353/353 PASS
+Server: 509/509 PASS
+typecheck: both PASS
+build: both PASS (client bundle ~812KB warning non-blocking)
+audit prod: 0
+audit all: 0
+migration local files: 20260714052140_w2_case_library.sql, 20260714052414_harden_w2_case_library_function.sql
+remote writes: none
+commit/push: none

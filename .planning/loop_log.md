@@ -1,5 +1,94 @@
 # Loop Log
 
+## 2026-07-14 — local-vercel-readiness + homepage scroll smoke
+
+- Phase: implement (local config/code only; no deploy/migration/secret/commit)
+- Goal: e2e scroll reveal smoke; configurable API origin; CORS allowlist; split alipay return/notify URLs; dual-project Vercel json + docs
+- Goal state: achieved (local)
+- Exit code: 0
+- Tests: E2E smoke 2/2; Client 358/358; Server 526/526; typecheck + build; audit 0 vulns; vercel.json JSON OK; secret scan clean (no real keys)
+- Evidence: docs/evidence/2026-07-14/local-vercel-readiness/verification.md
+- Explicitly NOT done: cloud deploy CLI, migration, real env values, alipay E2E, git commit/push
+- Stop: slice complete
+
+## 2026-07-14 — Phase 0 生产发布基线
+
+- Phase: implement (engineering baseline only; no deploy/migration write/commit)
+- Goal: Phase 0 freeze — audit fixes, verify scripts, env contract, migration/Advisor plans, playwright smoke
+- Goal state: achieved (local)
+- Exit code: 0
+- Tests: Client 353/353; Server 509/509; typecheck + build both sides; audit prod+full 0 vulns
+- Key changes: package.json scripts/overrides; .env.example; playwright harness; local W2 migration rename to 052140/052414; evidence docs
+- Evidence: docs/evidence/2026-07-14/phase0-production-baseline/
+- Explicitly NOT done: deploy, production alipay, migration push/repair, git commit/push, DB/Dashboard writes
+- Stop: waiting Codex independent acceptance
+
+## 2026-07-14 — 登录视觉 / 收藏布局 / 管理员备注标签 / 左侧折叠页
+
+- Phase: implement (frontend-only; no migration/push/deploy/env)
+- Goal: login visual polish; favorites header wrap; admin notes/tags chips; InputPanel 4-group accordion
+- Goal state: achieved
+- Exit code: 0
+- Tests: Client 351/351; Server 509/509; tsc + build both sides
+- Key changes: AuthLayout/LoginPage; FavoritesPanel header; AdminPage notes/chips; InputPanel accordion (mount-preserving)
+- Evidence: docs/evidence/2026-07-14/login-admin-accordion/
+- Explicitly NOT done: migration, RLS, payment, deploy, git commit/push
+
+## 2026-07-14 — 管理员审阅、配置保存与左侧标签 UI 修复
+
+- Phase: implement (frontend-only; no migration/push/deploy/env)
+- Goal: admin modal close/copy always visible; Chinese labels; config date save/restore; input emoji labels
+- Goal state: achieved
+- Exit code: 0
+- Tests: Client 330/330; Server admin 56/56; tsc + build both sides
+- Key changes: AdminPage dialog layout + adminDisplayLabels; ConfigManager targetDate/calendar; RESTORE/LOAD HK date; input label emoji
+- Evidence: docs/evidence/2026-07-14/admin-config-ui-fixes/
+- Explicitly NOT done: migration, RLS, accordion, payment, billing routes, deploy, admin write APIs
+
+## 2026-07-14 — W4 管理员收藏审阅与超级管理员案例正文
+
+- Phase: implement (local-only; no migration/push/deploy/env)
+- Goal: admin favorite review summary + super_admin case body with fail-closed audit
+- Goal state: achieved
+- Exit code: 0
+- Tests: Server 501/501; Client 325/325; tsc + build both sides
+- Key changes: extractFavoriteSettingsFields, requireSuperAdmin, case-library detail BFF, AdminPage 审阅摘要 + 案例审阅 Tab
+- Evidence: docs/evidence/2026-07-14/w4-admin-review/
+- Explicitly NOT done: migration, RLS, accordion, payment E2E, deploy, case list/bulk export
+
+## 2026-07-14 — W3 正反例 Prompt 注入（三引擎一致）
+
+- Phase: implement (local-only; no migration/push/deploy)
+- Goal: selectedCaseLibraryIds → JWT resolve → shared caseLibraryContext on DeepSeek/Cantonese/fallback
+- Goal state: achieved
+- Exit code: 0
+- Tests: Server related 45/45; Client W3+W2+W1+history related pass; tsc + build both sides
+- Key changes: caseLibraryContext.ts, generate route resolve+snapshot, diagnoseGenerate dual path, fallback style hints, useGenerate IDs only
+- Evidence: docs/evidence/2026-07-14/w3-case-prompt-injection/
+- Explicitly NOT done: W4 admin body, accordion/collapsible, migration, RLS change, payment, deploy
+
+## 2026-07-14 — W2 个人正反例案例库（不含 Prompt 注入与折叠页）
+
+- Phase: implement (local-only; Migration SQL written, not pushed)
+- Goal: owner-scoped case library CRUD + select IDs in config/history; no W3 injection
+- Goal state: achieved
+- Exit code: 0
+- Tests: Client W2 10/10 (+ related 24); Server W2 22 (+ related 71); tsc + build both sides
+- Key changes: migration case_library_entries, caseLibrary BFF, CaseLibraryPanel, selectedCaseLibraryIds wiring
+- Evidence: docs/evidence/2026-07-14/w2-case-library/
+- Explicitly NOT done: remote migration push, W3 prompt injection, W4 admin body access, accordion
+
+## 2026-07-14 — W1 创作参数闭环（不含折叠页）
+
+- Phase: implement (local-only, no migration/push/deploy)
+- Goal: W1 copy type / length / rich tone + config/history/bookmark consistency
+- Goal state: achieved
+- Exit code: 0
+- Tests: Client 308/308; Server w1+reference+calendar+generations 176; tsc + build both sides
+- Key changes: w1Settings/w1Constraints, InputPanel incremental controls (no accordion), prompt injection three engines, FavoritesPanel copy type label
+- Evidence: docs/evidence/2026-07-14/w1-parameters/
+- Explicitly NOT done: W2/W3/W4, CollapsibleSection, migration, RLS, payment, deploy
+
 ## 2026-07-12 — Slice H1-R: Feedback security fix + Session restore + History load
 
 - Phase: implement (local-only, no push/deploy/db migration)

@@ -1,9 +1,14 @@
-import { useContext, useState, useCallback } from 'react';
+import { useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import type { ConsumerPersona } from '../../types';
+import { apiUrl } from '../../services/apiBase';
 
-const DEFAULT_PERSONA_TEMPLATES: Omit<ConsumerPersona, 'id'>[] = [
+/** Stable template id — used only for preset dedupe, not instance id. */
+export type PersonaTemplate = Omit<ConsumerPersona, 'id'> & { templateKey: string };
+
+const DEFAULT_PERSONA_TEMPLATES: PersonaTemplate[] = [
   {
+    templateKey: 'tmpl_amay',
     name: '本地师奶阿May',
     ageRange: '35-50',
     occupation: '家庭主妇',
@@ -12,6 +17,7 @@ const DEFAULT_PERSONA_TEMPLATES: Omit<ConsumerPersona, 'id'>[] = [
     notes: '对价钱敏感',
   },
   {
+    templateKey: 'tmpl_jason',
     name: '职场白领Jason',
     ageRange: '25-35',
     occupation: 'marketing manager',
@@ -20,6 +26,7 @@ const DEFAULT_PERSONA_TEMPLATES: Omit<ConsumerPersona, 'id'>[] = [
     notes: '中英夹杂自然，对设计感要求高',
   },
   {
+    templateKey: 'tmpl_chris',
     name: '斜杠青年Chris',
     ageRange: '18-25',
     occupation: '大学生 / freelance designer',
@@ -28,6 +35,7 @@ const DEFAULT_PERSONA_TEMPLATES: Omit<ConsumerPersona, 'id'>[] = [
     notes: '看design多过看字，caption太长会skip',
   },
   {
+    templateKey: 'tmpl_karen',
     name: '育儿爸妈Karen',
     ageRange: '30-45',
     occupation: '在职妈妈',
@@ -36,6 +44,11 @@ const DEFAULT_PERSONA_TEMPLATES: Omit<ConsumerPersona, 'id'>[] = [
     notes: '重视资讯准确性，对夸张广告免疫',
   },
 ];
+
+/** Fingerprint of template field values (not instance id). */
+export function personaTemplateFingerprint(p: Omit<ConsumerPersona, 'id'>): string {
+  return [p.name, p.ageRange, p.occupation, p.habits, p.apps, p.notes].join('\u0001');
+}
 
 function makeId() {
   return `p_${Math.random().toString(36).slice(2, 10)}`;
@@ -47,10 +60,43 @@ export default function PersonaManager() {
   const [freeText, setFreeText] = useState('');
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const personas = state.settings.consumerPersonas;
+
+  useEffect(() => {
+    return () => {
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+    };
+  }, []);
+
+  const showHint = useCallback((msg: string) => {
+    setHint(msg);
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHint(null), 1800);
+  }, []);
 
   const addPersona = useCallback(
     (template?: Omit<ConsumerPersona, 'id'>) => {
+      // Preset template dedupe: same template fields → keep one entry
+      if (template) {
+        const fp = personaTemplateFingerprint(template);
+        const existing = personas.find(
+          (p) => personaTemplateFingerprint(p) === fp,
+        );
+        if (existing) {
+          setHighlightId(existing.id);
+          showHint('该示例已加入');
+          if (hintTimer.current) clearTimeout(hintTimer.current);
+          hintTimer.current = setTimeout(() => {
+            setHighlightId(null);
+            setHint(null);
+          }, 1800);
+          return;
+        }
+      }
+
       const newPersona: ConsumerPersona = {
         id: makeId(),
         name: template?.name ?? '',
@@ -64,8 +110,13 @@ export default function PersonaManager() {
         type: 'SET_CONSUMER_PERSONAS',
         payload: [...personas, newPersona],
       });
+      if (template) {
+        setHighlightId(newPersona.id);
+        showHint(`已添加：${template.name}`);
+        setTimeout(() => setHighlightId(null), 1200);
+      }
     },
-    [personas, dispatch],
+    [personas, dispatch, showHint],
   );
 
   const updatePersona = useCallback(
@@ -98,7 +149,7 @@ export default function PersonaManager() {
     setParseError(null);
 
     try {
-      const res = await fetch(`/api/parse-personas`, {
+      const res = await fetch(apiUrl('/parse-personas'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: freeText.trim() }),
@@ -181,17 +232,23 @@ export default function PersonaManager() {
           <div>
             <p className="text-[10px] text-gray-600 light:text-gray-500 mb-1">快速添加预设画像：</p>
             <div className="flex flex-wrap gap-1">
-              {DEFAULT_PERSONA_TEMPLATES.map((tmpl) => (
-                <button
-                  key={tmpl.name}
-                  onClick={() => addPersona(tmpl)}
-                  className="text-[10px] px-2 py-1 rounded-full bg-gray-800/50 light:bg-gray-200 border border-gray-700/50 light:border-gray-300
-                    text-gray-400 light:text-gray-600 hover:text-gray-200 hover:border-gray-600 transition-colors"
-                >
-                  + {tmpl.name}
-                </button>
-              ))}
+              {DEFAULT_PERSONA_TEMPLATES.map((tmpl) => {
+                const { templateKey, ...fields } = tmpl;
+                return (
+                  <button
+                    key={templateKey}
+                    type="button"
+                    data-template-key={templateKey}
+                    onClick={() => addPersona(fields)}
+                    className="text-[10px] px-2 py-1 rounded-full bg-gray-800/50 light:bg-gray-200 border border-gray-700/50 light:border-gray-300
+                      text-gray-400 light:text-gray-600 hover:text-gray-200 hover:border-gray-600 transition-colors"
+                  >
+                    + {tmpl.name}
+                  </button>
+                );
+              })}
               <button
+                type="button"
                 onClick={() => addPersona()}
                 className="text-[10px] px-2 py-1 rounded-full bg-gray-800/50 light:bg-gray-200 border border-gray-700/50 light:border-gray-300
                   text-gray-500 light:text-gray-500 hover:text-gray-300 transition-colors"
@@ -199,13 +256,23 @@ export default function PersonaManager() {
                 + 自定义
               </button>
             </div>
+            {hint && (
+              <p className="mt-1 text-[10px] text-emerald-400 light:text-orange-600" role="status" aria-live="polite">
+                {hint}
+              </p>
+            )}
           </div>
 
           {/* Persona list */}
           {personas.map((persona, idx) => (
             <div
               key={persona.id}
-              className="bg-gray-800/30 light:bg-gray-200/50 border border-gray-700/50 light:border-gray-300 rounded-lg p-2.5 space-y-1.5"
+              data-persona-id={persona.id}
+              className={`bg-gray-800/30 light:bg-gray-200/50 border rounded-lg p-2.5 space-y-1.5 transition-colors ${
+                highlightId === persona.id
+                  ? 'border-emerald-500/50 light:border-orange-400 ring-1 ring-emerald-500/30 light:ring-orange-400/30'
+                  : 'border-gray-700/50 light:border-gray-300'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-gray-500 light:text-gray-500">消费者 {idx + 1}</span>

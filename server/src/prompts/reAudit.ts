@@ -55,7 +55,7 @@ ${variants.ig}
 ### Facebook 版本
 ${variants.facebook}
 
-### YouTube Shorts 版本
+### Shorts/TK 版本（YouTube Shorts / TikTok）
 ${variants.shorts}
 
 ---

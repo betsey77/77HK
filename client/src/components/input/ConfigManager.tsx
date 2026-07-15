@@ -7,6 +7,10 @@ function makeConfigId() {
   return `cfg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function sameStringArray(a: string[] = [], b: string[] = []) {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
 export default function ConfigManager() {
   const { state, dispatch } = useContext(AppContext);
   const [showSave, setShowSave] = useState(false);
@@ -33,7 +37,26 @@ export default function ConfigManager() {
       cfg.englishMixingLevel !== state.settings.englishMixingLevel ||
       cfg.tone !== state.settings.tone ||
       cfg.platform !== state.settings.platform ||
-      cfg.inputLanguage !== state.settings.inputLanguage
+      cfg.inputLanguage !== state.settings.inputLanguage ||
+      (cfg.copyType ?? 'social') !== state.settings.copyType ||
+      (cfg.customCopyType ?? '') !== (state.settings.customCopyType ?? '') ||
+      (cfg.lengthControlEnabled ?? false) !== state.settings.lengthControlEnabled ||
+      (cfg.copyLengthLevel ?? 3) !== state.settings.copyLengthLevel ||
+      (cfg.primaryTone ?? cfg.tone) !== state.settings.primaryTone ||
+      !sameStringArray(cfg.toneModifiers ?? [], state.settings.toneModifiers ?? []) ||
+      !sameStringArray(
+        cfg.selectedReferenceCaseIds,
+        state.settings.selectedReferenceCaseIds,
+      ) ||
+      !sameStringArray(
+        cfg.selectedCaseLibraryIds,
+        state.settings.selectedCaseLibraryIds,
+      ) ||
+      (cfg.targetDate ?? '') !== (state.settings.targetDate ?? '') ||
+      !sameStringArray(
+        cfg.selectedCalendarEventIds ?? [],
+        state.settings.selectedCalendarEventIds ?? [],
+      )
     );
   })();
 
@@ -51,10 +74,20 @@ export default function ConfigManager() {
       creativityLevel: state.settings.creativityLevel,
       cantoneseLevel: state.settings.cantoneseLevel,
       englishMixingLevel: state.settings.englishMixingLevel,
-      tone: state.settings.tone,
+      tone: state.settings.primaryTone ?? state.settings.tone,
       platform: state.settings.platform,
       inputLanguage: state.settings.inputLanguage,
       consumerPersonas: state.settings.consumerPersonas,
+      selectedReferenceCaseIds: state.settings.selectedReferenceCaseIds ?? [],
+      selectedCaseLibraryIds: state.settings.selectedCaseLibraryIds ?? [],
+      targetDate: state.settings.targetDate,
+      selectedCalendarEventIds: [...(state.settings.selectedCalendarEventIds ?? [])],
+      copyType: state.settings.copyType,
+      customCopyType: state.settings.customCopyType,
+      lengthControlEnabled: state.settings.lengthControlEnabled,
+      copyLengthLevel: state.settings.copyLengthLevel,
+      primaryTone: state.settings.primaryTone,
+      toneModifiers: state.settings.toneModifiers ?? [],
       createdAt: new Date().toISOString(),
     };
 
@@ -105,7 +138,7 @@ export default function ConfigManager() {
               <button
                 onClick={() => loadConfig(cfg)}
                 className="flex-1 text-left text-xs text-gray-300 light:text-gray-800 hover:text-emerald-300 truncate transition-colors"
-                title={`${cfg.tone} | 粤${cfg.cantoneseLevel} | 英${cfg.englishMixingLevel} | 创作${cfg.creativityLevel}`}
+                title={`${cfg.tone} | 粤${cfg.cantoneseLevel} | 英${cfg.englishMixingLevel} | 创作${cfg.creativityLevel} | 参考${cfg.selectedReferenceCaseIds?.length ?? 0} | 案例${cfg.selectedCaseLibraryIds?.length ?? 0}`}
               >
                 {cfg.name}
               </button>

@@ -1,13 +1,106 @@
 # TEST PLAN：77港话通 SaaS MVP
 
-## 固定命令
+> 待开发测试范围：工作台内容控制与个人案例库。以 spec/WORKBENCH_CONTENT_CONTROLS.md 第 6 节的 W1–W4 验收矩阵为准；远端 Migration/RLS 需单独授权。
+
+## 固定命令（Phase 0 起）
+
+安装与构建分离；**禁止**在 `build` 内执行 `npm ci`。
 
 ```powershell
-cd client; npx tsc --noEmit; npm run build
-cd server; npx tsc --noEmit; npm run build
+# 依赖变更后
+npm ci
+# 或
+npm run install:all
+
+# 单元 / 行为
+npm run test:client    # 期望 ≥358（含 apiBase）
+npm run test:server    # 期望 ≥521（含 CORS + alipayUrls）
+
+# 类型与生产构建
+npm run typecheck
+npm run build
+
+# 安全门禁
+npm run audit:prod     # 无 high/critical
+npm run audit:all      # 无 high/critical
+
+# 一键（含 audit）
+npm run verify
+
+# 可选：公开页 smoke（需先 dev:client + playwright install chromium）
+npm run test:e2e:smoke
 ```
 
-新增测试框架、浏览器自动化或安全扫描工具前先说明依赖并获得用户同意。
+等价分项：
+
+```powershell
+cd client; npx vitest run; npx tsc --noEmit; npm run build
+cd server; npm test; npx tsc --noEmit; npm run build
+```
+
+Playwright 仅 Phase 0 smoke；完整业务 E2E 见 `docs/release/2026-07-14-playwright-smoke-plan.md` 与 production-launch-plan Phase 2。新增付费服务或强制升级依赖档位前必须用户同意。权威命令表：`scripts/verify/commands.md`。
+
+## Phase 0 发布基线回归
+
+- Client ≥353、Server ≥509；双端 typecheck/build。
+- `npm audit` 与 `npm audit --omit=dev` 无未处置 high/critical。
+- W2 本地 migration version 对齐 `20260714052140` / `20260714052414`；未授权不做 repair/push。
+- 证据：`docs/evidence/2026-07-14/phase0-production-baseline/`。
+
+## R1 — 审核分组 + 管理员收藏批注（2026-07-14）
+
+### Migration 静态/契约
+
+- `profiles.review_group` CHECK + 索引存在。
+- `favorite_admin_reviews` 表/RLS/owner SELECT/同组 admin SELECT/super_admin SELECT 存在。
+- authenticated 无 review 写权限。
+- `admin_update_favorite_review` 仅 grant service_role；PUBLIC/anon/authenticated revoke。
+- RPC 校验 admin 角色与同组，同函数写 review + audit。
+
+### Server
+
+- group1 admin 列表/count 仅同组；越组搜索不泄漏。
+- 未分组 admin 空列表；super_admin 全量。
+- group1 访问 group2 favorite → 404，无 audit/body。
+- 同组详情顺序 scope → audit → body。
+- review 写：成功 / 空意见 400 / 超长 400 / 越组 404 / 普通用户 403 / 清除成功。
+- 写路径走原子 RPC，route 不分别写 review/audit。
+- 列表仍不返回 content。
+
+### Client
+
+- 管理员详情可保存已采纳/需修改；加载/成功/失败状态正确；列表 chip 更新。
+- 用户收藏卡显示审核意见（折叠可见）；无 review 不显示空框。
+- `favoriteRecordToBookmark` 保留 review；`bookmarkToSyncFavorite` 不发送 review。
+- 首页出现电话与 `tel:` 链接。
+
+### 命令
+
+```powershell
+npx vitest run src/__tests__/review-groups-migration.test.ts src/__tests__/review-groups-admin-notes.test.ts
+# client
+npx vitest run src/test/slice-review-groups-admin-notes.test.tsx
+npm run test:client
+npm run test:server
+npm run typecheck
+npm run build
+```
+
+远端 migration **未执行**。证据：`docs/evidence/2026-07-14/review-groups-admin-notes/`。
+
+## 2026-07-14 本地 Vercel readiness + 官网滚动 smoke
+
+| 区域 | 命令 / 检查 | 期望 |
+| --- | --- | --- |
+| E2E smoke | `npm run test:e2e:smoke`（先 `dev:client`） | 首页 HTTP；分段滚动后全部 `[data-reveal]` 为 `is-in` 且 opacity≠0；不硬编码节点数 29 |
+| Client apiBase | `npx vitest run src/test/apiBase.test.ts` | 相对 `/api` 默认；`VITE_API_BASE_URL` 拼接；不双写 `/api` |
+| Server CORS | `cors.test.ts` | 允许本地/配置 origin；拒绝未授权；无 Origin 允许 |
+| Server alipayUrls | `alipayUrls.test.ts` | 分域 return/notify；显式 URL 优先；sandbox fail closed |
+| JSON | `client/vercel.json`、`server/vercel.json` | 合法 JSON；无 secret |
+| Secret scan | 本轮新增配置/证据 | 无 private key / sendkey / service_role 形态 |
+| 全量 | `npm run verify` | test + typecheck + build + audit |
+
+证据：`docs/evidence/2026-07-14/local-vercel-readiness/verification.md`。
 
 ## 证据策略
 
@@ -19,6 +112,12 @@ cd server; npx tsc --noEmit; npm run build
 | 生成持久化/额度 | strict | API/DB 状态、失败释放、幂等 |
 | 支付/Webhook | strict | 沙箱请求、验签、重放、订单和权益状态 |
 | 管理员/审计 | strict | 非管理员拒绝、正文访问/删除审计 |
+
+## 2026-07-13：收藏卡片品牌/产品展示
+
+- 使用一条含品牌名、产品名和 IG 平台的收藏记录渲染 `FavoritesPanel`。
+- 断言 `思念 · 煎饺王` 存在、使用暗色 `text-red-400` 与亮色 `light:text-red-600`，并在 DOM 顺序上位于高亮 `IG` 标签之前。
+- 运行完整 Client Vitest 与 production build，确认收藏、参考案例和其他工作台功能不回归。
 
 ## Slice A：账户壳 Mock
 
@@ -133,3 +232,56 @@ cd server; npx tsc --noEmit; npm run build
 |CR-2026-07-12-bug|官网Pricing与结算转化链路未接通|Verify 官网Pricing与结算转化链路未接通|Feature branch or local dev state|Run the relevant behavior path and boundary checks|官网导航和套餐区可进入/pricing；Pricing的Free/Pro CTA分别进入正确注册或结算流程；未登录结算保留安全next路径，登录后回到/app/billing且拒绝外部open redirect|docs/evidence/YYYY-MM-DD/slice-NN/|
 
 |CR-2026-07-12-change|已开发功能规格沉淀与防覆盖门禁|Verify 已开发功能规格沉淀与防覆盖门禁|Feature branch or local dev state|Run the relevant behavior path and boundary checks|权威PRD/SDD/TEST_PLAN列出已完成能力与不变量；每个后续Slice运行跨域回归矩阵；未经需求变更不得删除、隐藏或降级既有能力|docs/evidence/YYYY-MM-DD/slice-NN/|
+
+|CR-2026-07-13-bug|生成历史完整恢复左侧输入配置|旧 brief 兼容、完整 settings 持久化、损坏值回退、双页面恢复提示|✅ COMPLETED|`npx vitest run`; `npx tsc --noEmit`; `npm run build`|旧记录恢复已保存字段；新记录恢复全部 AppSettings；列表和详情显示文字消失恢复指引|`docs/evidence/2026-07-13/slice-history-settings/verification.md`|
+
+## 2026-07-13：高影响操作确认与批量删除
+
+- HeaderMenu：退出/复原点击后不立即执行；取消保持原状态，确认只执行一次。
+- HistoryPage：单条删除确认；多选两条后批量确认；全成功、部分失败、零选择 disabled、删除中防重复。
+- HistoryDetailPage：确认前不调用 DELETE，取消保留正文，确认后进入已删除状态。
+- FavoritesPanel：选择两条中的一条并批量删除，未选项保留；全选/退出多选状态正确；仍触发既有云同步差异路径。
+- ConfirmDialog：confirming 时按钮 disabled、`aria-busy` 和处理中标签可见。
+- 回归：Client 全量 Vitest、TypeScript、production build；不运行 Migration 或生产数据操作。
+
+### 同切片检索分页
+
+- 收藏库按品牌/产品/原文/文案检索，11 条数据按 10 条分页；全选仅覆盖当前页。
+- 生成历史首屏请求 `limit=10&offset=0`，翻页请求正确 offset，搜索提交携带 `q` 并回到第 1 页。
+- 服务端拒绝含 PostgREST 过滤语法的非法搜索值；合法搜索保留 owner 过滤并覆盖品牌、产品、原文字段。
+- 生成历史摘要返回 `brandName/productName`，客户端类型、服务端类型与映射保持同步。
+
+## 2026-07-13：Free 收藏与历史容量权益
+
+- Free 已有 10 条收藏时点击未收藏按钮：不 dispatch 新增，显示 Pro 解锁入口；删除一条后可新增。
+- Pro 在 10 条后仍可新增；套餐加载失败按 Free。
+- Free 收藏库有 11 条时只渲染最新 10 条和“1 条需 Pro 解锁”；Pro 渲染全部；参考案例与 Prompt 注入不得使用锁定收藏。
+- Free 新收藏 BFF 在 owner count=10 时返回 `403 PLAN_LIMIT`；同 clientId 更新与删除仍允许。
+- Free legacy import 预检超限时零写入；Pro 不受该容量门禁。
+- Free 历史总数 18 时返回 15 条可访问总数和 `lockedCount=3`，第二页最多 5 条；Pro 返回全部。
+- Free 搜索只过滤最新 15 条；锁定历史的详情 URL 返回 403，跨用户/不存在仍返回 404。
+- 回归：生成额度、支付、RLS、收藏删除、历史软删除、检索分页、全量 Client/Server 测试与双端构建。
+
+|CR-2026-07-14-bug|R1.1 管理员审核保存与正文审阅修复|静态 migration 契约 + 管理员审核 UI 行为测试 + 双端 typecheck/build。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|管理员保存已采纳或需修改时不再返回 500，审核与审计记录原子写入。; 收藏正文区域可拖拽增高，弹窗关闭、审核编辑与复制仍可访问。; 失败信息可访问且不暴露数据库细节。|docs/evidence/2026-07-14/r1-review-save-hotfix/|
+
+|CR-2026-07-14-feature|R2 收藏文案句子级管理员批注|管理员同组/越组 API 测试、用户 RLS 读取测试、文本选择与高亮 UI 测试、失效锚点回退测试。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|管理员可选中收藏正文片段并添加修改建议，整篇审核状态继续独立保留。; 收藏所属用户能看到红色高亮片段、状态文字和批注意见，不能修改管理员批注。; 普通管理员仅能批注同 review_group 用户收藏，super_admin 可跨组；越权请求不可读取或写入。; 原文锚点不匹配时降级为批注列表并标记定位失效，不把批注错误套到其他句子。|docs/evidence/2026-07-14/r2-inline-review-annotations/|
+
+|CR-2026-07-14-feature|R2.1 收藏正文直接编辑与重新送审|新增数据库契约、owner API、管理员 API、reducer 与收藏编辑/批注行为测试；再跑 Client/Server 全量测试、typecheck 与 build。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|用户只能编辑并保存自己的收藏正文，不能修改他人收藏或生成历史原文。; 正文保存成功后旧整篇审核和句子级批注失效，管理员列表与详情显示修改后待审核。; 管理员重新审核后，用户刷新收藏库可看到新的状态、整篇意见和句子级批注。; 取消编辑或关闭含未保存改动的编辑区时先确认，保存失败不覆盖本地已显示正文。|docs/evidence/2026-07-14/r2-inline-review-and-favorite-edit/|
+
+|CR-2026-07-15-change|Shorts 展示名统一为 Shorts/TK|搜索可见文案与 UI 行为测试，确认无孤立 Shorts 标签且历史记录仍可读取。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|所有用户可见的 Shorts 文案统一显示为 Shorts/TK，包括工作台、结果、收藏、历史、管理员页、官网和定价说明。; 内部持久化 key 暂继续使用 shorts，避免无必要数据库迁移和历史数据失配；API/Prompt 语义需同时覆盖 Shorts 与 TikTok。|docs/evidence/2026-07-15/shorts-tk-label/|
+
+|CR-2026-07-15-feature|用户自写收藏文案与待审核队列|覆盖 owner 创建/编辑、必填校验、RLS 分组隔离、待审核计数、去重提醒、审核后清零及刷新恢复。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|用户可在收藏库新增自写文案；品牌、文案类型、发布平台必填，备注选填，并明确选择是否需要审核。; 收藏库现有文案的发布平台和文案类型均可编辑；需要审核的文案进入该用户 review_group 的管理员队列并高亮。; 管理员用户收藏页和首页右上角折叠菜单显示未审核圆形数字角标；审核完成后计数消失或递减。; 每次出现新增待审核任务时，管理员右下角收到合并提醒，可选稍后审核或立刻审核并跳转用户收藏页；不得跨 review_group 泄露数量或正文。|docs/evidence/2026-07-15/user-authored-review-queue/|
+
+### 用户自写收藏与待审核队列验证结果
+
+- Migration 静态契约、远端 history/列/约束/索引/触发器和 Advisor 复核通过。
+- 服务端覆盖自写必填与 overpost、同组 pending summary、pendingOnly 列表和无正文响应。
+- 客户端覆盖字段白名单往返、自写表单、类型编辑、角标、深链筛选、行高亮、相同批次去重、数量下降不误报和新时间再次提醒。
+- 完整回归：Client 383/383，Server 569/569，双端 typecheck/build，production audit 0 vulnerabilities。
+- Playwright 运行器 3 次启动超时，保留用例但截图验收未通过；不得把该项写成已通过。
+
+|CR-2026-07-15-change|Pro 月额度调整为 250 次|套餐展示、entitlements、reserve quota 边界 249/250/251 与存量订阅迁移测试。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|官网、Pricing、结算页、数据库 plans、额度服务和管理员订阅页统一显示 Pro 每自然月 250 次。; 存量 Pro 用户当前周期立即调整为 250 次，后续周期同样为 250 次；执行数据库变更前仍需再次确认 Migration 授权。|docs/evidence/2026-07-15/pro-250-quota/|
+
+|CR-2026-07-15-feature|团队协作版 99 元/月联系定制|Pricing/官网 CTA 路由回归、弹窗交互、剪贴板失败与二维码资源可用性测试。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|官网和定价页新增团队协作版 ￥99/月，并说明审核分组、管理员批注、待审核队列等团队功能。; CTA 不进入支付页；弹窗显示联系 vx：18595680518，号码可一键复制，并展示项目内保存的微信二维码。; 弹窗具备关闭、复制成功/失败状态与键盘可访问性；不把电话或二维码错误描述为支付宝收款入口。|docs/evidence/2026-07-15/team-plan-contact/|
+
+|CR-2026-07-15-feature|用户审核结果弹窗|覆盖通过/未通过文案、品牌为空回退、owner/RLS 隔离、刷新去重、新审核再次提醒、立即查看定位与键盘可访问性。|Feature branch or local dev state|Run the relevant behavior path and boundary checks|adopted 显示“你的{品牌}文案已通过审核，请立即查看”，changes_requested 显示“你的{品牌}文案未通过审核，请立即查看”。; 同一 owner+favorite+revision+review time 只提示一次，新审核再次提示。; 立即查看打开收藏库并定位目标；不得泄露其他 owner 或 review_group 的品牌、审核状态、正文或计数。|docs/evidence/2026-07-15/user-review-result-dialog/|

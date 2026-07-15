@@ -7,6 +7,7 @@ import DiagnosisSummary from './DiagnosisSummary';
 import ResultCard from './ResultCard';
 import { VARIANT_TABS } from '../../constants';
 import type { VariantKey } from '../../types';
+import { apiUrl } from '../../services/apiBase';
 
 type TranslationCache = Partial<Record<VariantKey, string>>;
 
@@ -58,7 +59,7 @@ export default function ResultsPanel() {
         const text = variants[key];
         if (!text) return { key, translated: '' };
         try {
-          const res = await fetch('/api/translate', {
+          const res = await fetch(apiUrl('/translate'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text }),

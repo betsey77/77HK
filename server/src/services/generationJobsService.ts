@@ -50,6 +50,8 @@ function toSummary(row: Record<string, unknown>): GenerationJobSummary {
     source: row.source as string,
     platform: row.platform as string,
     tone: row.tone as string,
+    brandName: row.brand_name as string | null,
+    productName: row.product_name as string | null,
     createdAt: row.created_at as string,
     completedAt: row.completed_at as string | null,
   };
@@ -268,16 +270,52 @@ export async function listJobs(
   jwt: string,
   ownerId: string,
   query: ListGenerationQuery = {},
-): Promise<{ jobs: GenerationJobSummary[]; total: number }> {
+): Promise<{ jobs: GenerationJobSummary[]; total: number; lockedCount: number }> {
   const client = createUserClient(jwt);
   const limit = Math.min(Math.max(query.limit ?? 20, 1), 100);
   const offset = Math.max(query.offset ?? 0, 0);
 
-  const { data, error, count } = await client
+  if (query.accessLimit) {
+    const { data, error, count } = await client
+      .from('generation_jobs')
+      .select('id, idempotency_key, status, source, platform, tone, brand_name, product_name, created_at, completed_at', { count: 'exact' })
+      .eq('owner_id', ownerId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(query.accessLimit);
+
+    if (error) throw new Error(`Failed to list generation jobs: ${error.message}`);
+
+    const terms = query.query?.toLocaleLowerCase().split(/\s+/).filter(Boolean) ?? [];
+    const accessibleRows = ((data ?? []) as Record<string, unknown>[]).filter((row) => {
+      if (terms.length === 0) return true;
+      const searchable = [row.brand_name, row.product_name, row.source]
+        .filter((value): value is string => typeof value === 'string')
+        .join(' ')
+        .toLocaleLowerCase();
+      return terms.every((term) => searchable.includes(term));
+    });
+
+    return {
+      jobs: accessibleRows.slice(offset, offset + limit).map(toSummary),
+      total: accessibleRows.length,
+      lockedCount: Math.max(0, (count ?? accessibleRows.length) - query.accessLimit),
+    };
+  }
+
+  let request = client
     .from('generation_jobs')
-    .select('id, idempotency_key, status, source, platform, tone, created_at, completed_at', { count: 'exact' })
+    .select('id, idempotency_key, status, source, platform, tone, brand_name, product_name, created_at, completed_at', { count: 'exact' })
     .eq('owner_id', ownerId)
-    .is('deleted_at', null)
+    .is('deleted_at', null);
+
+  for (const term of query.query?.split(/\s+/).filter(Boolean) ?? []) {
+    request = request.or(
+      `brand_name.ilike.%${term}%,product_name.ilike.%${term}%,source.ilike.%${term}%`,
+    );
+  }
+
+  const { data, error, count } = await request
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -285,7 +323,28 @@ export async function listJobs(
   return {
     jobs: (data ?? []).map(toSummary),
     total: count ?? 0,
+    lockedCount: 0,
   };
+}
+
+/** Check whether a job is among the newest records available to a Free user. */
+export async function isJobWithinHistoryLimit(
+  jwt: string,
+  ownerId: string,
+  jobId: string,
+  accessLimit: number,
+): Promise<boolean> {
+  const client = createUserClient(jwt);
+  const { data, error } = await client
+    .from('generation_jobs')
+    .select('id')
+    .eq('owner_id', ownerId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(accessLimit);
+
+  if (error) throw new Error('Failed to verify generation history access');
+  return (data ?? []).some((row: Record<string, unknown>) => row.id === jobId);
 }
 
 /** Get a single job by id (with all fields), owner-scoped */

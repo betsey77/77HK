@@ -66,6 +66,24 @@ describe('ConfirmDialog', () => {
     expect(screen.getByText('取消')).toBeInTheDocument();
   });
 
+  it('确认处理中会禁用操作并显示处理中标签', () => {
+    render(
+      <ConfirmDialog
+        open
+        title="批量删除"
+        message="正在处理"
+        confirming
+        confirmingLabel="删除中…"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: '删除中…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '删除中…' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: '取消' })).toBeDisabled();
+  });
+
   it('does not render when open=false', () => {
     render(<ControlledDialog initialOpen={false} />);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();

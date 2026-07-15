@@ -112,6 +112,26 @@ describe('Area A — ReferenceCaseSelector header count', () => {
     expect(screen.getByText(/暂无可用案例/)).toBeInTheDocument();
     expect(screen.getByText(/收藏并评分.*4.*星/)).toBeInTheDocument();
   });
+
+  it('does not report stale or ineligible saved IDs as selected references', () => {
+    localStorage.setItem('hk-cantonese-settings:test-user-stale', JSON.stringify({
+      settings: { selectedReferenceCaseIds: ['missing-id', 'low-rated-id', 'valid-id'] },
+    }));
+    localStorage.setItem('hk-cantonese-bookmarks:test-user-stale', JSON.stringify([
+      { id: 'low-rated-id', content: '一般案例', rating: 3, savedAt: '2026-07-12T09:00:00Z', variantKey: 'ig' },
+      { id: 'valid-id', content: '有效案例', rating: 5, savedAt: '2026-07-12T10:00:00Z', variantKey: 'facebook' },
+    ]));
+
+    render(
+      <AppProvider ownerId="test-user-stale">
+        <ReferenceCaseSelector />
+      </AppProvider>,
+    );
+
+    const button = screen.getByRole('button', { expanded: false });
+    expect(button.textContent).toMatch(/可用\s*1\s*条/);
+    expect(button.textContent).toMatch(/已选\s*1\/3/);
+  });
 });
 
 // ---- Area A helper components ----

@@ -9,14 +9,13 @@
  */
 
 import { supabase } from './supabase';
+import { apiUrl } from './apiBase';
 import type {
   BootstrapResponse, SyncFavoriteRequest, SyncConfigRequest,
   SyncBrandProfileRequest, SyncImportRequest, SyncImportResponse,
   FavoriteRecord, SavedConfigRecord, BrandProfileRecord,
   BookmarkedCopy, SavedConfig,
 } from '../types';
-
-const API_BASE = '/api';
 
 // ============================================================
 // Helpers
@@ -51,6 +50,8 @@ export function bookmarkToSyncFavorite(b: BookmarkedCopy): SyncFavoriteRequest {
     favoriteReason: b.favoriteReason ?? null,
     reasonTags: b.reasonTags ?? null,
     savedAt: b.savedAt,
+    isUserAuthored: b.isUserAuthored ?? false,
+    reviewRequested: b.reviewRequested ?? false,
   };
 }
 
@@ -73,7 +74,15 @@ export function configToSyncConfig(c: SavedConfig): SyncConfigRequest {
       consumerPersonas: c.consumerPersonas,
       targetDate: c.targetDate,
       competitorQueries: c.competitorQueries,
+      selectedReferenceCaseIds: c.selectedReferenceCaseIds,
       selectedCalendarEventIds: c.selectedCalendarEventIds,
+      selectedCaseLibraryIds: c.selectedCaseLibraryIds,
+      copyType: c.copyType,
+      customCopyType: c.customCopyType,
+      lengthControlEnabled: c.lengthControlEnabled,
+      copyLengthLevel: c.copyLengthLevel,
+      primaryTone: c.primaryTone,
+      toneModifiers: c.toneModifiers,
       createdAt: c.createdAt,
     },
   };
@@ -95,6 +104,13 @@ export function favoriteRecordToBookmark(r: FavoriteRecord): BookmarkedCopy {
     rating: r.rating ?? undefined,
     favoriteReason: r.favoriteReason ?? undefined,
     reasonTags: r.reasonTags ?? undefined,
+    // Preserve admin review for card display; never writable by user actions
+    adminReview: r.adminReview ?? null,
+    contentRevision: r.contentRevision ?? 1,
+    contentEditedAt: r.contentEditedAt ?? null,
+    isUserAuthored: r.isUserAuthored ?? false,
+    reviewRequested: r.reviewRequested ?? false,
+    reviewRequestedAt: r.reviewRequestedAt ?? null,
   };
 }
 
@@ -117,7 +133,15 @@ export function configRecordToSavedConfig(r: SavedConfigRecord): SavedConfig {
     consumerPersonas: (cfg.consumerPersonas as SavedConfig['consumerPersonas']) ?? [],
     targetDate: cfg.targetDate as string | undefined,
     competitorQueries: (cfg.competitorQueries as string[]) ?? [],
+    selectedReferenceCaseIds: (cfg.selectedReferenceCaseIds as string[]) ?? [],
     selectedCalendarEventIds: (cfg.selectedCalendarEventIds as string[]) ?? [],
+    selectedCaseLibraryIds: (cfg.selectedCaseLibraryIds as string[]) ?? [],
+    copyType: cfg.copyType as SavedConfig['copyType'],
+    customCopyType: (cfg.customCopyType as string) ?? '',
+    lengthControlEnabled: (cfg.lengthControlEnabled as boolean) ?? false,
+    copyLengthLevel: (cfg.copyLengthLevel as number) ?? 3,
+    primaryTone: (cfg.primaryTone as SavedConfig['primaryTone']) ?? undefined,
+    toneModifiers: (cfg.toneModifiers as SavedConfig['toneModifiers']) ?? [],
     createdAt: (cfg.createdAt as string) ?? r.createdAt,
   };
 }
@@ -129,7 +153,7 @@ export function configRecordToSavedConfig(r: SavedConfigRecord): SavedConfig {
 /** Fetch all cloud data for the current user */
 export async function fetchBootstrap(expectedOwnerId?: string): Promise<BootstrapResponse> {
   const headers = await getAuthHeaders(expectedOwnerId);
-  const res = await fetch(`${API_BASE}/sync/bootstrap`, { headers });
+  const res = await fetch(apiUrl('/sync/bootstrap'), { headers });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -144,7 +168,7 @@ export async function fetchBootstrap(expectedOwnerId?: string): Promise<Bootstra
 /** Upsert a single favorite to the cloud */
 export async function syncFavoriteUp(data: SyncFavoriteRequest, expectedOwnerId?: string): Promise<FavoriteRecord> {
   const headers = await getAuthHeaders(expectedOwnerId);
-  const res = await fetch(`${API_BASE}/sync/favorites`, {
+  const res = await fetch(apiUrl('/sync/favorites'), {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -160,10 +184,29 @@ export async function syncFavoriteUp(data: SyncFavoriteRequest, expectedOwnerId?
   return res.json() as Promise<FavoriteRecord>;
 }
 
+/** Save an explicit owner edit; review invalidation is enforced by the database. */
+export async function updateFavoriteContent(
+  clientId: string,
+  content: string,
+  expectedOwnerId?: string,
+): Promise<FavoriteRecord> {
+  const headers = await getAuthHeaders(expectedOwnerId);
+  const res = await fetch(apiUrl(`/sync/favorites/${encodeURIComponent(clientId)}/content`), {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? `Failed to update favorite (${res.status})`);
+  }
+  return res.json() as Promise<FavoriteRecord>;
+}
+
 /** Delete a favorite from the cloud by clientId */
 export async function syncFavoriteDelete(clientId: string, expectedOwnerId?: string): Promise<void> {
   const headers = await getAuthHeaders(expectedOwnerId);
-  const res = await fetch(`${API_BASE}/sync/favorites/${encodeURIComponent(clientId)}`, {
+  const res = await fetch(apiUrl(`/sync/favorites/${encodeURIComponent(clientId)}`), {
     method: 'DELETE',
     headers,
   });
@@ -179,7 +222,7 @@ export async function syncFavoriteDelete(clientId: string, expectedOwnerId?: str
 /** Upsert a single saved config to the cloud */
 export async function syncConfigUp(data: SyncConfigRequest, expectedOwnerId?: string): Promise<SavedConfigRecord> {
   const headers = await getAuthHeaders(expectedOwnerId);
-  const res = await fetch(`${API_BASE}/sync/configs`, {
+  const res = await fetch(apiUrl('/sync/configs'), {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -198,7 +241,7 @@ export async function syncConfigUp(data: SyncConfigRequest, expectedOwnerId?: st
 /** Delete a saved config from the cloud by clientId */
 export async function syncConfigDelete(clientId: string, expectedOwnerId?: string): Promise<void> {
   const headers = await getAuthHeaders(expectedOwnerId);
-  const res = await fetch(`${API_BASE}/sync/configs/${encodeURIComponent(clientId)}`, {
+  const res = await fetch(apiUrl(`/sync/configs/${encodeURIComponent(clientId)}`), {
     method: 'DELETE',
     headers,
   });
@@ -214,7 +257,7 @@ export async function syncConfigDelete(clientId: string, expectedOwnerId?: strin
 /** Upsert brand profile to the cloud */
 export async function syncBrandProfile(data: SyncBrandProfileRequest, expectedOwnerId?: string): Promise<BrandProfileRecord> {
   const headers = await getAuthHeaders(expectedOwnerId);
-  const res = await fetch(`${API_BASE}/sync/brand-profile`, {
+  const res = await fetch(apiUrl('/sync/brand-profile'), {
     method: 'PUT',
     headers,
     body: JSON.stringify(data),
@@ -233,7 +276,7 @@ export async function syncBrandProfile(data: SyncBrandProfileRequest, expectedOw
 /** Bulk import local data to cloud */
 export async function syncImport(data: SyncImportRequest, expectedOwnerId?: string): Promise<SyncImportResponse> {
   const headers = await getAuthHeaders(expectedOwnerId);
-  const res = await fetch(`${API_BASE}/sync/import`, {
+  const res = await fetch(apiUrl('/sync/import'), {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
