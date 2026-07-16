@@ -35,6 +35,6 @@ cd ..\server; npx tsc --noEmit; npm run build
 
 ## 当前下一步
 
-Slice A（正式路由 + 使用总览登录视觉的账户 Mock 壳）已完成并通过二次复测。
+截至 2026-07-16，核心产品切片、审核通知本地隔离 E2E、独立 staging 的 18 个 Migration、真实邮箱 Auth、owner/review-group RLS 和双端审核通知均已验收通过。
 
-当前进入 Slice B：真实 Supabase Auth、邮箱确认、`profiles/user_roles` 与 RLS。用户已于 2026-07-11 明确批准 Supabase 连接、必要依赖安装和本切片数据库迁移；支付、部署及 Slice C 以后内容仍未授权。
+当前进入 Dirty Worktree 功能切片基线整理与 preview 部署准备；生产部署和支付宝沙箱 E2E 仍需单独明确授权。staging 验收过程与安全边界详见 `docs/release/2026-07-16-staging-auth-rls-acceptance-runbook.md`。

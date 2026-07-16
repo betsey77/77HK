@@ -1,0 +1,96 @@
+Target: staging wzpaghnxlpfjojvuxplx
+Secrets, emails, passwords, JWTs, and cookies are intentionally omitted.
+
+Run 1 (exit 1, cleanup passed)
+PASS S2 four confirmed temporary users can sign in
+PASS S2 wrong password fails closed and sign-out/sign-in succeeds
+PASS S3 new accounts are user/Free and cannot self-assign admin, review group, or Pro
+CLEANUP temporary users and test data removed
+FAIL seed user-a job: permission denied for table generation_jobs
+
+Diagnosis:
+The test initially attempted a browser INSERT into generation_jobs. The trusted-write
+migration intentionally revoked that permission. The harness was corrected to seed
+jobs through service_role, matching the BFF ownership boundary. No database policy
+or grant was loosened.
+
+Run 2 (exit 0)
+PASS S2 four confirmed temporary users can sign in
+PASS S2 wrong password fails closed and sign-out/sign-in succeeds
+PASS S3 new accounts are user/Free and cannot self-assign admin, review group, or Pro
+PASS S4 owner RLS blocks cross-user reads, updates, and forged config ownership
+PASS S6 admin API is authenticated, role-gated, group-scoped, and RPC cannot be called directly
+PASS S7-S8 review results reach the owner, pending counts update, and edits create a fresh review cycle
+PASS S5 cloud bootstrap binds favorites, configs, and brand profile to the current owner
+PASS S9 unauthenticated, invalid-token, ordinary-user, and cross-group requests fail closed
+CLEANUP temporary users and test data removed
+
+Independent cleanup verification
+temp_auth_users=0
+profiles=0
+user_roles=0
+subscriptions=0
+generation_jobs=0
+favorites=0
+saved_configs=0
+brand_profiles=0
+case_library_entries=0
+favorite_admin_reviews=0
+audit_log=0
+
+Real mailbox flow
+PASS REAL_EMAIL SIGNUP_REQUESTED session_created=false
+PASS REAL_EMAIL EMAIL_CONFIRMED=true
+PASS REAL_EMAIL INITIAL_LOGIN_OK
+PASS REAL_EMAIL PASSWORD_RESET_REQUESTED
+INFO REAL_EMAIL MANUAL_RESET_NO_UPDATE_REQUEST
+PASS REAL_EMAIL BROWSER_PASSWORD_RESET_OK
+PASS REAL_EMAIL OLD_PASSWORD_REJECTED
+PASS REAL_EMAIL NEW_PASSWORD_LOGIN_OK
+
+The first manual reset-form attempt did not issue a Supabase user-update request.
+The same local reset page was then exercised in a browser with a fresh one-time
+recovery session. No email address, password, token, JWT, or cookie is recorded here.
+
+Staging notification UI run
+
+Attempt 1 (exit 1, cleanup passed)
+FAIL profiles_review_group_format rejected an overlong generated review-group name
+CLEANUP temporary admin and notification acceptance data removed
+
+Attempt 2 (exit 1, cleanup passed)
+PASS staging user, temporary admin, and pending favorite prepared
+FAIL Playwright waited for the full load event after login navigation
+CLEANUP temporary admin and notification acceptance data removed
+
+Attempt 3 (exit 1, cleanup passed)
+PASS staging user, temporary admin, and pending favorite prepared
+PASS admin desktop reminder appears once and supports later review
+PASS admin mobile reminder opens the pending queue and saves an adopted review
+PASS user desktop adopted-review reminder is visible with the expected brand
+FAIL immediate-favorite locator used the database UUID instead of client_id
+CLEANUP temporary admin and notification acceptance data removed
+
+Independent cleanup verification
+temp_admins=0
+acceptance_favorites=0
+real_user_review_group_restored=true
+
+The three-attempt limit was reached. Favorite focus/navigation and the mobile
+changes-requested cycle remain unclaimed pending a separate continuation.
+
+Notification UI continuation (exit 0)
+PASS staging user, temporary admin, and pending favorite prepared
+PASS admin desktop reminder appears once and supports later review
+PASS admin mobile reminder opens the pending queue and saves an adopted review
+PASS user adopted-review reminder opens and focuses the reviewed favorite
+PASS user changes-requested reminder is mobile-safe and opens the revised favorite
+CLEANUP temporary admin and notification acceptance data removed
+
+Independent cleanup verification after the passing run
+temp_admins=0
+acceptance_favorites=0
+real_user_review_group_restored=true
+
+The prior locator failure was limited to the harness using the database UUID. The
+passing continuation uses the cloud client_id, matching the production UI model.
