@@ -2,13 +2,14 @@ import { useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { INPUT_LANGUAGES } from '../../constants';
 import type { InputLanguage } from '../../types';
+import { FIELD_LABEL_CLASS } from './fieldLabel';
 
 export default function LanguageToggle() {
   const { state, dispatch } = useContext(AppContext);
 
   return (
     <div className="space-y-1">
-      <label className="text-xs text-gray-400 light:text-gray-600 font-medium">原文语言</label>
+      <label className={FIELD_LABEL_CLASS}>原文语言</label>
       <div className="flex rounded-lg bg-gray-800/50 light:bg-gray-200 border border-gray-700/50 light:border-gray-300 p-0.5">
         {INPUT_LANGUAGES.map((opt) => {
           const active = state.settings.inputLanguage === opt.value;

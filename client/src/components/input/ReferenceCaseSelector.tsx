@@ -60,10 +60,13 @@ export default function ReferenceCaseSelector() {
           aria-expanded={isExpanded}
           aria-controls="reference-case-list"
           onClick={() => setIsExpanded(value => !value)}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1 py-2 text-left text-xs font-medium text-emerald-300/80 transition-colors hover:text-emerald-200 light:text-orange-600 light:hover:text-orange-800"
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1 py-2 text-left text-xs font-medium text-emerald-400 transition-colors hover:text-emerald-300 light:text-orange-600 light:hover:text-orange-700"
         >
           <span className="truncate">
-            参考收藏案例 <span className="text-emerald-600/60 light:text-orange-400">（可用 {ratedBookmarks.length} 条 · 已选 {selectedIds.length}/3）</span>
+            参考收藏案例{' '}
+            <span className="font-normal text-emerald-600/70 light:text-orange-500/80">
+              （可用 {ratedBookmarks.length} 条 · 已选 {selectedIds.length}/3）
+            </span>
           </span>
           {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
         </button>

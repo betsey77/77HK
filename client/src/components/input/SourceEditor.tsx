@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { MAX_SOURCE_LENGTH, SOURCE_WARN_LENGTH } from '../../constants';
+import { FIELD_LABEL_CLASS } from './fieldLabel';
 
 export default function SourceEditor() {
   const { state, dispatch } = useContext(AppContext);
@@ -10,7 +11,7 @@ export default function SourceEditor() {
 
   return (
     <div className="space-y-1">
-      <label className="text-xs text-gray-400 light:text-gray-600 font-medium">原文输入</label>
+      <label className={FIELD_LABEL_CLASS}>原文输入</label>
       <textarea
         value={state.source}
         onChange={(e) => dispatch({ type: 'SET_SOURCE', payload: e.target.value })}

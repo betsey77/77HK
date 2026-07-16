@@ -28,7 +28,7 @@ export default function Slider({
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <span className="text-xs text-gray-400 light:text-gray-600">{label}</span>
+        <span className="text-xs font-medium text-emerald-400 light:text-orange-600">{label}</span>
         <span className="text-xs font-mono text-emerald-400 light:text-orange-600 bg-emerald-400/10 light:bg-orange-400/10 px-1.5 py-0.5 rounded">
           {value}
         </span>

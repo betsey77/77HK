@@ -68,8 +68,9 @@ export default function CompetitorSearchInput() {
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-gray-400 light:text-gray-600">
-        🔍 竞品分析 <span className="text-gray-600 light:text-gray-400">（可选 · 多选）</span>
+      <label className="text-xs font-medium text-emerald-400 light:text-orange-600">
+        🔍 竞品分析{' '}
+        <span className="font-normal text-emerald-600/70 light:text-orange-500/80">（可选 · 多选）</span>
       </label>
 
       {/* Custom input + add button */}

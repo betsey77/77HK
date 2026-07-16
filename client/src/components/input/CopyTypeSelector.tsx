@@ -11,7 +11,7 @@ export default function CopyTypeSelector() {
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs text-gray-400 light:text-gray-600 font-medium">📝 文案类型</label>
+      <label className="text-xs font-medium text-emerald-400 light:text-orange-600">📝 文案类型</label>
       <select
         value={copyType}
         onChange={(e) => dispatch({ type: 'SET_COPY_TYPE', payload: e.target.value as CopyType })}

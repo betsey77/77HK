@@ -9,7 +9,7 @@ export default function PlatformSelector() {
 
   return (
     <div className="space-y-1">
-      <label className="text-xs text-gray-400 light:text-gray-600 font-medium">📱 目标平台</label>
+      <label className="text-xs font-medium text-emerald-400 light:text-orange-600">📱 目标平台</label>
       <SegmentedControl<Platform>
         options={PLATFORMS}
         value={state.settings.platform}

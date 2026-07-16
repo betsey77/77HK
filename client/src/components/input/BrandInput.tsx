@@ -6,7 +6,7 @@ export default function BrandInput() {
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs text-gray-400 light:text-gray-600 font-medium">🏷️ 品牌 / 产品名称（可选）</label>
+      <label className="text-xs font-medium text-emerald-400 light:text-orange-600">🏷️ 品牌 / 产品名称（可选）</label>
       <div className="grid grid-cols-2 gap-2">
         <input
           type="text"

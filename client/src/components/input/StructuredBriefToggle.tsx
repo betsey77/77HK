@@ -53,7 +53,7 @@ export default function StructuredBriefToggle() {
     <div>
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <label className="text-xs text-gray-400 light:text-gray-600 font-medium select-none">
+          <label className="text-xs font-medium text-emerald-400 light:text-orange-600 select-none">
             📋 结构化写作简报
           </label>
           <p className="text-[10px] text-gray-500 light:text-gray-500 mt-0.5 leading-relaxed">

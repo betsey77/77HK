@@ -6,7 +6,7 @@ export default function BrandRedLinesInput() {
 
   return (
     <div>
-      <label className="text-xs text-gray-400 light:text-gray-600 font-medium">
+      <label className="text-xs font-medium text-emerald-400 light:text-orange-600">
         🚫 品牌表达红线
       </label>
       <p className="text-[10px] text-gray-500 light:text-gray-500 mt-0.5 mb-1.5">

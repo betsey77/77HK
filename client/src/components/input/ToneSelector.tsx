@@ -25,7 +25,7 @@ export default function ToneSelector() {
   return (
     <div className="space-y-2">
       <div className="space-y-1">
-        <label className="text-xs text-gray-400 light:text-gray-600 font-medium">🎭 主语气</label>
+        <label className="text-xs font-medium text-emerald-400 light:text-orange-600">🎭 主语气</label>
         <select
           value={primary}
           onChange={(e) =>
@@ -44,8 +44,9 @@ export default function ToneSelector() {
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-gray-400 light:text-gray-600 font-medium">
-          修饰语气 <span className="text-gray-600 light:text-gray-400">（最多 2 个）</span>
+        <label className="text-xs font-medium text-emerald-400 light:text-orange-600">
+          修饰语气{' '}
+          <span className="font-normal text-emerald-600/70 light:text-orange-500/80">（最多 2 个）</span>
         </label>
         <div className="flex flex-wrap gap-1.5">
           {TONE_MODIFIERS.map((item) => {

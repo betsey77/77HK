@@ -119,7 +119,7 @@ export default function ConfigManager() {
   return (
     <div className="space-y-2 border-t border-gray-800 light:border-gray-200 pt-3">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400 light:text-gray-600 font-medium">💾 配置管理</span>
+        <span className="text-xs font-medium text-emerald-400 light:text-orange-600">💾 配置管理</span>
         {hasUnsavedChanges && (
           <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
             未储存

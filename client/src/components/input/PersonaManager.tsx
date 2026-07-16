@@ -185,7 +185,7 @@ export default function PersonaManager() {
     <div className="space-y-2 border-t border-gray-800 light:border-gray-200 pt-3">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-xs text-gray-400 light:text-gray-600 hover:text-gray-300 transition-colors"
+        className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 transition-colors hover:text-emerald-300 light:text-orange-600 light:hover:text-orange-700"
       >
         <span className={`transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
         🧑‍🤝‍🧑 目标消费者画像（可选）

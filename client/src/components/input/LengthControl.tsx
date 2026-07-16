@@ -12,7 +12,7 @@ export default function LengthControl() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <label className="text-xs text-gray-400 light:text-gray-600 font-medium">长度控制</label>
+        <label className="text-xs font-medium text-emerald-400 light:text-orange-600">长度控制</label>
         <button
           type="button"
           role="switch"
