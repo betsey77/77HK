@@ -187,8 +187,10 @@ export default function PersonaManager() {
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 transition-colors hover:text-emerald-300 light:text-orange-600 light:hover:text-orange-700"
       >
-        <span className={`transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
         🧑‍🤝‍🧑 目标消费者画像（可选）
+        <span aria-hidden="true" className={`transition-transform ${expanded ? 'rotate-90' : ''}`}>
+          ▶
+        </span>
         {hasUnsavedPersonas && (
           <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
             {personas.length}

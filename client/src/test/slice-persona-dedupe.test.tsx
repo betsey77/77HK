@@ -37,6 +37,14 @@ describe('PersonaManager preset dedupe', () => {
     await userEvent.click(screen.getByRole('button', { name: /目标消费者画像/ }));
   }
 
+  it('places the expand indicator after the label', () => {
+    render(<CountHarness />, { wrapper: AppWrapper });
+
+    expect(screen.getByRole('button', { name: /目标消费者画像/ })).toHaveTextContent(
+      /目标消费者画像（可选）\s*▶/,
+    );
+  });
+
   it('clicking the same preset twice keeps a single entry', async () => {
     render(<CountHarness />, { wrapper: AppWrapper });
     await expand();
