@@ -8,18 +8,18 @@ import fs from 'fs';
 // are loaded via dynamic import() below so dotenv fires first.
 
 function loadEnv() {
-  try {
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    const envPath = resolve(__dirname, '../../.env');
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const envPaths = [
+    resolve(__dirname, '../.env'),
+    resolve(__dirname, '../../.env'),
+    resolve(process.cwd(), '.env'),
+  ];
+
+  for (const envPath of envPaths) {
     if (fs.existsSync(envPath)) {
       dotenv.config({ path: envPath });
       console.log(`[env] loaded ${envPath}`);
-    }
-  } catch {
-    const envPath = resolve(process.cwd(), '.env');
-    if (fs.existsSync(envPath)) {
-      dotenv.config({ path: envPath });
-      console.log(`[env] loaded ${envPath}`);
+      return;
     }
   }
 }

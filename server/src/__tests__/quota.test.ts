@@ -185,7 +185,9 @@ describe('trustedSupabase adapter', () => {
     vi.doUnmock('../services/trustedSupabase.js');
 
     const savedKey = process.env.SUPABASE_SECRET_KEY;
+    const savedKeyFile = process.env.SUPABASE_SECRET_KEY_FILE;
     delete process.env.SUPABASE_SECRET_KEY;
+    delete process.env.SUPABASE_SECRET_KEY_FILE;
 
     try {
       const { getTrustedSupabase: realGet } = await import(
@@ -203,6 +205,9 @@ describe('trustedSupabase adapter', () => {
       }
     } finally {
       if (savedKey) process.env.SUPABASE_SECRET_KEY = savedKey;
+      else delete process.env.SUPABASE_SECRET_KEY;
+      if (savedKeyFile) process.env.SUPABASE_SECRET_KEY_FILE = savedKeyFile;
+      else delete process.env.SUPABASE_SECRET_KEY_FILE;
     }
   });
 
