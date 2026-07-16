@@ -59,25 +59,42 @@ function makeQueryChain(terminal: {
     'range',
     'limit',
     'single',
+    'maybeSingle',
   ];
   for (const m of methods) {
     chain[m] = () => chain;
   }
-  chain.then = (resolve: (v: unknown) => void) => {
-    resolve({
-      data: terminal.data ?? null,
-      error: terminal.error ?? null,
-    });
+  // Awaitable terminal (covers both thenable and promise-like usage)
+  const result = {
+    data: terminal.data ?? null,
+    error: terminal.error ?? null,
+  };
+  chain.then = (resolve: (v: unknown) => void, reject?: (e: unknown) => void) => {
+    try {
+      resolve(result);
+    } catch (e) {
+      reject?.(e);
+    }
     return { catch: () => {} };
   };
+  // supabase-js also awaits the builder directly in some paths
+  Object.defineProperty(chain, Symbol.toStringTag, { value: 'Promise' });
+  (chain as { catch?: unknown }).catch = () => chain;
   return chain;
 }
 
-function setupClient(fromImpl?: (table: string) => unknown) {
+function setupClient(
+  fromImpl?: (table: string) => unknown,
+  rpcImpl?: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>,
+) {
   const client = {
     from: vi.fn((table: string) => {
       if (fromImpl) return fromImpl(table);
       return makeQueryChain({ data: [], error: null });
+    }),
+    rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => {
+      if (rpcImpl) return rpcImpl(fn, args);
+      return { data: null, error: null };
     }),
   };
   mockCreateUserClient.mockReturnValue(client);
@@ -238,12 +255,15 @@ describe('PATCH / DELETE ownership', () => {
     expect(res.status).toBe(404);
   });
 
-  it('soft-deletes via update (204) and rejects invalid uuid', async () => {
-    setupClient(() => makeQueryChain({ data: { id: CASE_ID }, error: null }));
+  it('soft-deletes via RPC (204) and rejects invalid uuid', async () => {
+    const client = setupClient(undefined, async () => ({ data: null, error: null }));
     const ok = await request(app)
       .delete(`/api/case-library/${CASE_ID}`)
       .set('Authorization', VALID_TOKEN);
     expect(ok.status).toBe(204);
+    expect(client.rpc).toHaveBeenCalledWith('soft_delete_case_library_entry', {
+      p_id: CASE_ID,
+    });
 
     const bad = await request(app)
       .delete('/api/case-library/not-a-uuid')
@@ -252,10 +272,37 @@ describe('PATCH / DELETE ownership', () => {
   });
 
   it('returns 404 when soft-deleting missing id', async () => {
-    setupClient(() => makeQueryChain({ data: null, error: { message: 'not found' } }));
+    setupClient(undefined, async () => ({
+      data: null,
+      error: { message: 'Case not found', code: 'P0002' },
+    }));
     const res = await request(app)
       .delete(`/api/case-library/${CASE_ID}`)
       .set('Authorization', VALID_TOKEN);
     expect(res.status).toBe(404);
+  });
+});
+
+describe('error sanitization', () => {
+  beforeEach(() => {
+    mockVerifyToken.mockResolvedValue({ sub: 'user-001', email: 'test@example.com' });
+  });
+
+  it('returns generic 500 and never leaks unknown exception messages', async () => {
+    const secret =
+      'permission denied for function case_library_tags_valid secret-schema-xyz-db-detail';
+    mockCreateUserClient.mockImplementation(() => {
+      throw Object.assign(new Error(secret), { status: 500 });
+    });
+
+    const res = await request(app)
+      .get('/api/case-library')
+      .set('Authorization', VALID_TOKEN);
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Internal server error' });
+    expect(JSON.stringify(res.body)).not.toContain('secret-schema');
+    expect(JSON.stringify(res.body)).not.toContain('case_library_tags_valid');
+    expect(JSON.stringify(res.body)).not.toContain(secret);
   });
 });

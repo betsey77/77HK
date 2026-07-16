@@ -17,6 +17,7 @@ import {
   createCaseLibraryEntry,
   updateCaseLibraryEntry,
   softDeleteCaseLibraryEntry,
+  CaseLibraryHttpError,
   VALID_CASE_TYPES,
   type CaseType,
 } from '../services/caseLibraryService.js';
@@ -26,13 +27,24 @@ const router = Router();
 router.use(requireAuth);
 
 function handleError(res: Response, err: unknown): void {
-  const e = err as { status?: number; message?: string };
+  const e = err instanceof CaseLibraryHttpError ? err : null;
+  // Mapped safe client-facing business errors (validation / authz / not found)
   if (e?.status === 400) {
     res.status(400).json({ error: e.message ?? 'Bad request' });
     return;
   }
+  if (e?.status === 403) {
+    res.status(403).json({ error: e.message ?? 'Forbidden' });
+    return;
+  }
   if (e?.status === 404) {
     res.status(404).json({ error: e.message ?? 'Not found' });
+    return;
+  }
+  // Service-layer mapped 500s (httpError with intentional safe copy) only.
+  // Unknown throws (no status) must never leak e.message.
+  if (e && e.status >= 500 && e.message) {
+    res.status(e.status).json({ error: e.message });
     return;
   }
   res.status(500).json({ error: 'Internal server error' });

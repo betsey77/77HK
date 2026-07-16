@@ -120,6 +120,18 @@ describe('W2 CaseLibraryPanel UI', () => {
       </AppProvider>,
     );
 
+    // Default collapsed: header only, list/search hidden until expand
+    await waitFor(() => {
+      expect(screen.getByTestId('case-library-panel')).toBeInTheDocument();
+    });
+    const toggle = screen.getByTestId('case-library-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('case-library-list')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('case-library-search')).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
     await waitFor(() => {
       expect(screen.getByTestId('case-library-list')).toBeInTheDocument();
     });
@@ -239,7 +251,12 @@ describe('W2 CaseLibraryPanel UI', () => {
     );
     await waitFor(() => expect(mockList).toHaveBeenCalled());
 
+    // Collapsed by default; "新增" expands and opens form
+    expect(screen.getByTestId('case-library-toggle')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('case-library-form')).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByTestId('case-library-add'));
+    expect(screen.getByTestId('case-library-toggle')).toHaveAttribute('aria-expanded', 'true');
     fireEvent.change(screen.getByTestId('case-library-body'), {
       target: { value: '太短' },
     });
@@ -298,6 +315,14 @@ describe('W2 config save / load + deleted notice', () => {
       </AppProvider>,
     );
 
+    // Notice is inside the expandable body; expand first
+    await waitFor(() => {
+      expect(screen.getByTestId('case-library-panel')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('case-library-toggle')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('case-library-notice')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('case-library-toggle'));
     await waitFor(() => {
       expect(screen.getByTestId('case-library-notice')).toHaveTextContent('已忽略');
     });

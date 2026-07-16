@@ -57,10 +57,18 @@ export interface CaseLibraryDto {
 
 export type CreateUserClient = (jwt: string) => SupabaseClient;
 
-function httpError(status: number, message: string): Error & { status: number } {
-  const err = new Error(message) as Error & { status: number };
-  err.status = status;
-  return err;
+export class CaseLibraryHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'CaseLibraryHttpError';
+  }
+}
+
+function httpError(status: number, message: string): CaseLibraryHttpError {
+  return new CaseLibraryHttpError(status, message);
 }
 
 const UUID_RE =
@@ -246,7 +254,25 @@ export async function createCaseLibraryEntry(
     .single();
 
   if (error || !data) {
-    throw httpError(500, 'Internal server error');
+    // Surface safe, actionable classes without leaking schema internals.
+    const msg = (error?.message ?? '').toLowerCase();
+    if (msg.includes('permission denied') && msg.includes('case_library_tags_valid')) {
+      throw httpError(
+        500,
+        '案例库暂时无法保存（标签校验权限未就绪）。请联系管理员应用最新数据库修复。',
+      );
+    }
+    if (msg.includes('row-level security') || error?.code === '42501') {
+      throw httpError(403, '无权保存案例，请重新登录后再试');
+    }
+    if (error?.code === '23514' || msg.includes('check constraint')) {
+      throw httpError(400, '案例内容未通过校验，请检查正文/原因/标签长度');
+    }
+    console.error('[caseLibrary] create failed', {
+      code: error?.code,
+      message: error?.message,
+    });
+    throw httpError(500, '保存案例失败，请稍后重试');
   }
   return toCaseLibraryDto(data as CaseLibraryRecord);
 }
@@ -298,16 +324,28 @@ export async function softDeleteCaseLibraryEntry(
   }
 
   const client = createUserClient(userJwt);
-  const { data, error } = await client
-    .from('case_library_entries')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('owner_id', userId)
-    .is('deleted_at', null)
-    .select('id')
-    .single();
 
-  if (error || !data) {
-    throw httpError(404, 'Case not found');
+  // Direct UPDATE of deleted_at is blocked by authenticated RLS on this table
+  // (WITH CHECK rejects the soft-deleted new row in practice). Use owner-scoped
+  // SECURITY DEFINER RPC that still requires auth.uid() = owner_id.
+  const { error } = await client.rpc('soft_delete_case_library_entry', {
+    p_id: id,
+  });
+
+  if (error) {
+    const msg = (error.message ?? '').toLowerCase();
+    if (
+      msg.includes('case not found')
+      || msg.includes('p0002')
+      || error.code === 'P0002'
+    ) {
+      throw httpError(404, 'Case not found');
+    }
+    console.error('[caseLibrary] soft-delete rpc failed', {
+      code: error.code,
+      message: error.message,
+      userIdPrefix: userId.slice(0, 8),
+    });
+    throw httpError(500, '删除案例失败，请稍后重试');
   }
 }
