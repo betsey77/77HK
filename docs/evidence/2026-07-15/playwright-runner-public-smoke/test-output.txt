@@ -1,0 +1,43 @@
+=== Playwright focused smoke (2026-07-15) ===
+Command: node node_modules/@playwright/test/cli.js test e2e/smoke.spec.ts e2e/public-routes.spec.ts e2e/protected-route.spec.ts --config=playwright.config.mjs --project=chromium --reporter=list
+Result: 8 passed (16.5s)
+Exit code: 0
+
+--- detail ---
+Running 8 tests using 1 worker
+  ok protected-route.spec.ts visiting /app redirects to login with next=/app
+  ok public-routes.spec.ts home loads product chrome (desktop)
+  ok public-routes.spec.ts home critical controls visible on mobile
+  ok public-routes.spec.ts pricing page shows plan area without user-facing mock badge
+  ok public-routes.spec.ts login page shows sign-in form
+  ok public-routes.spec.ts pricing critical text readable on mobile
+  ok smoke.spec.ts marketing page responds with product title
+  ok smoke.spec.ts marketing .panel-in nodes activate after full-page scroll
+  8 passed (16.5s)
+
+=== webServer reuse smoke ===
+Command: node ... smoke.spec.ts --config=playwright.config.mjs (default webServer, reuseExistingServer)
+Result: 2 passed (6.0s)
+Exit code: 0
+
+=== list ===
+npx playwright test --list --config=playwright.config.mjs
+Total: 10 tests in 4 files (includes legacy user-authored-review-queue; not run in focused set)
+
+=== Environment ===
+Node: v26.1.0
+@playwright/test: 1.61.1
+playwright-core: 1.61.1
+HEAD: 92358e2
+branch: master
+baseURL: http://localhost:5173
+No install, deploy, migration, commit, or push performed.
+No real Supabase auth or payment called by these tests.
+
+=== npm run verify ===
+Exit code: 0
+Client: 400/400
+Server: 571/571
+typecheck: ok
+build: ok
+audit prod+all: 0 vulnerabilities

@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+console.log("probe:start");
+const browser = await chromium.launch({ headless: true });
+console.log("probe:launched");
+const page = await browser.newPage();
+const res = await page.goto("http://localhost:5173/", { timeout: 15000 });
+console.log("probe:status", res && res.status());
+console.log("probe:title", await page.title());
+await browser.close();
+console.log("probe:done");

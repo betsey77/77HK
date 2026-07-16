@@ -1,0 +1,33 @@
+# Playwright runtime repair — test output notes
+# Date: 2026-07-15
+
+===== Node install =====
+Portable: C:\Users\35308\AppData\Local\nodejs-versions\node-v22.23.1-win-x64
+node --version => v22.23.1
+System default remains: C:\Program Files\nodejs\node.exe => v26.1.0
+
+===== Diagnosis summary =====
+Chinese project path: playwright test EXECUTE hangs (0 reporter bytes)
+ASCII cwd C:\work\77hk-e2e + junctions: OK
+browser probe on Node22 from monorepo path: OK (launch+goto)
+list on monorepo path: OK
+
+===== RUN1 (Node 22, C:\work\77hk-e2e, E2E_NO_WEBSERVER=1) =====
+Running 8 tests using 1 worker
+  1 protected-route ... ok
+  2-6 public-routes ... ok
+  7-8 smoke ... ok
+  8 passed (10.8s)
+exit=0 elapsed_ms≈11422
+See run1-node22.txt
+
+===== RUN2 (same) =====
+  8 passed (10.8s)
+exit=0 elapsed_ms≈11407
+See run2-node22.txt
+
+===== PASS1=True PASS2=True =====
+No leftover @playwright/test/cli processes after runs.
+
+===== Recommended user/CI local command =====
+npm run test:e2e:smoke:win:twice

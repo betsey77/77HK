@@ -13,6 +13,9 @@ cloudflared_stderr.log
 local_model_stdout.log
 local_model_stderr.log
 server_4b_api.log
+test-results/
+playwright-report/
+blob-report/
 
 # Local Netlify folder
 .netlify

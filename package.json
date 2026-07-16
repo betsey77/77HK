@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "concurrently -n client,server -c blue,green \"cd client && npm run dev\" \"cd server && npm run dev\"",
     "dev:client": "cd client && npm run dev",
@@ -20,7 +23,12 @@
     "build:server": "cd server && npm run build",
     "audit:prod": "npm audit --omit=dev",
     "audit:all": "npm audit",
-    "test:e2e:smoke": "playwright test --config=playwright.config.ts",
+    "test:e2e:smoke": "playwright test --config=playwright.config.mjs",
+    "test:e2e:smoke:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-public-smoke.ps1",
+    "test:e2e:smoke:win:twice": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-public-smoke.ps1 -Twice",
+    "test:e2e:workbench:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-workbench-shell.ps1",
+    "test:e2e:workbench:win:twice": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-workbench-shell.ps1 -Twice",
+    "dev:client:e2e": "cd client && npx vite --config vite.e2e.config.ts --host 127.0.0.1 --port 5184 --strictPort",
     "verify": "npm run test && npm run typecheck && npm run build && npm run audit:prod && npm run audit:all"
   },
   "workspaces": [

@@ -1,6 +1,6 @@
 # Verification Commands
 
-Generated: 2026-07-14  
+Generated: 2026-07-14
 Project: `D:\work\77港话通社媒文案\77`
 
 ## 原则
@@ -38,8 +38,23 @@ npm run audit:all
 # 6. One-shot gate
 npm run verify
 
-# 7. Optional public homepage smoke (requires dev:client on :5173)
-npm run test:e2e:smoke
+# 7. Public route smoke — Node 22.x (see .nvmrc / engines)
+# Windows non-ASCII project roots can hang Playwright workers — use harness:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\e2e-public-smoke.ps1 -SelfTest
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\e2e-public-smoke.ps1 -Twice
+# Or: npm run test:e2e:smoke:win / test:e2e:smoke:win:twice
+# Requires http://localhost:5173 unless -WithWebServer
+# Screenshots land in docs/evidence/... via E2E_SCREENSHOT_DIR (repo path)
+# Junction rmdir is fail-closed (only verified junctions to this repo)
+npx playwright test --list --config=playwright.config.mjs
+# Direct monorepo-path execute may hang on Windows non-ASCII roots — do not use for acceptance.
+
+# 8. Local workbench shell smoke (mock Auth ONLY — not real Auth/RLS)
+# Requires free port 5184; starts isolated vite.e2e.config.ts
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\e2e-workbench-shell.ps1 -SelfTest
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\e2e-workbench-shell.ps1 -Twice
+# Or: npm run test:e2e:workbench:win / test:e2e:workbench:win:twice
+# Evidence: docs/evidence/2026-07-15/workbench-shell-local-smoke/
 ```
 
 ## 2026-07-14 local-vercel-readiness extras
@@ -83,10 +98,10 @@ node -e "JSON.parse(require('fs').readFileSync('client/vercel.json','utf8')); JS
 
 ## 验收期望（Phase 0）
 
-- Client tests ≥ 353 passed  
-- Server tests ≥ 509 passed  
-- 双端 typecheck + build 通过  
-- `npm audit` 与 `npm audit --omit=dev` 均为 0 未处置 high/critical  
+- Client tests ≥ 353 passed
+- Server tests ≥ 509 passed
+- 双端 typecheck + build 通过
+- `npm audit` 与 `npm audit --omit=dev` 均为 0 未处置 high/critical
 
 ## 2026-07-15 Phase 0 CI 基线
 

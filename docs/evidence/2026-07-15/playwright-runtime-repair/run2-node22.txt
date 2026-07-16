@@ -1,0 +1,22 @@
+=== RUN2 ===
+node=v22.23.1
+cwd=C:\work\77hk-e2e
+exit=0
+elapsed_ms=11407
+E2E_NO_WEBSERVER=1
+
+
+Running 8 tests using 1 worker
+
+(node:8932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  鉁? 1 [chromium] 鈥?e2e\protected-route.spec.ts:9:3 鈥?protected routes (unauthenticated) 鈥?visiting /app redirects to login with next=/app (1.1s)
+  鉁? 2 [chromium] 鈥?e2e\public-routes.spec.ts:20:3 鈥?public routes smoke 鈥?home loads product chrome (desktop) (1.4s)
+  鉁? 3 [chromium] 鈥?e2e\public-routes.spec.ts:31:3 鈥?public routes smoke 鈥?home critical controls visible on mobile (1.1s)
+  鉁? 4 [chromium] 鈥?e2e\public-routes.spec.ts:48:3 鈥?public routes smoke 鈥?pricing page shows plan area without user-facing mock badge (699ms)
+  鉁? 5 [chromium] 鈥?e2e\public-routes.spec.ts:66:3 鈥?public routes smoke 鈥?login page shows sign-in form (1.3s)
+  鉁? 6 [chromium] 鈥?e2e\public-routes.spec.ts:77:3 鈥?public routes smoke 鈥?pricing critical text readable on mobile (637ms)
+  鉁? 7 [chromium] 鈥?e2e\smoke.spec.ts:10:3 鈥?Phase 0 public smoke 鈥?marketing page responds with product title (694ms)
+  鉁? 8 [chromium] 鈥?e2e\smoke.spec.ts:24:3 鈥?Phase 0 public smoke 鈥?marketing .panel-in nodes activate after full-page scroll (3.2s)
+
+  8 passed (10.8s)

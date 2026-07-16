@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Phase 0 smoke — public homepage HTTP/body + real scroll reveal.
- * Does not cover Auth, generate, billing, admin, or RLS.
+ * Public homepage HTTP/body + scroll reveal.
+ * Marketing page uses `.panel-in` / `.is-in` (not legacy data-reveal).
  * Fail hard when the local client is down (no skip-on-unreachable).
- * Prerequisite: npm run dev:client (or equivalent) on baseURL.
+ * webServer in playwright.config.mjs starts or reuses baseURL.
  */
 test.describe('Phase 0 public smoke', () => {
   test('marketing page responds with product title', async ({ page }) => {
@@ -16,17 +16,18 @@ test.describe('Phase 0 public smoke', () => {
     await expect(page.locator('body')).toBeVisible();
     const bodyText = await page.locator('body').innerText();
     expect(bodyText.length).toBeGreaterThan(0);
+    await expect(page.getByRole('heading', { name: /香港人会点赞|港式/ }).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
-  test('marketing [data-reveal] nodes activate after full-page scroll', async ({ page }) => {
+  test('marketing .panel-in nodes activate after full-page scroll', async ({ page }) => {
     const response = await page.goto('/', { waitUntil: 'domcontentloaded' });
     expect(response, 'homepage must return an HTTP response').toBeTruthy();
     expect(response!.status()).toBeLessThan(500);
 
-    // Wait until reveal targets are mounted
-    await page.waitForSelector('[data-reveal]', { state: 'attached', timeout: 15_000 });
+    await page.waitForSelector('.panel-in', { state: 'attached', timeout: 15_000 });
 
-    // Real segmented scroll so IntersectionObserver fires (screenshot alone is not enough)
     await page.evaluate(async () => {
       const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
       const maxY = Math.max(
@@ -37,38 +38,48 @@ test.describe('Phase 0 public smoke', () => {
       const step = Math.max(180, Math.floor(window.innerHeight * 0.55));
       for (let y = 0; y <= maxY + step; y += step) {
         window.scrollTo(0, y);
-        await delay(120);
+        await delay(100);
       }
       window.scrollTo(0, maxY);
       await delay(200);
-      // Second pass top → bottom for any late observers
       window.scrollTo(0, 0);
-      await delay(100);
+      await delay(80);
       for (let y = 0; y <= maxY + step; y += step) {
         window.scrollTo(0, y);
-        await delay(80);
+        await delay(70);
       }
     });
 
     await page.waitForFunction(() => {
-      const nodes = document.querySelectorAll('[data-reveal]');
+      const nodes = document.querySelectorAll('.panel-in');
       if (nodes.length === 0) return false;
       return Array.from(nodes).every((n) => n.classList.contains('is-in'));
     }, { timeout: 20_000 });
 
+    // CSS transition after is-in can lag one frame; wait until opacity settles.
+    await page.waitForFunction(() => {
+      const nodes = Array.from(document.querySelectorAll<HTMLElement>('.panel-in'));
+      if (nodes.length === 0) return false;
+      return nodes.every((n) => {
+        if (!n.classList.contains('is-in')) return false;
+        const opacity = Number.parseFloat(window.getComputedStyle(n).opacity);
+        return Number.isFinite(opacity) && opacity > 0.5;
+      });
+    }, { timeout: 10_000 });
+
     const stats = await page.evaluate(() => {
-      const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+      const nodes = Array.from(document.querySelectorAll<HTMLElement>('.panel-in'));
       const total = nodes.length;
       const activated = nodes.filter((n) => n.classList.contains('is-in')).length;
-      const hidden = nodes.filter((n) => {
-        const opacity = window.getComputedStyle(n).opacity;
-        return opacity === '0' || Number.parseFloat(opacity) === 0;
+      const visible = nodes.filter((n) => {
+        const opacity = Number.parseFloat(window.getComputedStyle(n).opacity);
+        return Number.isFinite(opacity) && opacity > 0.5;
       }).length;
-      return { total, activated, hidden };
+      return { total, activated, visible };
     });
 
-    expect(stats.total, 'page must expose at least one [data-reveal] node').toBeGreaterThan(0);
-    expect(stats.activated, 'every reveal node must have is-in after scroll').toBe(stats.total);
-    expect(stats.hidden, 'no reveal node may remain at opacity 0').toBe(0);
+    expect(stats.total, 'page must expose at least one .panel-in node').toBeGreaterThan(0);
+    expect(stats.activated, 'every panel-in node must have is-in after scroll').toBe(stats.total);
+    expect(stats.visible, 'every panel-in node must be visible after transition').toBe(stats.total);
   });
 });

@@ -1,0 +1,43 @@
+# workbench-shell local smoke
+# utc=2026-07-16T05:08:33.8332463Z
+# node=v22.23.1
+# nodePath=C:\Users\35308\AppData\Local\nodejs-versions\node-v22.23.1-win-x64\node.exe
+# repo=D:\work\77港话通社媒文案\77
+# asciiCwd=C:\work\77hk-workbench-e2e
+# baseURL=http://127.0.0.1:5184
+# E2E_SCREENSHOT_DIR=D:\work\77港话通社媒文案\77\docs\evidence\2026-07-15\workbench-shell-local-smoke\screenshots
+# NOTE: local mock shell only 鈥?not real Auth/RLS/payment
+
+
+===== RUN1 =====
+exit=0
+elapsed_ms=18031
+
+
+Running 6 tests using 1 worker
+
+  ok 1 [chromium] › e2e\workbench-shell-local.spec.ts:524:3 › workbench shell local mock › desktop /app loads workbench shell under local mock auth (2.1s)
+  ok 2 [chromium] › e2e\workbench-shell-local.spec.ts:568:3 › workbench shell local mock › mobile /app shell uses segment tabs — one full panel, no horizontal overflow (1.4s)
+  ok 3 [chromium] › e2e\workbench-shell-local.spec.ts:630:3 › workbench shell local mock › desktop case-library full local CRUD via memory mock (dark + light) (3.9s)
+  ok 4 [chromium] › e2e\workbench-shell-local.spec.ts:767:3 › workbench shell local mock › user review result is deduplicated and a newer review notifies again (4.3s)
+  ok 5 [chromium] › e2e\workbench-shell-local.spec.ts:795:3 › workbench shell local mock › user can open and focus the reviewed favorite immediately (1.7s)
+  ok 6 [chromium] › e2e\workbench-shell-local.spec.ts:810:3 › workbench shell local mock › admin pending reminder supports later and immediate queue navigation (3.3s)
+
+  6 passed (17.4s)
+
+
+===== RUN2 =====
+exit=0
+elapsed_ms=17425
+
+
+Running 6 tests using 1 worker
+
+  ok 1 [chromium] › e2e\workbench-shell-local.spec.ts:524:3 › workbench shell local mock › desktop /app loads workbench shell under local mock auth (1.7s)
+  ok 2 [chromium] › e2e\workbench-shell-local.spec.ts:568:3 › workbench shell local mock › mobile /app shell uses segment tabs — one full panel, no horizontal overflow (1.4s)
+  ok 3 [chromium] › e2e\workbench-shell-local.spec.ts:630:3 › workbench shell local mock › desktop case-library full local CRUD via memory mock (dark + light) (3.8s)
+  ok 4 [chromium] › e2e\workbench-shell-local.spec.ts:767:3 › workbench shell local mock › user review result is deduplicated and a newer review notifies again (4.3s)
+  ok 5 [chromium] › e2e\workbench-shell-local.spec.ts:795:3 › workbench shell local mock › user can open and focus the reviewed favorite immediately (1.7s)
+  ok 6 [chromium] › e2e\workbench-shell-local.spec.ts:810:3 › workbench shell local mock › admin pending reminder supports later and immediate queue navigation (3.2s)
+
+  6 passed (16.9s)
