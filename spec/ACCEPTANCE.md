@@ -1,5 +1,51 @@
 # Acceptance Criteria
 
+## 2026-07-15 — E2E harness 安全收口
+
+| 门禁 | 状态 |
+| --- | --- |
+| Junction 仅在类型+目标匹配本仓库时才可移除 | ✅ fail-closed |
+| 普通目录 / 目标错误 junction 拒绝且不删除 | ✅ `-SelfTest` |
+| 截图写入仓库本切片 evidence（非仅镜像盘） | ✅ `E2E_SCREENSHOT_DIR` |
+| 两次 focused E2E 8/8 + list reporter + 正常退出 | ✅ Node v22.23.1 |
+| 无本任务 Playwright CLI 残留 | ✅ |
+| 无浏览器自动安装入口 | ✅ 已移除 `-InstallBrowsers` |
+| 未改 client/server 业务；未 commit/push/安装 | ✅ |
+
+证据：`docs/evidence/2026-07-15/e2e-harness-hardening/verification.md`
+
+## 2026-07-15 — Playwright 运行时基线返工
+
+| 门禁 | 状态 |
+| --- | --- |
+| 本机 Node 与 CI 对齐（Node 22.x） | ✅ 便携 **v22.23.1**（用户授权安装）；系统默认可为 26 |
+| 安装边界 | ✅ 仅 Node 22 zip；未 npm install / playwright install |
+| `playwright test --list` | ✅ 10 tests |
+| focused E2E 连续两次有 reporter、通过、正常退出 | ✅ **8/8 ×2** via `C:\work\77hk-e2e` + Node 22（~11s each） |
+| 非 ASCII 项目根路径下直接 execute | ⚠️ 仍会挂起 — 用 `npm run test:e2e:smoke:win` |
+| `git diff --check` | ✅ |
+| `test-results/` gitignore + engines/nvmrc | ✅ |
+| `npm run verify` | ⏸ 本切片未要求 |
+| commit / push / 部署 / migration / 真实登录 | ⏸ **未做** |
+
+证据：`docs/evidence/2026-07-15/playwright-runtime-repair/verification.md`
+
+## 2026-07-15 — Playwright runner 稳定化 + 公开路由冒烟（上一轮，独立验收未通过）
+
+| 门禁 | 状态 |
+| --- | --- |
+| `playwright test --list` 快速返回、不无输出挂起 | ⚠️ list 正常；**执行阶段** Codex 复验挂起 |
+| 现有首页 smoke 可重复通过并正常退出 | ❌ 独立验收未通过 |
+| 前端不可访问时硬失败（不 skip） | 代码侧仍硬失败；本切片未重验通过 |
+| `/` `/pricing` `/login` 基本加载与关键元素 | 用例存在；执行基线未过 |
+| 未登录 `/app` 进入登录并保留回跳意图 | 用例存在；执行基线未过 |
+| 桌面 + 移动视口截图 | 上一轮产物不可当作本轮通过证据 |
+| 工作台已登录壳层（完全本地 mock） | ⏸ **延期** |
+| `npm run verify` | ⏸ 不因 E2E 失败而宣称整门禁通过 |
+| commit / push / 部署 / migration | ⏸ **未做** |
+
+上一轮证据（仅历史参考，**不作当前通过结论**）：`docs/evidence/2026-07-15/playwright-runner-public-smoke/verification.md`
+
 ## 2026-07-14 — R1.1 审核保存热修复与正文审阅可达性
 
 | 门禁 | 状态 |
@@ -74,7 +120,7 @@
 | 真实 Vercel/Netlify/Render 部署 | ⏸ **未做** |
 | 真实支付宝 sandbox E2E / migration / git push | ⏸ **未做** |
 
-证据：`docs/evidence/2026-07-14/local-vercel-readiness/verification.md`  
+证据：`docs/evidence/2026-07-14/local-vercel-readiness/verification.md`
 决策：`docs/release/2026-07-14-hosting-platform-decision.md`
 
 ## 2026-07-14 — Phase 0 生产发布基线
@@ -96,8 +142,8 @@
 | 真实支付宝 sandbox E2E / 生产支付 | ❌ 仍未做（Phase 3） |
 | staging / CI / Auth 邮件 / 监控回滚 | ❌ Phase 1+ |
 
-判定：**Phase 0 本地工程基线通过；仍不可直接生产上线。**  
-证据：`docs/evidence/2026-07-14/phase0-production-baseline/`  
+判定：**Phase 0 本地工程基线通过；仍不可直接生产上线。**
+证据：`docs/evidence/2026-07-14/phase0-production-baseline/`
 计划：`docs/release/2026-07-14-production-launch-plan-v2.md`
 
 ## 2026-07-14 — 生产上线门禁复验
@@ -468,6 +514,17 @@ Known non-blocking advisor warnings: the owner-checked soft-delete RPC is intent
 | B.14 | `.env.example` has no real key values | ✅ all set to empty/placeholder |
 | B.15 | `vite-env.d.ts` uses `VITE_SUPABASE_PUBLISHABLE_KEY` | ✅ |
 | B.16 | `supabase-stub.d.ts` files deleted | ✅ |
+
+## Local workbench shell smoke (2026-07-15) — infrastructure only
+
+| # | Criterion | Result |
+|---|-----------|--------|
+| LWS.1 | E2E Vite only loads mock Auth/Supabase; production vite.config untouched | ✅ |
+| LWS.2 | Fixture user is `e2e@example.invalid` (not real credentials) | ✅ |
+| LWS.3 | Browser aborts non-localhost; blocked list empty | ✅ |
+| LWS.4 | `/app` shell loads under mock (no login bounce); desktop + mobile | ✅ |
+| LWS.5 | Evidence screenshots under `docs/evidence/2026-07-15/workbench-shell-local-smoke/` | ✅ |
+| LWS.6 | **Does not** accept real Auth / JWT / RLS / payment | ✅ explicit non-coverage |
 
 ## New Behavior Tests (✅ PASSED — v2 acceptance fixes)
 
@@ -919,9 +976,9 @@ Manual visual confirmation remains available at `http://localhost:5175/app` whil
 | 跨组数量和正文不泄露 | ✅ 服务端 scope/响应契约及远端只读调用通过 |
 | Migration 远端结构与 history | ✅ `20260715121000` 已推送并复核 |
 | 全量回归和构建 | ✅ Client 383/383；Server 569/569；双端 typecheck/build；audit 0 vulnerabilities |
-| Playwright 桌面/手机截图 | ⚠️ 本机 runner 3 次启动超时，未判通过 |
+| Playwright 桌面/手机截图 | ✅ 2026-07-16 使用完全本地隔离 fixture 复验，两轮各 6/6；不作为真实 Auth/RLS 证据 |
 
-判定：**数据层和应用行为完成；自动化截图验收受本机 Playwright 阻塞，已如实保留残余风险。**
+判定：**数据层、应用行为及本地隔离浏览器交互完成；真实 Auth/RLS 仍需独立 staging 验收。**
 
 证据：`docs/evidence/2026-07-15/user-authored-review-queue/verification.md`
 
@@ -937,11 +994,13 @@ Manual visual confirmation remains available at `http://localhost:5175/app` whil
 | 立即查看定位分页目标 | ✅ 清搜索、翻页、滚动和 3 秒高亮测试通过 |
 | 页面重新聚焦刷新审核结果 | ✅ ready 状态触发 owner-scoped re-hydration |
 | 全量客户端回归和构建 | ✅ Client 388/388；TypeScript + production build 通过 |
-| 浏览器自动化 | ⚠️ 沿用上一切片 runner 3 次超时结论，本切片未重跑、未伪造截图 |
+| 浏览器自动化 | ✅ 2026-07-16 本地隔离 E2E 两轮各 6/6，含桌面/390px、去重、再次提醒和立即定位；不作为真实 Auth/RLS 证据 |
 
-判定：**本地应用行为完成；等待用户用现有已审核收藏做一次真实页面人工确认。**
+判定：**本地应用行为及隔离浏览器交互完成；真实登录用户与远端审核数据仍保留人工/staging 验收。**
 
 证据：`docs/evidence/2026-07-15/user-review-result-dialog/verification.md`
+
+补充浏览器证据：`docs/evidence/2026-07-16/review-notifications-local-e2e/verification.md`
 
 ## 2026-07-15：管理员待审核空状态说明
 

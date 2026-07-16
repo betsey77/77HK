@@ -129,10 +129,10 @@
 
 - completed: change - Shorts 展示名统一为 Shorts/TK；内部 key 保持 `shorts`，Prompt 同时覆盖 YouTube Shorts/TikTok，全量验证与浏览器截图通过。
 
-- pending: feature - 用户自写收藏文案与待审核队列. Confirm with user before implementation.
+- completed: feature - 用户自写收藏文案与待审核队列；远端 Migration、应用行为和本地隔离浏览器证据均已验收，真实 Auth/RLS 留待 staging。
 
 - completed: change - Pro 月额度调整为 250 次；Migration `20260715113350` 已推送，存量有效 Pro 当前周期由 10/400 立即变为 10/250，边界事务验证后无 QA 残留。
 
 - completed: feature - 团队协作版 99 元/月联系定制；官网/Pricing 卡片、共享微信联系弹窗、二维码与复制/键盘/手机验收完成，无支付或权益改动。
 
-- pending: feature - 用户审核结果弹窗；与管理员待审提醒一并设计，独立验证 owner 隔离、去重和“立即查看”定位。
+- completed: feature - 用户审核结果弹窗与管理员待审提醒；2026-07-16 本地隔离 Playwright 6/6×2，覆盖去重、再次提醒和“立即查看”定位，不作为真实 Auth/RLS 证据。

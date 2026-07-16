@@ -1,5 +1,19 @@
 # Progress
 
+- 2026-07-16: ✅ **审核提醒本地隔离浏览器 E2E** — 复用 Node 22/ASCII workbench harness，以 localhost-only API fixture 覆盖用户通过/未通过、稍后去重、新审核再次提醒、立即定位，以及管理员待审提醒/筛选；聚焦测试 13/13，Playwright 6/6×2，11 张截图，无残留进程。证据：`docs/evidence/2026-07-16/review-notifications-local-e2e/`。不作为真实 Auth/RLS/staging 证据；无生产代码、Migration、部署或 Git 操作。
+
+- 2026-07-15: ✅ **个人案例库保存 500 修复 + 副标题配色 + 文案澄清** — DB 授予 `case_library_tags_valid` EXECUTE；软删除 RPC；UI 标明功能已可用（W3 只传 ID）；左侧字段副标题统一暗绿/亮橙。交接：`docs/handoff/2026-07-15-case-library-fix-and-label-colors-handoff.md`。未 commit/push。
+
+- 2026-07-15: ✅ **本地工作台壳层 smoke（mock only）** — `vite.e2e.config.ts` 模块级替换 Auth/Supabase；fixture `e2e@example.invalid`；Playwright 阻断非 localhost + `/api` 固定 mock；独立端口 5184；ASCII Playwright cwd + 真实 client 路径启动 Vite（避免中文 junction 白屏）。`-SelfTest` + `-Twice` **2/2×2**。证据：`docs/evidence/2026-07-15/workbench-shell-local-smoke/`。**不**证明真实 Auth/RLS/支付。未 commit/push/安装。
+
+- 2026-07-15: ✅ **E2E harness 安全收口** — junction fail-closed（仅删除已验证指向本仓库的 Junction）；`E2E_SCREENSHOT_DIR` 截图回写仓库 evidence；移除浏览器安装开关；`-SelfTest` + `-Twice` **8/8×2**。证据：`docs/evidence/2026-07-15/e2e-harness-hardening/`。未 commit/push/安装/业务改动。
+
+- 2026-07-15: ✅ **Playwright 运行时基线返工** — 用户授权安装 Node 22.23.1 便携版。根因：非 ASCII 项目根路径导致 Playwright worker 无输出挂起（非单纯 Node 26）。修复：`scripts/e2e-public-smoke.ps1` + `C:\work\77hk-e2e` ASCII cwd；focused **8/8 ×2**。证据：`docs/evidence/2026-07-15/playwright-runtime-repair/`。未 commit/push/verify。
+
+- 2026-07-15: 🛑 **运行时返工曾 BLOCKED** — 无 Node 22 时仅能做标记与文档；已由上条关闭。
+
+- 2026-07-15: ⚠️ **Playwright runner + 公开路由冒烟（独立验收未通过）** — 改为 `playwright.config.mjs`、public/protected 用例与截图；本地曾报告 8/8，但 Codex 复验执行阶段挂起，**不作完成结论**。历史证据：`docs/evidence/2026-07-15/playwright-runner-public-smoke/`。
+
 - 2026-07-14: ✅ **R1 审核分组 + 管理员收藏批注（远端 Migration 已推送）** — migration `20260714190000` 已应用至 `qiotocumkbwckiezuptr`；admin favorites 同组 scope + PUT review 原子 RPC；bootstrap `adminReview`；收藏卡/管理后台/官网 tel；运维文档。远端元数据/RLS/grants/RPC 与 Advisor 已复核；尚未配置分组、未部署/commit。证据：`docs/evidence/2026-07-14/review-groups-admin-notes/`。
 
 - 2026-07-14: ✅ **本地部署适配切片完成（未部署）** — 官网 Playwright 分段滚动 reveal smoke；`apiUrl`/`VITE_API_BASE_URL`；`ALLOWED_ORIGINS` CORS；支付 `APP_FRONTEND_URL`/`APP_API_URL` 分域；`client`/`server` vercel.json（东京 hnd1、300s）与托管决策/Dashboard 空变量文档；`.env.example` 与 spec/planning 同步。证据：`docs/evidence/2026-07-14/local-vercel-readiness/`。禁止项遵守：无云部署 CLI、无 migration、无真实密钥读写、无 git commit/push。

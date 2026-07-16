@@ -1,5 +1,96 @@
 # CHANGELOG
 
+## 2026-07-15 — 个人案例库保存修复 + 副标题配色 + 说明澄清
+
+### Fixed
+- 远端：`private.case_library_tags_valid` 恢复 `authenticated`/`service_role` EXECUTE（原 W2 REVOKE 导致 INSERT 500）。
+- 远端+服务端：软删除改为 `soft_delete_case_library_entry` RPC（直接 UPDATE `deleted_at` 触发 RLS 拒绝）。
+- 迁移：`supabase/migrations/20260715150000_fix_case_library_tags_function_grant.sql`。
+
+### Changed
+- 个人案例库 UI 文案：明确 **已可用**；「只传 ID」是 W3 安全设计，不是功能未完成。
+- 左侧字段副标题统一暗色 emerald / 亮色 orange（见 `fieldLabel.ts` 与各 input 组件）。
+
+### Docs
+- 交接：`docs/handoff/2026-07-15-case-library-fix-and-label-colors-handoff.md`（供 Codex 避免重复开发）。
+
+## 2026-07-15 — 本地工作台壳层 smoke（mock Auth only）
+
+### Added
+- `client/vite.e2e.config.ts`：E2E 专用 Vite（端口 5184），模块解析层替换 Auth/Supabase。
+- `client/src/e2e/authContext.fixture.tsx` / `supabase.fixture.ts`：虚构 `e2e@example.invalid`，无远程 I/O。
+- `e2e/workbench-shell-local.spec.ts`：`/app` 壳层桌面+移动；非 localhost 阻断。
+- `playwright.workbench-local.config.mjs`、`scripts/e2e-workbench-shell.ps1`。
+- npm：`test:e2e:workbench:win` / `:twice`、`dev:client:e2e`。
+
+### Fixed
+- Windows：E2E Vite 必须从真实 `client/` 启动；经含中文目标的 junction 启动会导致 `main.tsx` 解析失败白屏。
+
+### Scope / Not done
+- **不**证明真实 Auth/JWT/RLS/额度/支付；未改生产 AuthContext/supabase 行为；未 commit/push/安装。
+
+### Verification
+- SelfTest PASS；**2/2 ×2**（Node v22.23.1）。证据：`docs/evidence/2026-07-15/workbench-shell-local-smoke/`。
+
+## 2026-07-15 — E2E harness 安全收口（fail-closed + 证据回写）
+
+### Changed
+- `scripts/e2e-public-smoke.ps1`：仅当路径为 **Directory Junction** 且目标等于本仓库对应目录时才 `rmdir` 链接；普通目录/错目标立即失败。
+- ASCII 根目录：`.77hk-e2e-harness-marker` 归属标记；无证明则拒绝复用未知目录。
+- 默认检查 `http://localhost:5173`；移除 `-InstallBrowsers`。
+- 运行时设置 `E2E_SCREENSHOT_DIR` 指向本切片仓库 evidence 截图目录，并写 `test-output.txt`。
+
+### Added
+- `e2e/public-routes.spec.ts` 支持 `E2E_SCREENSHOT_DIR`。
+- `-SelfTest` 非破坏性 fail-closed 验证。
+- 证据：`docs/evidence/2026-07-15/e2e-harness-hardening/`。
+
+### Scope / Not done
+- 未改业务 client/server；未 commit/push；未安装依赖；未真实 Auth/支付。
+
+### Verification
+- SelfTest PASS；focused **8/8 ×2**（Node v22.23.1）。
+
+## 2026-07-15 — Playwright 运行时基线返工（Node 22 + Windows ASCII cwd）
+
+### Changed
+- 根因：Windows 上项目根路径含非 ASCII 时，`@playwright/test` **执行**阶段 worker 无 reporter 挂起（`--list` 与 `chromium.launch` 仍正常）。
+- `package.json`：`engines.node: 22.x`；新增 `test:e2e:smoke:win` / `test:e2e:smoke:win:twice`。
+- `playwright.config.mjs`：记录路径挂起与推荐本地命令。
+- `.gitignore`：`test-results/` 等。
+
+### Added
+- 用户授权后便携安装 Node **v22.23.1**（`%LOCALAPPDATA%\nodejs-versions\...`，未替换系统 Node 26）。
+- `scripts/e2e-public-smoke.ps1`：ASCII cwd `C:\work\77hk-e2e` + junctions。
+- `.nvmrc` / `.node-version` → `22`。
+- 证据：`docs/evidence/2026-07-15/playwright-runtime-repair/`；Codex：`.planning/prompts/20260715-204700-codex-review.md`。
+
+### Scope / Not done
+- 未 npm install / playwright install / commit / push / 部署 / migration / 真实登录。
+- 未跑完整 `npm run verify`。
+
+### Verification
+- Node 22 下 focused E2E **8/8 ×2**；见 evidence `run1-node22.txt` / `run2-node22.txt`。
+
+## 2026-07-15 — Playwright runner 稳定化 + 公开路由冒烟（独立验收未通过）
+
+### Changed
+- Playwright 配置改为 `playwright.config.mjs`（Node 26 + ESM 下 `.ts` config 会导致 runner 无输出挂起）。
+- `webServer`：`npm run dev:client`，本地 `reuseExistingServer`，支持 `E2E_BASE_URL` / `E2E_NO_WEBSERVER`。
+- 首页 smoke 断言从 `[data-reveal]` 对齐到当前营销页 `.panel-in` / `.is-in`。
+
+### Added
+- `e2e/public-routes.spec.ts`：`/`、`/pricing`、`/login` 桌面/移动冒烟与截图。
+- `e2e/protected-route.spec.ts`：未登录访问 `/app` → `/login?next=/app`。
+
+### Scope / Not done
+- 未做已登录工作台 mock 冒烟（避免历史 project-ref / 真实网络误验收）。
+- 未 commit/push/部署/migration/安装依赖。
+- **独立验收未通过**，不得作为运行时基线完成结论。
+
+### Verification
+- 历史产物：`docs/evidence/2026-07-15/playwright-runner-public-smoke/verification.md`（已被 runtime-repair 覆盖结论）。
+
 ## 2026-07-14 — R1 审核分组 + 管理员收藏批注
 
 ### Added
@@ -1402,3 +1493,9 @@ returns boolean language plpgsql security definer set search_path = ''
 - 基线与 Node 22 修复已提交并推送至 `origin/master`。
 - GitHub Actions 最终运行 `29403089055` 全绿；官方 Actions 已更新为固定 SHA 的 v5。
 - 仍未执行 staging 创建/重放、Migration 写入、部署或真实支付。
+## Verified - 2026-07-16 - 审核提醒本地隔离 E2E
+
+- 为现有 workbench local E2E API mock 增加用户审核结果与管理员待审场景，不修改生产组件或真实接口。
+- 覆盖用户通过/未通过、稍后去重、新审核再次提醒、立即查看定位，以及管理员稍后/立刻审核和待审筛选。
+- Node 22 + ASCII Playwright harness 两轮各 6/6，保存 1440px 与 390px 截图；所有请求限制为 localhost。
+- 未连接真实 Supabase/Auth/RLS，未安装依赖，未执行 Migration、部署、commit 或 push。

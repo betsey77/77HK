@@ -27,8 +27,11 @@ npm run audit:all      # 无 high/critical
 # 一键（含 audit）
 npm run verify
 
-# 可选：公开页 smoke（需先 dev:client + playwright install chromium）
+# 可选：公开页 smoke（Chromium；config 为 .mjs）
+# 本地可复用已启动的 Vite；否则 webServer 会 npm run dev:client
 npm run test:e2e:smoke
+# 或聚焦：
+npx playwright test e2e/smoke.spec.ts e2e/public-routes.spec.ts e2e/protected-route.spec.ts --config=playwright.config.mjs --project=chromium --reporter=list
 ```
 
 等价分项：
@@ -38,7 +41,53 @@ cd client; npx vitest run; npx tsc --noEmit; npm run build
 cd server; npm test; npx tsc --noEmit; npm run build
 ```
 
-Playwright 仅 Phase 0 smoke；完整业务 E2E 见 `docs/release/2026-07-14-playwright-smoke-plan.md` 与 production-launch-plan Phase 2。新增付费服务或强制升级依赖档位前必须用户同意。权威命令表：`scripts/verify/commands.md`。
+Playwright 公开页 / 未登录保护冒烟（2026-07-15）：`playwright.config.mjs` + `e2e/smoke.spec.ts` + `e2e/public-routes.spec.ts` + `e2e/protected-route.spec.ts`。
+**不**将 `e2e/user-authored-review-queue.spec.ts` 的 localStorage mock 视为真实 Auth/RLS。完整业务 E2E 见 `docs/release/2026-07-14-playwright-smoke-plan.md` 与 production-launch-plan Phase 2。新增付费服务或强制升级依赖档位前必须用户同意。权威命令表：`scripts/verify/commands.md`。
+
+## 2026-07-15 — 本地工作台壳层 smoke（mock Auth）
+
+| 项 | 说明 |
+| --- | --- |
+| 状态 | **通过（本地 mock only）** — **不是**真实 Auth/RLS/支付验收 |
+| 配置 | `client/vite.e2e.config.ts` + `playwright.workbench-local.config.mjs` |
+| Fixture | `client/src/e2e/*`；`e2e-local-user` / `e2e@example.invalid` |
+| 网络 | Playwright 拦截非 localhost；`/api/**` 固定 DTO |
+| 脚本 | `scripts/e2e-workbench-shell.ps1`（`-SelfTest` / `-Twice`；端口 5184） |
+| 路径 | Playwright：`C:\work\77hk-workbench-e2e`；Vite：真实 `client/` |
+| 覆盖 | `/app` 壳层加载；Header/输入/结果空态/审核空态/Footer；桌面+移动无横溢 |
+| 命令 | `npm run test:e2e:workbench:win` / `:twice` |
+| 证据 | `docs/evidence/2026-07-15/workbench-shell-local-smoke/` |
+
+## 2026-07-15 — E2E harness 安全收口
+
+| 项 | 说明 |
+| --- | --- |
+| 脚本 | `scripts/e2e-public-smoke.ps1`（fail-closed junction + marker + evidence） |
+| 自检 | `-SelfTest`：拒绝普通目录/错目标；正确 junction 仅摘链接 |
+| 截图 | `E2E_SCREENSHOT_DIR` → `docs/evidence/2026-07-15/e2e-harness-hardening/screenshots/` |
+| 回归 | `-Twice` focused 8 例 ×2；Node 22；ASCII `C:\work\77hk-e2e` |
+| 证据 | `docs/evidence/2026-07-15/e2e-harness-hardening/` |
+
+## 2026-07-15 — Playwright 运行时基线返工
+
+| 项 | 说明 |
+| --- | --- |
+| 状态 | **通过（有条件）**：Node 22 + ASCII cwd |
+| 根因 | 项目根路径含非 ASCII 时 Playwright execute 挂起；list / chromium.launch 正常 |
+| 运行时 | 便携 Node v22.23.1；CI 仍为 Node 22 |
+| 本地命令 | `npm run test:e2e:smoke:win` 或 `:twice`（`scripts/e2e-public-smoke.ps1` → `C:\work\77hk-e2e`） |
+| 验收 | focused 8 例连续两次通过；证据 `docs/evidence/2026-07-15/playwright-runtime-repair/` |
+
+## 2026-07-15 — Playwright runner + 公开路由冒烟（上一轮，验收未通过）
+
+| 项 | 说明 |
+| --- | --- |
+| 配置 | `playwright.config.mjs`（**勿**恢复 Node26 下会挂起的 `.ts` config） |
+| webServer | `npm run dev:client` + `reuseExistingServer: !CI`；`E2E_BASE_URL` 可覆盖 |
+| Escape | `E2E_NO_WEBSERVER=1` 时不启服务，要求 baseURL 已就绪 |
+| 覆盖 | `/` 滚动 reveal；`/pricing`；`/login`；未登录 `/app` → `/login?next=/app`；桌面+移动截图 |
+| 证据 | `docs/evidence/2026-07-15/playwright-runner-public-smoke/` |
+| 独立验收 | **未通过** — 见 runtime-repair handoff / evidence |
 
 ## Phase 0 发布基线回归
 
@@ -293,3 +342,11 @@ npm run build
 - CI 禁止 `pull_request_target`、`${{ secrets.* }}`、`db push`、`migration repair` 与部署命令。
 - `npx supabase migration list --linked` 只读输出必须保证每个 local/remote version 一致。
 - 完整验收命令：`npm run verify`；GitHub 线上 CI 状态只能在 workflow commit/push 后判定。
+## 2026-07-16：审核提醒本地隔离浏览器回归
+
+- 入口：`powershell -File scripts/e2e-workbench-shell.ps1 -Twice -EvidenceDir docs/evidence/2026-07-16/review-notifications-local-e2e`
+- 用户路径：通过/未通过文案、稍后去重、刷新不重复、新审核再次提醒、立即查看定位并高亮收藏。
+- 管理员路径：待审计数与右下角提醒、稍后审核、立刻审核、待审筛选和高亮行。
+- 视口：1440px 桌面与 390px 手机；检查页面横向溢出并保存截图。
+- 隔离门禁：只允许 localhost；E2E Auth/Supabase fixture 不含真实项目、JWT 或密钥；禁止复用历史 `user-authored-review-queue` 伪会话。
+- 证据边界：本切片证明浏览器 UI/交互，不证明真实 Auth、RLS、review_group 或 staging。

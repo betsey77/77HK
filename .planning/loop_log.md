@@ -1,5 +1,55 @@
 # Loop Log
 
+## 2026-07-15 — Local workbench shell smoke (PASS mock only)
+
+- Phase: isolated authenticated shell smoke (no real Supabase)
+- Goal: /app shell loads under fixture auth; block remote network; desktop+mobile
+- Goal state: achieved — SelfTest + 2/2 ×2 on Node v22.23.1 :5184
+- Root cause fixed: Vite via Chinese-target junction blank-page → start Vite from real client/
+- Evidence: docs/evidence/2026-07-15/workbench-shell-local-smoke/
+- Codex: .planning/prompts/20260715-221800-codex-review.md
+- NOT done: real Auth/RLS/payment, install, commit/push, production Auth code edits
+- Stop: hand to Codex independent recheck
+
+## 2026-07-15 — E2E harness hardening (PASS)
+
+- Phase: harden Windows ASCII smoke harness only
+- Goal: fail-closed junctions + repo screenshot/evidence writeback + twice E2E
+- Goal state: achieved
+- Tests: -SelfTest PASS; -Twice 8/8 ×2; screenshots in repo evidence; no CLI leak
+- Evidence: docs/evidence/2026-07-15/e2e-harness-hardening/
+- Codex: .planning/prompts/20260715-213500-codex-review.md
+- NOT done: install, commit/push, Auth/RLS/payment, client/server business edits
+- Stop: hand to Codex independent recheck
+
+## 2026-07-15 — Playwright runtime repair (PASS)
+
+- Phase: install Node 22 (authorized) + diagnose hang + fix local runner path
+- Goal: two consecutive focused E2E on Node 22 with reporter, pass, clean exit
+- Goal state: **achieved** (8/8 ×2 on Node v22.23.1 via C:\work\77hk-e2e)
+- Root cause: non-ASCII project root path hangs Playwright test workers (list/launch OK)
+- Fix: portable Node 22.23.1; scripts/e2e-public-smoke.ps1 ASCII mirror + junctions; npm test:e2e:smoke:win
+- Evidence: docs/evidence/2026-07-15/playwright-runtime-repair/
+- Codex review: .planning/prompts/20260715-204700-codex-review.md
+- Explicitly NOT done: npm install, playwright install, commit/push, deploy, migration, real auth, full verify
+- Stop: hand to Codex independent recheck
+
+## 2026-07-15 — Playwright runtime repair (earlier BLOCKED, superseded)
+
+- Was blocked pending Node 22 install authorization; closed by PASS section above.
+
+## 2026-07-15 — Playwright runner + public smoke (SUPERSEDED / failed independent QA)
+
+- Phase: implement (e2e harness only; no deploy/migration/secret/commit)
+- Goal: stable Playwright list/start/exit; public + unauth protection smoke baseline
+- Goal state: **voided by Codex independent recheck** (execute hang)
+- Root cause claim (partial): Node 26 + ESM hung on playwright.config.ts; smoke used removed data-reveal
+- Fix attempted: playwright.config.mjs + webServer reuse; panel-in assertions; public/protected specs
+- Tests (local claim): list OK; focused 8/8 — **not accepted after independent hang**
+- Deferred: authenticated workbench mock shell
+- Evidence (historical only): docs/evidence/2026-07-15/playwright-runner-public-smoke/
+- Explicitly NOT done: install, deploy, migration, real auth/payment, git commit/push
+
 ## 2026-07-14 — local-vercel-readiness + homepage scroll smoke
 
 - Phase: implement (local config/code only; no deploy/migration/secret/commit)
