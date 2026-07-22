@@ -1,5 +1,79 @@
 # Loop Log
 
+## 2026-07-22 - V2.1 final UI regressions
+
+- Goal: close the reported workbench blank-area and regenerate-all-red release blockers.
+- Result: fixed workbench shell to the viewport and reset manual diff baseline on every successful generation.
+- Diagnosis: the first browser closure was a false blocker from an outdated E2E `GenerateResponse` fixture missing `thermometer.dimensions`; the fixture now satisfies the public type contract.
+- Verify: focused browser 1/1; Playwright 14/14 twice; Client 487/487; Server 809/809; typecheck/build; prod/full audit 0.
+- Evidence: `docs/evidence/2026-07-22/slice-v2-release-ui-regressions-release/verification.md`.
+- Boundary: no commit, push, deploy, production migration, reset, clean or worktree.
+
+## 2026-07-19 - 1.1.4.5 Slice D6b local admin metrics UI
+
+- Goal: complete the remaining D6 super-admin model metrics, bad cases, provider balance and minimal AdminPage visualization.
+- Result: added three `requireSuperAdmin` endpoints, attempt-level model aggregation, metadata-only `<50` bad cases, schema-validated 10-minute DeepSeek balance cache, authenticated client adapter and independent responsive AdminMetricsPanel.
+- Grok: bounded read-only review completed in 143.7s; no Grok file edits. Existing AdminPage design system was reused; no external Stitch project was created.
+- Verify: focused Server 18/18 and Client 5/5; affected Server 100/100 and Client 70/70; full Server 696/696 and Client 443/443; typecheck/build pass; both audits 0; localhost-only Playwright 12/12 with 20 screenshots; Web/API 200.
+- Boundary: D1/D4 migrations unapplied; browser evidence uses localhost-only fixtures; no real provider/database call, migration, deployment, commit, push, reset, clean or worktree action.
+- Next: stop before D7 and request explicit authorization for database dry-run/application.
+
+## 2026-07-19 - 1.1.4.5 Slice D6a local overview metrics + scrollbar
+
+- Goal: deliver one bounded D6 sub-slice and remove the visually intrusive workbench scrollbar.
+- Result: added review-group/global overview aggregation with fail-closed scope and HK date windows; added workbench-only dark/light/forced-colors scrollbar styling.
+- Grok: bounded read-only review completed; no Grok file edits.
+- Verify: focused Server 12/12 and Client 1/1; affected Server 73/73 and Client 19/19; full Server 681/681 and Client 438/438; typecheck/build pass; localhost-only Playwright 11/11; Web/API 200.
+- Boundary: D1/D4 migrations unapplied, so no live database metric visualization; no migration, deployment, commit, push, reset, clean or worktree action.
+- Next: D6b super-admin model health, bad-cases, provider-balance and minimal metrics UI.
+
+## 2026-07-19 - signup confirmation + D3 visual polish
+
+- Phase: reproduce route unmount → red/green regression → visual polish → browser double-run
+- Root cause: `PublicAuthRoute` rendered the initial Auth loader for every `isLoading`, so `AUTH_START` during signup unmounted `SignupPage`; the remounted form was blank and the old async handler could not open its dialog
+- Fix: remember completion of initial Auth restoration and keep the public page mounted during later auth actions
+- Visual: wider rounded surface, quieter nested sections, connected 7-day progress, stronger reward state and primary completion action; dark/light and 390px retained
+- Verification: focused 24/24; full Client 46 files / 437 tests; production build; Playwright 11/11 × 2 and 18 screenshots
+- Grok: two bounded visual-review attempts timed out during local legacy skill metadata scanning before model inference; no file edits; stopped without a third attempt
+- Boundary: local fixture Auth/API only; no Migration, remote write, deployment, install, commit, push, reset, clean or worktree
+- Evidence: `docs/evidence/2026-07-19/slice-d3-checkin-ui/verification.md`
+
+## 2026-07-19 - 1.1.4.5 Slice D3 local check-in UI
+
+- Phase: contract red → API/dialog implementation → focused/affected/full/build → isolated browser double-run
+- Goal: expose D2 check-in/reward state after cloud hydration without letting the browser forge dates, streaks or membership state
+- Red: two new suites failed at import because the API service and dialog did not exist
+- Green: focused 14/14; affected 27/27; full Client 46 files / 436 tests; production build passed
+- Browser: fail-closed harness SelfTest passed; Playwright 10/10 × 2 on Node 22 and port 5184; desktop + 390px check-in screenshots inspected; no remote requests or runner leaks
+- Grok: one bounded headless read-only review informed API validation, account/date dismissal, claim merge, accessibility and mock isolation
+- Goal state: achieved locally; D1 live database/RPC/RLS behavior remains unproven until separately authorized D7
+- Boundary: no Migration execution, staging write, deployment, install, commit, push, reset, clean or worktree
+- Evidence: `docs/evidence/2026-07-19/slice-d3-checkin-ui/verification.md`
+
+## 2026-07-19 - 1.1.4.5 Slice D1 local Migration draft
+
+- Phase: TDD red → SQL draft → focused/impacted/full verify
+- Goal: define safe Hong Kong daily check-ins and a one-time 30-day Pro reward without applying a database change
+- Red: focused contract 6/6 failed because the canonical Migration did not exist
+- Green: focused 6/6; all Migration contracts 56/56
+- Full verification: Server 41 files / 615 tests; Server typecheck and build passed
+- Security: owner SELECT only; service-role invoker RPCs; empty search_path; fixed subscription-before-grant lock order; no usage_ledger/payment/quota mutation
+- Grok: design review completed; actual SQL review timed out at 120 seconds with no final answer and was not retried
+- Goal state: achieved locally as a draft; database execution/RLS/concurrency remain unproven until authorized D7
+- Boundary: no Migration execution/dry-run, staging write, deployment, commit, push, reset, clean or worktree
+- Evidence: `docs/evidence/2026-07-19/slice-d1-checkin-rewards/verification.md`
+
+## 2026-07-19 - 1.1.4.5 Slice D D0 specification
+
+- Phase: inspect + read-only Grok review + specification
+- Goal: turn the broad Slice D request into bounded D0-D7 implementation slices with explicit product, data, security and verification gates
+- Result: detailed plan completed; current subscription/quota coupling and existing global admin stats were identified as implementation hazards
+- Grok: two sequential bounded read-only reviews; no business-file edits by Grok
+- Goal state: D0 achieved; D1-D3 blocked on two product decisions, D4-D5 may proceed after metrics semantics are confirmed
+- Verification: PRD gate and `git diff --check` only; no executable code changed
+- Boundary: no Migration, staging write, deployment, commit, push, reset, clean or worktree
+- Evidence: `docs/evidence/2026-07-19/slice-d-spec-plan/verification.md`
+
 ## 2026-07-15 — Local workbench shell smoke (PASS mock only)
 
 - Phase: isolated authenticated shell smoke (no real Supabase)
@@ -232,3 +306,68 @@
 - Fix: CI Node 22；官方 checkout/setup-node 固定 SHA v5
 - Final run: `29403089055` success，全部 9 个质量步骤通过
 - Boundary: 未 staging、db push/repair、部署或真实支付
+
+## 2026-07-18T22:05 - Product Selling Points Slice B
+
+- Phase: implement + verify (local-only)
+- Goal: 产品卖点逐条港化并贯穿 Prompt、配置同步与历史恢复
+- Goal state: achieved locally; real signed-in model call pending manual acceptance
+- Focused verification: Client 75/75 impacted + 7/7 selling-point tests；Server 154/154 impacted + 7/7 selling-point tests
+- Full verification: Client 417/417；Server 604/604；typecheck/build passed；audits 0 vulnerabilities
+- Browser evidence: local mock Playwright 8/8 × 2，桌面/390px 手机截图，非 localhost 网络为 0
+- Post-review prompt regression: 39/39 related tests + server typecheck passed
+- Boundary: no Migration, deployment, commit, push, reset, clean, or worktree
+- Evidence: `docs/evidence/2026-07-18/product-selling-points/`、`docs/evidence/2026-07-18/slice-03/`
+
+## 2026-07-18T22:49 - Product Selling Points real-model propagation fix
+
+- Phase: reproduce + fix + verify (local-only)
+- Goal: ensure validated selling points reach both real-model Prompt builders
+- Initial result: 2/2 new service-boundary tests failed because both services omitted `productSellingPoints`
+- Minimal fix: forward `params.productSellingPoints` in DeepSeek and CantoneseLLM service calls
+- Focused verification: 9/9 selling-point server tests passed
+- Full verification: Client 417/417; Server 606/606; typecheck/build passed; audits 0 vulnerabilities
+- Goal state: automated fix achieved; one signed-in user reacceptance remains
+- Boundary: no real-model quota call, Migration, deployment, commit, push, reset, clean, or worktree
+- Evidence: `docs/evidence/2026-07-18/slice-04/test-output.txt`
+
+## 2026-07-18 - Review notification visible polling Slice C
+
+- Phase: implement + verify (local-only)
+- Goal: visible admin/user pages observe review changes within 0-15 seconds without repeatedly downloading full favorite content
+- TDD start: missing polling hook, missing summary client API, later-review rescan failure, and server 404 reproduced the intended gaps
+- Minimal implementation: shared visibility-aware polling hook; existing admin pending summary; owner-only latest review timestamp; full owner bootstrap only on version change
+- Focused verification: Client 59/59; Server sync 58/58
+- Full verification: Client 422/422; Server 609/609; typecheck/build passed; audits 0 vulnerabilities
+- Browser evidence: isolated Playwright 8/8 x 2, 15 screenshots, localhost-only traffic
+- Runtime: Web 200; API health 200; anonymous review-result summary 401
+- Goal state: achieved locally
+- Boundary: no Migration, deployment, commit, push, reset, clean, or worktree
+- Evidence: `docs/evidence/2026-07-18/review-notification-polling/verification.md`, `docs/evidence/2026-07-18/slice-05/test-output.txt`
+
+## 2026-07-19 - 1.1.4.5 Slice D4 telemetry contracts
+
+- Phase: TDD implement + verify (local-only)
+- Goal: create privacy-minimal activity/model telemetry schema and writer contracts without instrumenting providers or applying migrations
+- Initial red: migration and telemetry service were absent; focused suite failed as expected
+- Implementation: private daily activity/model tables, DB-derived HK day RPC, exact runtime allowlist, nullable official usage and 400ms best-effort insert
+- Grok review: initial auth failure stopped; user reauthenticated; final bounded read-only review found no blocking defect and one SQL/runtime alignment improvement was applied
+- Focused verification: 18/18
+- Migration contracts: 61/61
+- Full verification: Server 658/658; server typecheck/build passed
+- Goal state: achieved locally
+- Boundary: D1/D4 migrations unapplied; no staging/database write, cleanup, D5 provider instrumentation, deployment, commit, push, reset, clean or worktree
+- Evidence: `docs/evidence/2026-07-19/slice-d4-telemetry-contracts/verification.md`
+
+## 2026-07-19 - 1.1.4.5 Slice D5 model-attempt instrumentation
+
+- Phase: Grok review + TDD implement + verify (local-only)
+- Goal: instrument every real DeepSeek/CantoneseLLM attempt with official usage, latency, bounded error class and retry/fallback numbering without changing business results
+- Initial red: focused suite had 9 expected failures across missing wrappers, route contexts and cold-start retry behavior
+- Grok review: shared attempt observer and explicit context approved; found configured cold-start retries made only one actual call
+- Implementation: optional request/job context, official usage normalization, privacy-safe error classes, best-effort writer isolation, per-provider attempts and corrected cold-start loop
+- Focused verification: 24/24
+- Full verification: Server 669/669; server typecheck/build passed; local Web/API HTTP 200
+- Goal state: achieved locally
+- Boundary: D1/D4 migrations unapplied; no real provider call, database/staging write, deployment, commit, push, reset, clean or worktree
+- Evidence: `docs/evidence/2026-07-19/slice-d5-model-telemetry/verification.md`

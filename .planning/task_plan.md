@@ -1,5 +1,27 @@
 # Task Plan
 
+## V2.1 发布收尾（2026-07-22）
+
+1. 统一人工验收 — completed。
+2. 工作台底部空白与再次生成整段标红 — fixed and verified。
+3. 本地发布门禁与浏览器双跑 — completed。
+4. Dirty Worktree 精确发布清单、`server/src/index.ts` 删除决策 — completed。
+5. `release/v2.1` 分组 commit/push 与 GitHub CI — pending explicit authorization。
+6. 双 Vercel Preview、Preview 真机/真实模型验收 — pending separate authorization after CI。
+
+## 2.1 Slice E（2026-07-22）
+
+1. E0 规格与 E1 工件快照合同 — completed。
+2. E2 数据模型与 E3 BFF/生成 hook — completed locally；Migration applied to staging。
+3. E4 验收标准/findings 与 E5 review-only 提案 — completed locally。
+4. E6 管理端审阅包/更新日志入口与 E7 诊断指标 — completed locally。
+5. E7b 超级管理员诊断提醒、摘要去重与面板折叠 — completed locally。
+6. 全量测试、typecheck、production build、证据收口 — completed。
+7. E8 staging Migration、真实 Auth/RLS/API、生成 hook、DeepSeek、审计与清理验收 — completed；浏览器按钮截图并入统一人工验收。
+8. 统一人工验收、GitHub/Vercel Preview/Production、部署后更新日志 — pending separate release authorization。
+
+当前停止点：E8 staging API/数据闭环已完成；下一步为统一浏览器/人工验收，之后进入 E9 Dirty Worktree 发布清单与 Preview 准备。
+
 ## 2026-07-15 Phase 0 CI / Migration checkpoint
 
 - **已完成本地：** `supabase/config.toml`、只读 GitHub Actions CI、安全静态门禁。
@@ -136,3 +158,30 @@
 - completed: feature - 团队协作版 99 元/月联系定制；官网/Pricing 卡片、共享微信联系弹窗、二维码与复制/键盘/手机验收完成，无支付或权益改动。
 
 - completed: feature - 用户审核结果弹窗与管理员待审提醒；2026-07-16 本地隔离 Playwright 6/6×2，覆盖去重、再次提醒和“立即查看”定位，不作为真实 Auth/RLS 证据。
+
+## 2026-07-18 - 1.1.4.5 后续顺序
+
+1. blocked-deploy：Slice A 本地实现与严格验证已完成；API Preview 已更新，Web Preview 三次停在 `UNKNOWN`，稳定 Web 域名未切换；无 Migration。
+2. completed-local：Slice B 修复后已由用户重新生成并确认文案体现卖点；本地人工验收通过，未部署。
+3. completed-local：Slice C 已新增 owner-only 审核版本摘要、可见页面 15 秒轮询、隐藏暂停、focus 立即刷新和 15/30/60 秒退避；仅版本变化时执行全量 owner bootstrap。Client 422/422、Server 609/609、Playwright 8/8×2。
+4. D4-complete-local：D1 Migration 草案、D2 签到 BFF、D3 签到 UI 与 D4 活跃/模型遥测契约均已完成本地实现。D4 聚焦 18/18、Migration 合同 61/61、Server 658/658、typecheck/build 通过；P1-2 至 P1-4 已采用推荐值。D1/D4 Migration 均未应用，D7 数据库执行另行授权。
+5. completed-local：D5 已在 DeepSeek/CantoneseLLM 真实尝试边界接入 request/job context、官方 usage、耗时、错误类别与重试/fallback 编号，并证明日志失败不阻断生成；同时修复 cold-start 实际不重试。
+6. ✅ D6a：已以权限与口径测试完成普通管理员同组 / `super_admin` 全局 overview API，并完成工作台滚动条视觉融合。
+7. ✅ D6b：已实现仅 `super_admin` 的模型健康、bad cases、DeepSeek 余额失败态与最小指标 UI。
+8. ✅ D7：用户授权后已完成 staging dry-run、两项 Migration 单次应用、结构/ACL/Advisor 复核及真实 RLS、8 路并发、奖励领取、活动 API、模型日志约束与清理验收；最终人工视觉/业务验收仍为发布前门禁。
+6. pending：审计 Dirty Worktree，按功能切片提交并 push，使 GitHub/Vercel 自动部署基线重新一致。
+
+## 2026-07-22 - 2.1 Slice E 后续顺序
+
+1. ✅ E0：完成 Bad Case 诊断审阅包规格，覆盖样本、Operational Trace、双 Owner、版本化验收标准、Prompt/规则/知识工件和带证据 Findings。
+2. ✅ E1：工件 manifest/version/hash 与新任务生成时快照合同；旧任务只标 `legacy_unavailable`。
+3. ✅ E2：Review Pack/Finding/Event 数据层、自动触发与 Migration；Migration 已应用 staging。
+4. ✅ E3：仅 `super_admin` 的审计详情 API、Owner 和 Trace；详情保持 scope/audit/recheck/body。
+5. ✅ E4：确定性标准引擎、错误位置分类、evidence refs 和责任团队建议。
+6. ✅ E5：Prompt/规则/知识审阅器与不可直接发布的修复提案。
+7. ✅ E6：管理端筛选、详情、指派、状态和人工 disposition 闭环 UI；`HeaderMenu -> 更新日志` 外壳已完成，仍不把未部署功能标为已上线。
+8. ✅ E7/E7b/E7c：脱敏评测候选、诊断指标/提醒/折叠、DeepSeek review-only 诊断和明确按钮反馈。
+9. partial E8：staging Migration/RLS/ACL 已完成；仍需真实角色/API/浏览器/DeepSeek/审计/清理闭环的单独授权验收。
+10. pending E9：最终人工验收后，才进入 commit/push/Vercel Preview/Promote 的独立授权流程；生产部署成功后按 deployment manifest 回填本次全部真实上线更新。
+
+Grok 执行说明：只使用 Grok CLI 自身 Agent Teams/Autonomous Agents/worktree/background task，不使用 Codex 子代理。用户已授权并建立本地 `refs/codex/checkpoints/2026-07-22-slice-e-baseline`；后续 worktree 必须显式使用该 ref，成员不得继续派生任务。

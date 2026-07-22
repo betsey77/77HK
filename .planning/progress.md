@@ -1,5 +1,33 @@
 # Progress
 
+- 2026-07-22: ✅ **V2.1 最终 UI 回归关闭并进入 Git 授权门** — 用户统一人工验收通过；工作台固定视口消除底部空白，再次生成清空旧差异基线避免整段标红。Playwright 14/14 连续两遍，Client 487/487、Server 809/809、typecheck/build、两类 audit 0。确认 `server/src/index.ts` 为有意入口拆分删除，发布清单已完成；尚未 commit/push/deploy。
+
+- 2026-07-22: ✅ **Slice E8 staging API/DeepSeek 真实闭环 7/7 通过** — 真实 JWT 角色边界、生成 hook 幂等、审计详情、DeepSeek 旧记录升级/复点幂等/失败态、指派、状态、Finding、提案哈希、诊断与领域事件全部通过；修复合法提案 400 与成功 hook 假 timeout。Server 809/809、类型检查/构建、相关 Client 22/22 通过；临时业务数据零残留，保留遥测已解除任务关联。浏览器按钮截图仍待统一验收；未部署或执行 Git/生产 Migration。
+
+- 2026-07-22: ✅ **V2.1 审核结果/签到优先级完成并通过真实 staging** — 根因是两个组件独立挂载，`z-[110]` 签到遮罩会压住 `z-[70]` 审核通知。现用 owner-scoped 粘性可见状态让审核结果优先、关闭后恢复签到，并覆盖签到晚挂载。相关 17/17、Client 486/486、typecheck/build、staging 桌面/390px 管理员审核与用户通知/收藏定位通过，临时数据已清理。Grok 只读复核无 P0，其 P1 建议已实现。未部署或执行 Git/生产 Migration。
+
+- 2026-07-22: ✅ **2.1 Slice E7b 诊断提醒与折叠本地完成** — 超级管理员面板默认折叠，标题保留异常类别徽标；新摘要弹出一次可关闭消息卡并可直接展开，同摘要刷新去重、变化后再提醒，普通 admin 零请求/零提示。Client 481/481、前端 typecheck/build、Playwright 12/12 通过；未部署或执行 Git 发布操作。证据：`docs/evidence/2026-07-22/slice-e7b-diagnostics-alert/verification.md`。
+
+- 2026-07-22: ✅ **2.1 Slice E8 staging Migration 已应用并完成结构/ACL 只读核验** — `20260722100000_slice_e_bad_case_review_packs.sql` 已单次应用到 `wzpaghnxlpfjojvuxplx`；四表 RLS 与 browser/service-role 权限符合设计，远端历史与本地版本一致。真实 Auth/API/生成 hook/审计顺序/提案拒绝/诊断/清理和最终人工验收仍待完成。未触碰生产、部署、commit/push/reset/clean。证据：`docs/evidence/2026-07-22/slice-e8-staging-migration/verification.md`。
+
+- 2026-07-22: ✅ **2.1 Slice E1-E7 本地开发基本完成** — Bad Case 审阅包已覆盖生成时工件快照、样本、脱敏 Trace、owner、版本化验收标准、findings、审计、指派/状态/人工处置和 review-only 工件 diff；新增分类/复发/误报/验收覆盖/解决时长/Token 成本可用性诊断。工作台显示 v2.1，更新日志仅保留部署后发布入口。Client 478/478、Server 805/805、双端 typecheck/build 通过。此条为当时本地状态；Migration 后续已按上方 E8 记录应用到 staging，仍未部署/commit/push。
+
+- 2026-07-22: ✅ **1.1.4.5 Slice D7 staging 自动化数据门禁通过** — D1/D4 两项 Migration 已在授权 staging `wzpaghnxlpfjojvuxplx` 完成真实并发、幂等、RLS、RPC ACL、活动 API 与模型日志约束验证；8 路第 7 日并发只发 1 次奖励，有效 Pro pending/到期领取与跨 owner 拒绝符合合同。复核发现活动 writer 原先无生产调用点并以 TDD 修复，登录云同步后开始按香港日去重上报。临时用户/模型日志/签到/奖励/活动五项清理均为 0。Client 447/447、Server 703/703、双端 typecheck/build 通过。未部署、commit、push、reset/clean、Worktree 或生产数据库变更。证据：`docs/evidence/2026-07-22/slice-d7-staging-acceptance/verification.md`。
+
+- 2026-07-19: ✅ **1.1.4.5 Slice D6b 管理指标与模型健康页完成（本地）** — 新增 `super_admin` 专属模型健康、低分任务与 DeepSeek 官方余额接口；模型按每次 attempt 聚合延迟/错误/官方 Token，低分任务只返回白名单元数据，余额合法响应缓存 10 分钟且失败绝不伪装为 0。AdminPage 新增独立指标面板，普通管理员只看 D6a 同组概览，超级管理员查看模型/余额/低分任务。Grok 只读复核；Server 696/696、Client 443/443、双端 typecheck/build、两类 audit 0、Playwright 12/12 与 Web/API 200 通过。D1/D4 Migration 未应用；D7 需另行授权。
+
+- 2026-07-19: ✅ **1.1.4.5 Slice D6a 分组运营概览与工作台滚动条完成（本地）** — 新增普通管理员同组、`super_admin` 全局的 overview 聚合接口；香港日期默认 30 日、最多 90 日，空组在业务读取前 403。工作台滚动条改为透明轨道和低对比圆角滑块，兼容浅色/强制高对比。Grok 只读复核；Server 681/681、Client 438/438、双端 typecheck/build、Playwright 11/11 与 Web/API 200 通过。D1/D4 Migration 未应用，故 localhost 尚无真实指标数据；无数据库执行、部署、commit/push/reset/clean/Worktree。
+
+- 2026-07-19: **注册确认提示修复与签到视觉精修完成。** 根因是公开路由把注册操作期 `isLoading` 误当初始会话恢复，卸载表单后丢失邮箱/密码和弹窗状态；现仅首次 Auth 恢复显示全屏 loader。签到弹窗减少套娃边框，新增连续进度轨道、强化奖励态与深浅色/390px 层级。聚焦 24/24、Client 437/437、build、Playwright 11/11×2 通过，18 张截图。两次 Grok 视觉调用均在本机旧 skill 元数据扫描阶段超时，未进入推理或改文件，已按上限停止。
+
+- 2026-07-19: **1.1.4.5 Slice D3 本地签到 UI 完成。** 已在云同步 ready 后展示 owner-scoped 每日签到弹窗，支持服务端进度、幂等签到、有效 Pro 待领取说明、到期领取，以及账号+香港日期本机关闭去扰；次日自动重现且本机日期不参与业务判定。聚焦 14/14、影响面 27/27、Client 436/436、production build、Playwright 10/10×2 均通过；17 张截图。D1 Migration 未应用，无远端写入、部署、commit/push/reset/clean/Worktree。
+
+- 2026-07-19: **1.1.4.5 Slice D2 本地 BFF 完成。** 已新增鉴权签到状态、幂等签到及奖励领取 API，只使用认证 owner 和受信任 Supabase 客户端；香港日期、pending/canClaim、UUID/404/409 与错误脱敏合同均覆盖。聚焦 25/25、影响面 63/63、Server 640/640、typecheck/build 通过。D1 Migration 未应用，无真实数据库或远端动作。
+
+- 2026-07-19: **1.1.4.5 Slice D1 本地草案完成。** 新增香港日签到、终身一次 30 天 Pro grant、有效 Pro pending/到期领取的 Migration 草案与 service-role-only RPC；聚焦 6/6、Migration 合同 56/56、Server 615/615、typecheck/build 通过。Migration 未应用，无远端写入或 Git/部署操作。
+
+- 2026-07-19: **1.1.4.5 Slice D D0 详细规格完成。** 已拆分 D0-D7，固定服务端香港日期、现有额度账本复用、分组运营指标、super_admin 模型健康、官方 Token/余额与隐私边界。两项签到产品规则在 D0 结束时待确认，随后已于同日进入 D1 前确认；D0 未写业务代码，未执行 Migration、部署、commit/push/reset/clean/Worktree。
+
 - 2026-07-16: ✅ **审核提醒本地隔离浏览器 E2E** — 复用 Node 22/ASCII workbench harness，以 localhost-only API fixture 覆盖用户通过/未通过、稍后去重、新审核再次提醒、立即定位，以及管理员待审提醒/筛选；聚焦测试 13/13，Playwright 6/6×2，11 张截图，无残留进程。证据：`docs/evidence/2026-07-16/review-notifications-local-e2e/`。不作为真实 Auth/RLS/staging 证据；无生产代码、Migration、部署或 Git 操作。
 
 - 2026-07-15: ✅ **个人案例库保存 500 修复 + 副标题配色 + 文案澄清** — DB 授予 `case_library_tags_valid` EXECUTE；软删除 RPC；UI 标明功能已可用（W3 只传 ID）；左侧字段副标题统一暗绿/亮橙。交接：`docs/handoff/2026-07-15-case-library-fix-and-label-colors-handoff.md`。未 commit/push。
@@ -174,3 +202,22 @@
 - 2026-07-15：✅ **Phase 0 CI 与 Migration 基线本地完成** — 新增 Supabase CLI 本地配置和只读 GitHub Actions CI；官方 Actions 固定 SHA，Token 仅 `contents: read`，不引用 secrets、不部署、不执行 DB 写入。linked Migration history 15/15 完全一致，无需 repair。Client 400/400、Server 571/571、双端 typecheck/build、两次 audit 0 vulnerabilities。workflow 尚未 commit/push，GitHub 线上运行与 staging 从零重放未验证。
 
 - 2026-07-15：✅ **Phase 0 GitHub CI 在线验证完成** — 首次 Node 20 运行因 Supabase Realtime 缺原生 WebSocket 失败；最小修复为 CI Node 22。随后将 checkout/setup-node 更新到固定 SHA 的 v5，最终 run `29403089055` 全绿且无旧 runtime 弃用警告。基线已推送；仍未 staging、部署、Migration 写入或真实支付。
+
+- 2026-07-18：✅ **产品卖点 Slice B 本地实现与严格自动化验收完成** — 新增逐条输入/删除/失败重试、已鉴权港化接口、双模型 Prompt 优先级、配置 JSONB 与生成历史恢复。Client 417/417、Server 604/604、双端 typecheck/build、两次 audit 0；隔离 Playwright 8/8×2 并保存桌面/手机截图。真实登录模型调用待人工验收；无 Migration、部署、commit/push/reset/clean/Worktree。
+
+- 2026-07-18：🛠️ **产品卖点真实生成断链已修复，待人工复验** — 首次登录生成确认卖点港化和保存正常，但文案未体现。根因是 DeepSeek 与 CantoneseLLM 服务调用 Prompt builder 时均漏传 `productSellingPoints`。新增服务边界测试先稳定复现两个失败，再以两行参数转发修复；全量验证 Client 417/417、Server 606/606、typecheck/build/audit 全通过。未代替用户消耗真实模型额度，待在现有本地页面重新生成验收。
+
+- 2026-07-18：✅ **产品卖点 Slice B 人工复验通过** — 用户在已登录本地工作台重新生成并确认文案已体现所填卖点；该结论仅代表本地验收，不代表部署或提交。
+
+- 2026-07-18：✅ **审核通知 Slice C 本地完成** — 新增可见页面 15 秒轻量轮询、隐藏暂停、focus/重新可见立即刷新和 15/30/60 秒失败退避。管理员复用待审摘要；用户只轮询 owner-only 最新审核时间，版本变化后才执行既有 owner bootstrap，避免持续下载全部正文。修复通知组件只扫描一次、后续云刷新不再提醒的问题。Client 422/422、Server 609/609、typecheck/build/audit 全通过；隔离 Playwright 8/8×2。无 Migration、部署、commit/push/reset/clean/Worktree。
+
+- 2026-07-19：✅ **1.1.4.5 Slice D4 遥测契约本地完成** — 新增未应用的活跃/模型日志 Migration 草案、数据库香港日活跃 RPC、严格指标白名单与 400ms best-effort 写入器。Grok Build 登录恢复后完成只读终审，无 blocking 缺陷；采纳一项 SQL/runtime Token 约束对齐建议。聚焦 18/18、Migration 61/61、Server 658/658、typecheck/build 通过。D1/D4 Migration 未应用，无远端写入、部署、commit/push/reset/clean/Worktree。
+- 2026-07-19：✅ **1.1.4.5 Slice D5 模型调用遥测本地完成** — DeepSeek/CantoneseLLM 每次真实尝试均接入可选 request/job context、官方 usage、耗时、错误类别和 provider attempt；遥测失败不改变业务结果。Grok Build 只读评审发现 cold-start 配置重试但实际只调用一次，现已修复为 attempt 1/2/3。聚焦 24/24、Server 669/669、typecheck/build 通过，本地 Web/API 均 HTTP 200。未调用真实模型，D1/D4 Migration 未应用，无数据库/staging 写入、部署、commit/push/reset/clean/Worktree。
+
+- 2026-07-19：✅ **1.1.4.5 Slice D6c 低分任务详情与部署手册本地完成** — 低分卡片可打开仅超级管理员访问的审计详情，显示/复制完整 UUID、正文/诊断/审核/评分及脱敏模型 attempt；审计失败 fail-closed，D4 缺表只降级日志区。新增 GitHub→双 Vercel 项目 Preview/Promote/回滚手册。Server 701/701、Client 445/445、双端 typecheck/build、两次 audit 0、Playwright 12/12×2（22 图）、Web/API 200。Grok 两次只读复核均在本地 skills/session 启动扫描阶段超时，无有效结论且未改文件。D1/D4 Migration 未应用，无数据库写入、部署、commit/push/reset/clean/Worktree。
+
+- 2026-07-22：✅ **2.1 Slice E0 Bad Case 诊断审阅包规格完成** — 将下一版拆为 E0-E9，定义样本、Operational Trace、数据 owner/内部 case owner、版本化验收标准、Prompt/规则/知识/模型策略快照、带证据 findings、人工处置和不可自动发布的修复提案。MVP 维持 `super_admin` only，Trace 不含思维链或原始 provider payload。后续只可使用 Grok CLI 自身 Agent Teams/Autonomous Agents/worktree/background task，一级成员不得继续派生且与 leader 同权限；当前 Dirty Worktree 缺可复现 baseline ref，worktree 暂时 blocked。本轮无业务代码、Migration、远端写入、部署、commit/push/reset/clean 或 worktree。
+
+- 2026-07-22：📝 **工作台更新日志要求已纳入 2.1** — 后续在右上角 `HeaderMenu` 增加“更新日志” drawer/dialog；上线前不把 local/staging/preview 功能标为已发布，全部功能验收且生产部署成功后，再按最终 deployment manifest 写入本次所有实际上线的用户可见更新。
+
+- 2026-07-22：✅ **Grok worktree 可复现基线已建立** — 用户授权后通过独立临时 Git index 创建 `refs/codex/checkpoints/2026-07-22-slice-e-baseline`，纳入当前应用代码、测试、Migration 源文件、规格和必要 Markdown；当前 Dirty Worktree 的 PID、Supabase `.temp` 变化、截图/测试转录和无关用户资产不进入变化集（HEAD 已跟踪历史文件仍继承）。常见 Key/JWT 扫描为 0，master、真实暂存区和 Dirty Worktree 状态均未改变；未 push、部署或执行 Migration。
