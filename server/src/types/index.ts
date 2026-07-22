@@ -83,6 +83,13 @@ export interface ConsumerFeedback {
   suggestions?: ConsumerSuggestion[]; // modification suggestions from this persona
 }
 
+export interface ProductSellingPoint {
+  id: string;
+  sourceText: string;
+  cantoneseText: string;
+  status: 'idle' | 'localizing' | 'ready' | 'error';
+}
+
 export interface AuditScores {
   cantoneseNaturalness: number; // 港味纯正度 0-100
   brandSafety: number;          // 品牌安全度 0-100
@@ -105,6 +112,7 @@ export interface GenerateRequest {
   brandName?: string;
   productName?: string;
   brandRedLines?: string;        // brand expression constraints
+  productSellingPoints?: ProductSellingPoint[];
   structuredBriefEnabled?: boolean; // 🆕 Ph1: 结构化写作简报 toggle
   creativityLevel: number;       // 0-4, default 2 (平衡)
   inputLanguage: InputLanguage;  // default 'mandarin'
@@ -674,4 +682,122 @@ export interface PaymentOrder {
   createdAt: string;
   paidAt: string | null;
   isMock: true;
+}
+
+// ============================================================
+// 2.1 Slice E1: Generation artifact manifest contract
+// Pure TypeScript allowlist for prompt/rule/knowledge/model policy
+// snapshots. No secrets, CoT, rendered prompts, or user bodies.
+// ============================================================
+
+/** Snapshot availability: captured at generation time, or missing for pre-E1 jobs. */
+export type ArtifactAvailability = 'captured' | 'legacy_unavailable';
+
+export type ArtifactLegacyReason = 'pre_e1_job' | 'snapshot_missing' | 'not_applicable';
+
+export type GeneratePromptVariant = 'deepseek' | 'cantonese_llm' | 'rules_fallback';
+
+export type KnowledgeSourceType =
+  | 'case_library'
+  | 'reference_bookmark'
+  | 'calendar_event';
+
+export interface ArtifactLegacyBlock {
+  availability: 'legacy_unavailable';
+  reason: ArtifactLegacyReason;
+}
+
+export interface PromptTemplateManifestEntry {
+  templateId: string;
+  version: string;
+  sectionKeys: string[];
+  paramKeys: string[];
+}
+
+export interface PromptManifestCaptured {
+  availability: 'captured';
+  templates: PromptTemplateManifestEntry[];
+  generatePromptVariant: GeneratePromptVariant;
+}
+
+export type PromptManifest = PromptManifestCaptured | ArtifactLegacyBlock;
+
+export interface RuleManifestCaptured {
+  availability: 'captured';
+  rulesetId: string;
+  version: string;
+  ruleIds: string[];
+  w1ConstraintsVersion: string;
+  userRedLinesPresent: boolean;
+}
+
+export type RuleManifest = RuleManifestCaptured | ArtifactLegacyBlock;
+
+export interface KnowledgeItemRef {
+  entryId: string;
+  sourceType: KnowledgeSourceType;
+  /** Display title only; never body/content. */
+  title?: string | null;
+  /** Case-library updated_at, calendar dataset version, or null. */
+  versionOrUpdatedAt?: string | null;
+  caseType?: 'good' | 'bad' | null;
+}
+
+export interface KnowledgeManifestCaptured {
+  availability: 'captured';
+  items: KnowledgeItemRef[];
+  caseLibrary: {
+    requestedIds: string[];
+    resolvedIds: string[];
+    partialUnavailable: boolean;
+  };
+  referenceCases: {
+    ids: string[];
+    count: number;
+  };
+  calendar: {
+    datasetId: string;
+    datasetVersion: string;
+    eventIds: string[];
+  };
+  sellingPoints: {
+    count: number;
+  };
+}
+
+export type KnowledgeManifest = KnowledgeManifestCaptured | ArtifactLegacyBlock;
+
+export interface ModelPolicyManifestCaptured {
+  availability: 'captured';
+  policyVersion: string;
+  defaultModel: string;
+  requireRealModel: boolean;
+  hasConfiguredRealModel: boolean;
+  allowQualityRetry: boolean;
+  thinkingDisabled: boolean;
+  timeouts: {
+    generationMs: number;
+    qualityScoreMs: number;
+    postProcessingMs: number;
+  };
+  fallbackChain: Array<'self-hosted-cantonese' | 'deepseek' | 'rules'>;
+  generatePromptVariant: GeneratePromptVariant;
+  temperature?: number | null;
+}
+
+export type ModelPolicyManifest = ModelPolicyManifestCaptured | ArtifactLegacyBlock;
+
+/**
+ * Full generation-time artifact package.
+ * contentHash is sha256 of the canonical payload (excludes nothing optional in E1;
+ * capturedAt is intentionally omitted from the type so it cannot leak into hash).
+ */
+export interface GenerationArtifactManifest {
+  schemaVersion: number;
+  availability: ArtifactAvailability;
+  contentHash: string;
+  prompt: PromptManifest;
+  rules: RuleManifest;
+  knowledge: KnowledgeManifest;
+  modelPolicy: ModelPolicyManifest;
 }

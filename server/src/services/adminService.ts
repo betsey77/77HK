@@ -42,6 +42,7 @@ export interface AdminGenerationMeta {
   id: string;
   ownerId: string;
   ownerDisplayName: string;
+  ownerReviewGroup: string | null;
   status: string;
   platform: string;
   tone: string;
@@ -114,6 +115,7 @@ export interface AdminFavoriteMeta extends FavoriteSettingsFields {
   id: string;
   ownerDisplayName: string;
   userEmail: string;
+  ownerReviewGroup: string | null;
   variantKey: string;
   rating: number | null;
   notes: string | null;
@@ -461,6 +463,30 @@ async function buildDisplayNameMap(
   return map;
 }
 
+/** Fetch review groups for explicit admin scope labels. */
+async function buildReviewGroupMap(userIds: string[]): Promise<Map<string, string | null>> {
+  const db = getTrustedSupabase();
+  const unique = [...new Set(userIds)];
+  const map = new Map<string, string | null>();
+
+  for (let i = 0; i < unique.length; i += 100) {
+    const batch = unique.slice(i, i + 100);
+    const { data, error } = await db
+      .from('profiles')
+      .select('id,review_group')
+      .in('id', batch);
+    if (error) throw new Error('Database query failed');
+    for (const row of (data ?? []) as { id: string; review_group: string | null }[]) {
+      map.set(row.id, row.review_group ?? null);
+    }
+  }
+
+  for (const id of unique) {
+    if (!map.has(id)) map.set(id, null);
+  }
+  return map;
+}
+
 /** Fetch plan name map. */
 async function buildPlanNameMap(): Promise<Map<string, string>> {
   const db = getTrustedSupabase();
@@ -484,17 +510,38 @@ async function buildPlanNameMap(): Promise<Map<string, string>> {
  * Used before writing an audit log entry so we never read
  * sensitive body text without a prior audit record.
  */
-export async function adminGenerationExists(jobId: string): Promise<boolean> {
+export async function adminGenerationExists(
+  jobId: string,
+  actorScope?: AdminFavoriteActorScope,
+): Promise<boolean> {
   const db = getTrustedSupabase();
   const { data, error } = await db
     .from('generation_jobs')
-    .select('id')
+    .select('id,owner_id')
     .eq('id', jobId)
     .is('deleted_at', null)
     .maybeSingle();
 
   if (error) throw new Error(`Database query failed`);
-  return data !== null;
+  if (!data) return false;
+  if (!actorScope) return true;
+
+  const scope = await resolveAdminFavoriteOwnerScope(actorScope);
+  if (scope.mode === 'all') return true;
+  if (scope.mode === 'none') return false;
+  return scope.ownerIds.includes((data as { owner_id: string }).owner_id);
+}
+
+export async function getAdminActorReviewGroup(actorId: string): Promise<string | null> {
+  const db = getTrustedSupabase();
+  const { data, error } = await db
+    .from('profiles')
+    .select('review_group')
+    .eq('id', actorId)
+    .maybeSingle();
+  if (error) throw new Error('Database query failed');
+  const value = (data as { review_group?: unknown } | null)?.review_group;
+  return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
 export async function getAdminStats(): Promise<AdminStats> {
@@ -618,24 +665,38 @@ export async function getAdminUsersOverview(
 export async function getAdminGenerationMeta(
   limit: unknown,
   offset: unknown,
+  actorScope?: AdminFavoriteActorScope,
 ): Promise<{ jobs: AdminGenerationMeta[]; total: number }> {
   const db = getTrustedSupabase();
   const l = clampLimit(limit);
   const o = clampOffset(offset);
 
-  const { count, error: countError } = await db
+  const scope = actorScope
+    ? await resolveAdminFavoriteOwnerScope(actorScope)
+    : { mode: 'all' as const };
+  if (scope.mode === 'none') return { jobs: [], total: 0 };
+
+  let countQuery = db
     .from('generation_jobs')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null);
 
-  if (countError) throw new Error(`Database query failed`);
-
-  const { data, error } = await db
+  let dataQuery = db
     .from('generation_jobs')
     .select('id,owner_id,status,platform,tone,generation_engine,created_at,completed_at')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .range(o, o + l - 1);
+
+  if (scope.mode === 'owners') {
+    countQuery = countQuery.in('owner_id', scope.ownerIds);
+    dataQuery = dataQuery.in('owner_id', scope.ownerIds);
+  }
+
+  const { count, error: countError } = await countQuery;
+  if (countError) throw new Error(`Database query failed`);
+
+  const { data, error } = await dataQuery;
 
   if (error) throw new Error(`Database query failed`);
 
@@ -647,12 +708,16 @@ export async function getAdminGenerationMeta(
 
   // Get owner display names (no email access — use display_name or de-identified ID)
   const ownerIds = [...new Set(jobs.map((j) => j.owner_id))];
-  const displayNameMap = await buildDisplayNameMap(ownerIds);
+  const [displayNameMap, reviewGroupMap] = await Promise.all([
+    buildDisplayNameMap(ownerIds),
+    buildReviewGroupMap(ownerIds),
+  ]);
 
   const result: AdminGenerationMeta[] = jobs.map((j) => ({
     id: j.id,
     ownerId: j.owner_id,
     ownerDisplayName: displayNameMap.get(j.owner_id) ?? `用户 ${userIdPrefix(j.owner_id)}`,
+    ownerReviewGroup: reviewGroupMap.get(j.owner_id) ?? null,
     status: j.status,
     platform: j.platform,
     tone: j.tone,
@@ -676,19 +741,12 @@ export async function getAdminGenerationMeta(
  */
 export async function getAdminGenerationDetail(
   jobId: string,
+  actorScope?: AdminFavoriteActorScope,
 ): Promise<Record<string, unknown> | null> {
   const db = getTrustedSupabase();
 
-  // Confirm resource exists first
-  const { data: exists, error: existsError } = await db
-    .from('generation_jobs')
-    .select('id')
-    .eq('id', jobId)
-    .is('deleted_at', null)
-    .maybeSingle();
-
-  if (existsError) throw new Error(`Database query failed`);
-  if (!exists) return null;
+  // Re-check scope immediately before reading the full body.
+  if (!(await adminGenerationExists(jobId, actorScope))) return null;
 
   // Explicit field allowlist — no select('*')
   const { data, error } = await db
@@ -858,9 +916,10 @@ export async function getAdminFavoritesOverview(
 
   const ownerIds = [...new Set(rows.map((row) => row.owner_id))];
   const reviewMap = await loadFavoriteReviewMap(rows.map((r) => r.id));
-  const [displayNameMap, emailMap] = await Promise.all([
+  const [displayNameMap, emailMap, reviewGroupMap] = await Promise.all([
     buildDisplayNameMap(ownerIds),
     buildUserEmailMap(ownerIds),
+    buildReviewGroupMap(ownerIds),
   ]);
 
   return {
@@ -871,6 +930,7 @@ export async function getAdminFavoritesOverview(
         id: row.id,
         ownerDisplayName: displayNameMap.get(row.owner_id) ?? `用户 ${userIdPrefix(row.owner_id)}`,
         userEmail: emailMap.get(row.owner_id) ?? '—',
+        ownerReviewGroup: reviewGroupMap.get(row.owner_id) ?? null,
         variantKey: row.variant_key,
         rating: row.rating ?? null,
         notes: row.notes ?? null,
@@ -974,16 +1034,18 @@ export async function getAdminFavoriteDetail(
 
   const row = data as unknown as FavoriteDetailRow;
   const snap = extractFavoriteSettingsFields(row.settings);
-  const [displayNameMap, emailMap, reviewMap] = await Promise.all([
+  const [displayNameMap, emailMap, reviewMap, reviewGroupMap] = await Promise.all([
     buildDisplayNameMap([row.owner_id]),
     buildUserEmailMap([row.owner_id]),
     loadFavoriteReviewMap([row.id]),
+    buildReviewGroupMap([row.owner_id]),
   ]);
   const review = reviewMap.get(row.id);
   return {
     id: row.id,
     ownerDisplayName: displayNameMap.get(row.owner_id) ?? `用户 ${userIdPrefix(row.owner_id)}`,
     userEmail: emailMap.get(row.owner_id) ?? '—',
+    ownerReviewGroup: reviewGroupMap.get(row.owner_id) ?? null,
     variantKey: row.variant_key,
     content: row.content,
     rating: row.rating ?? null,

@@ -1,12 +1,20 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { translateToMandarin, applySuggestion, audit, reAudit, generateConsumerFeedback, scoreSource } from '../services/deepseekService.js';
+import { randomUUID } from 'node:crypto';
+import { translateToMandarin, localizeSellingPoint, applySuggestion, audit, reAudit, generateConsumerFeedback, scoreSource } from '../services/deepseekService.js';
 import { resolvePersonas } from '../services/personaService.js';
 import { fallbackAudit } from '../services/fallbackService.js';
 import { validateAuditResult } from '../parsers/parseResponse.js';
+import { requireAuth } from '../middleware/auth.js';
 import type { Variants, ConsumerPersona, AuditScores } from '../types/index.js';
+import { MAX_PRODUCT_SELLING_POINT_LENGTH } from '../services/sellingPoints.js';
+import type { ModelCallContext } from '../services/telemetryService.js';
 
 const router = Router();
+
+function createModelCallContext(): ModelCallContext {
+  return { jobId: null, requestId: randomUUID() };
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -22,7 +30,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
  * POST /api/translate
  * Translate Cantonese feedback text to Mandarin.
  */
-router.post('/translate', async (req: Request, res: Response) => {
+router.post('/translate', requireAuth, async (req: Request, res: Response) => {
   try {
     const { text } = req.body as { text?: string };
 
@@ -31,7 +39,8 @@ router.post('/translate', async (req: Request, res: Response) => {
       return;
     }
 
-    const translated = await translateToMandarin(text.trim());
+    const modelCallContext = createModelCallContext();
+    const translated = await translateToMandarin(text.trim(), modelCallContext);
     res.json({ translated });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Translation failed';
@@ -39,11 +48,33 @@ router.post('/translate', async (req: Request, res: Response) => {
   }
 });
 
+/** POST /api/localize-selling-point — authenticated, one factual item at a time. */
+router.post('/localize-selling-point', requireAuth, async (req: Request, res: Response) => {
+  const sourceText = typeof req.body?.sourceText === 'string' ? req.body.sourceText.trim() : '';
+  if (!sourceText || sourceText.length > MAX_PRODUCT_SELLING_POINT_LENGTH) {
+    res.status(400).json({
+      error: `sourceText must be between 1 and ${MAX_PRODUCT_SELLING_POINT_LENGTH} characters`,
+    });
+    return;
+  }
+
+  try {
+    const modelCallContext = createModelCallContext();
+    const cantoneseText = await localizeSellingPoint(sourceText, modelCallContext);
+    if (!cantoneseText || cantoneseText.length > MAX_PRODUCT_SELLING_POINT_LENGTH) {
+      throw new Error('Selling point localization result is invalid');
+    }
+    res.json({ cantoneseText });
+  } catch {
+    res.status(502).json({ error: 'selling_point_localization_failed' });
+  }
+});
+
 /**
  * POST /api/apply-suggestion
  * Apply a consumer's modification suggestion to one or more variant texts.
  */
-router.post('/apply-suggestion', async (req: Request, res: Response) => {
+router.post('/apply-suggestion', requireAuth, async (req: Request, res: Response) => {
   try {
     const { variantText, suggestion, reason, brandRedLines, originalText, appliedSuggestions } = req.body as {
       variantText?: string;
@@ -63,6 +94,7 @@ router.post('/apply-suggestion', async (req: Request, res: Response) => {
       return;
     }
 
+    const modelCallContext = createModelCallContext();
     const modifiedText = await applySuggestion(
       variantText.trim(),
       suggestion.trim(),
@@ -70,6 +102,7 @@ router.post('/apply-suggestion', async (req: Request, res: Response) => {
       brandRedLines,
       originalText?.trim(),
       appliedSuggestions,
+      modelCallContext,
     );
 
     if (!modifiedText) {
@@ -89,7 +122,7 @@ router.post('/apply-suggestion', async (req: Request, res: Response) => {
  * Re-run audit scoring and consumer feedback on updated variants (after modification).
  * Steps run in parallel with timeouts to prevent hanging.
  */
-router.post('/re-evaluate', async (req: Request, res: Response) => {
+router.post('/re-evaluate', requireAuth, async (req: Request, res: Response) => {
   try {
     const { variants, consumerPersonas, platform, source, brandName, productName, previousScores, brandRedLines } = req.body as {
       variants?: Variants;
@@ -119,6 +152,7 @@ router.post('/re-evaluate', async (req: Request, res: Response) => {
     const personas = resolvePersonas(consumerPersonas);
     const hasPersonas = personas.length > 0;
     const fallbackAuditResult = fallbackAudit(variants, source ?? '', null as never);
+    const modelCallContext = createModelCallContext();
 
     // Run audit, source scoring, and consumer feedback in parallel WITH timeouts
     const [auditResult, sourceScores, consumerFeedbackRaw] = await Promise.all([
@@ -127,9 +161,9 @@ router.post('/re-evaluate', async (req: Request, res: Response) => {
         (async () => {
           try {
             if (previousScores) {
-              return await reAudit(variants, previousScores, brandRedLines);
+              return await reAudit(variants, previousScores, brandRedLines, modelCallContext);
             }
-            return await audit(variants, brandRedLines);
+            return await audit(variants, brandRedLines, modelCallContext);
           } catch {
             return fallbackAuditResult;
           }
@@ -139,7 +173,7 @@ router.post('/re-evaluate', async (req: Request, res: Response) => {
       ),
       // Step 2: Re-score source (with 10s timeout, null if fails or no source)
       source && typeof source === 'string' && source.trim()
-        ? withTimeout(scoreSource(source).catch(() => null), 10_000, null)
+        ? withTimeout(scoreSource(source, modelCallContext).catch(() => null), 10_000, null)
         : Promise.resolve(null),
       // Step 3: Consumer feedback — only when user has selected personas
       hasPersonas
@@ -152,6 +186,7 @@ router.post('/re-evaluate', async (req: Request, res: Response) => {
               brandName,
               productName,
               brandRedLines,
+              modelCallContext,
             ).catch(() => null),
             35_000,
             null,

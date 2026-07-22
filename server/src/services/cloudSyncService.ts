@@ -192,6 +192,41 @@ export async function getBootstrap(
   };
 }
 
+export interface ReviewResultSummary {
+  latestUpdatedAt: string | null;
+}
+
+/** Lightweight owner-only review version; never returns favorite content or another owner's rows. */
+export async function getReviewResultSummary(
+  jwt: string,
+  ownerId: string,
+): Promise<ReviewResultSummary> {
+  const client = createUserClient(jwt);
+  const favoriteRes = await client
+    .from('favorites')
+    .select('id')
+    .eq('owner_id', ownerId);
+  if (favoriteRes.error) throw new Error('Failed to load favorite review scope');
+
+  const favoriteIds = ((favoriteRes.data ?? []) as { id?: string }[])
+    .map((row) => row.id)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  if (favoriteIds.length === 0) return { latestUpdatedAt: null };
+
+  const reviewRes = await client
+    .from('favorite_admin_reviews')
+    .select('updated_at')
+    .in('favorite_id', favoriteIds)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+  if (reviewRes.error) throw new Error('Failed to load review result summary');
+
+  const latest = Array.isArray(reviewRes.data) && reviewRes.data.length > 0
+    ? (reviewRes.data[0] as { updated_at?: string | null }).updated_at ?? null
+    : null;
+  return { latestUpdatedAt: latest };
+}
+
 /** Upsert a favorite by (owner_id, client_id) */
 export async function upsertFavorite(
   jwt: string,

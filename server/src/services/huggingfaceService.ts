@@ -5,6 +5,7 @@
 
 import OpenAI from 'openai';
 import type { Variants } from '../types/index.js';
+import { DEEPSEEK_NON_THINKING, DEFAULT_DEEPSEEK_MODEL } from './modelPolicy.js';
 
 const HF_MODEL_V1 = 'hon9kon9ize/CantoneseLLMChat-v1.0-32B';
 const HF_MODEL_V05 = 'hon9kon9ize/CantoneseLLMChat-v0.5';
@@ -88,7 +89,7 @@ export async function enhanceWithCantoneseLLM(
     return {
       suggestions: dsResult,
       engine: 'deepseek-cantonese',
-      model: 'deepseek-chat (粵語 native prompt)',
+      model: `${process.env.DEEPSEEK_MODEL || DEFAULT_DEEPSEEK_MODEL} (Cantonese native prompt)`,
     };
   }
 
@@ -260,7 +261,8 @@ async function tryDeepSeekEnhancement(variants: Variants): Promise<Record<string
     variantEntries.map(async ([key, text]) => {
       try {
         const response = await client.chat.completions.create({
-          model: 'deepseek-chat',
+          model: process.env.DEEPSEEK_MODEL || DEFAULT_DEEPSEEK_MODEL,
+          ...DEEPSEEK_NON_THINKING,
           max_tokens: 2048,
           temperature: 0.8,
           messages: [
