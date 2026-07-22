@@ -16,6 +16,7 @@ import type {
   FavoriteRecord, SavedConfigRecord, BrandProfileRecord,
   BookmarkedCopy, SavedConfig,
 } from '../types';
+import { normalizeProductSellingPoints } from '../utils/productSellingPoints';
 
 // ============================================================
 // Helpers
@@ -64,6 +65,7 @@ export function configToSyncConfig(c: SavedConfig): SyncConfigRequest {
       brandName: c.brandName,
       productName: c.productName,
       brandRedLines: c.brandRedLines,
+      productSellingPoints: normalizeProductSellingPoints(c.productSellingPoints),
       structuredBriefEnabled: c.structuredBriefEnabled,
       creativityLevel: c.creativityLevel,
       cantoneseLevel: c.cantoneseLevel,
@@ -123,6 +125,7 @@ export function configRecordToSavedConfig(r: SavedConfigRecord): SavedConfig {
     brandName: (cfg.brandName as string) ?? '',
     productName: (cfg.productName as string) ?? '',
     brandRedLines: (cfg.brandRedLines as string) ?? '',
+    productSellingPoints: normalizeProductSellingPoints(cfg.productSellingPoints),
     structuredBriefEnabled: (cfg.structuredBriefEnabled as boolean) ?? false,
     creativityLevel: (cfg.creativityLevel as number) ?? 1,
     cantoneseLevel: (cfg.cantoneseLevel as number) ?? 4,
@@ -163,6 +166,32 @@ export async function fetchBootstrap(expectedOwnerId?: string): Promise<Bootstra
   }
 
   return res.json() as Promise<BootstrapResponse>;
+}
+
+/** Best-effort daily activity report; the server owns user identity and HK date. */
+export async function recordActivity(expectedOwnerId: string): Promise<void> {
+  const headers = await getAuthHeaders(expectedOwnerId);
+  const res = await fetch(apiUrl('/me/activity'), { method: 'POST', headers });
+  if (!res.ok) throw new Error(`Failed to record activity (${res.status})`);
+}
+
+export interface ReviewResultSummary {
+  latestUpdatedAt: string | null;
+}
+
+/** Fetch only the latest owner-scoped review timestamp for visible-page polling. */
+export async function fetchReviewResultSummary(
+  expectedOwnerId: string,
+): Promise<ReviewResultSummary> {
+  const headers = await getAuthHeaders(expectedOwnerId);
+  const res = await fetch(apiUrl('/sync/review-result-summary'), { headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(
+      (body as { error?: string }).error ?? `Failed to fetch review result summary (${res.status})`,
+    );
+  }
+  return res.json() as Promise<ReviewResultSummary>;
 }
 
 /** Upsert a single favorite to the cloud */

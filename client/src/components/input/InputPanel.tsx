@@ -14,6 +14,7 @@ import SourceEditor from './SourceEditor';
 import LanguageToggle from './LanguageToggle';
 import BrandInput from './BrandInput';
 import BrandRedLinesInput from './BrandRedLinesInput';
+import ProductSellingPointsInput from './ProductSellingPointsInput';
 import StructuredBriefToggle from './StructuredBriefToggle';
 import CreativitySliderComponent from './CreativitySlider';
 import PlatformSelector from './PlatformSelector';
@@ -121,6 +122,7 @@ export default function InputPanel() {
         <CopyTypeSelector />
         <BrandInput />
         <BrandRedLinesInput />
+        <ProductSellingPointsInput />
         <TargetDatePicker />
         <CompetitorSearchInput />
       </InputAccordion>

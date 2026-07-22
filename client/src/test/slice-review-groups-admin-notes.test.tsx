@@ -202,10 +202,12 @@ describe('R1 AdminPage review editor', () => {
       totalFeedback: 0,
       adminUsers: 1,
       role: 'admin',
+      reviewGroup: 'group1',
     });
     mockApi.getAdminFavorites.mockResolvedValue({
       favorites: [{
         id: 'f1',
+        ownerReviewGroup: 'group1',
         ownerDisplayName: '用户甲',
         userEmail: 'a@test.com',
         variantKey: 'ig',
@@ -258,9 +260,11 @@ describe('R1 AdminPage review editor', () => {
     render(<AdminPage />);
 
     await waitFor(() => expect(mockApi.getAdminStats).toHaveBeenCalled());
+    expect(screen.getByTestId('admin-scope-badge')).toHaveTextContent('group1');
     fireEvent.click(await screen.findByRole('button', { name: /用户收藏/ }));
 
     await waitFor(() => expect(mockApi.getAdminFavorites).toHaveBeenCalled());
+    expect(screen.getByTestId('admin-favorite-review-group')).toHaveTextContent('group1');
     expect(screen.getByTestId('admin-review-status-chip')).toHaveTextContent('未审核');
 
     fireEvent.click(screen.getByRole('button', { name: '查看收藏详情' }));

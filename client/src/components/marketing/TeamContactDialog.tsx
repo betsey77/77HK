@@ -6,11 +6,12 @@ const WECHAT_ID = '18595680518';
 interface TeamContactDialogProps {
   open: boolean;
   onClose: () => void;
+  context?: 'team' | 'pro';
 }
 
 type CopyState = 'idle' | 'success' | 'error';
 
-export default function TeamContactDialog({ open, onClose }: TeamContactDialogProps) {
+export default function TeamContactDialog({ open, onClose, context = 'team' }: TeamContactDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -33,6 +34,12 @@ export default function TeamContactDialog({ open, onClose }: TeamContactDialogPr
   }, [open]);
 
   if (!open) return null;
+
+  const isPro = context === 'pro';
+  const title = isPro ? '联系开通 Pro' : '联系开通团队协作版';
+  const description = isPro
+    ? '内部 Preview 由管理员人工开通，每自然月 250 次生成，不会自动扣款。'
+    : '￥99/月，人工确认审核分组与管理员权限后开通。';
 
   async function copyWechatId() {
     try {
@@ -92,10 +99,10 @@ export default function TeamContactDialog({ open, onClose }: TeamContactDialogPr
             </span>
             <div className="min-w-0">
               <h2 id="team-contact-title" className="text-base font-semibold text-gray-100 light:text-gray-900">
-                联系开通团队协作版
+                {title}
               </h2>
               <p id="team-contact-description" className="mt-1 text-xs leading-5 text-gray-400 light:text-gray-600">
-                ￥99/月，人工确认审核分组与管理员权限后开通。
+                {description}
               </p>
             </div>
           </div>
@@ -136,7 +143,7 @@ export default function TeamContactDialog({ open, onClose }: TeamContactDialogPr
           <div className="mx-auto w-full max-w-[220px]">
             <img
               src="/brand/wechat-team-contact-qr.png"
-              alt="团队协作版微信联系二维码"
+              alt={isPro ? 'Pro 人工开通微信联系二维码' : '团队协作版微信联系二维码'}
               className="aspect-square w-full rounded-md border border-gray-700 bg-white object-contain p-1 light:border-gray-300"
             />
             <p className="mt-2 text-center text-xs text-gray-500">微信扫码联系</p>

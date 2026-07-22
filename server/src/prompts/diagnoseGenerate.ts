@@ -12,10 +12,12 @@ import type {
   CopyType,
   ToneModifier,
   CaseLibraryContextEntry,
+  ProductSellingPoint,
 } from '../types/index.js';
 import { buildComplianceSection } from './complianceRules.js';
 import { buildW1ConstraintSections, getPrimaryToneInstructions } from './w1Constraints.js';
 import { buildCaseLibraryPromptSection } from '../services/caseLibraryContext.js';
+import { normalizeProductSellingPoints } from '../services/sellingPoints.js';
 
 interface DiagnoseGenerateParams {
   source: string;
@@ -26,6 +28,7 @@ interface DiagnoseGenerateParams {
   brandName?: string;
   productName?: string;
   brandRedLines?: string;      // brand expression constraints
+  productSellingPoints?: ProductSellingPoint[];
   structuredBriefEnabled?: boolean; // 🆕 Ph1: 结构化写作简报 toggle
   creativityLevel: number;     // 0-4, default 2
   inputLanguage: InputLanguage;
@@ -95,7 +98,7 @@ function getCreativityInstructions(level: number): string {
 你嘅唯一任務係將原文從普通話轉換成香港粵語/繁體中文表達。你係一個翻譯+本地化工具，唔係一個廣告文案寫手。
 
 🚫 **內容邊界（違反即係失敗）**：
-- 絕對不要添加原文冇嘅信息：品牌名、產品名、成分、功效、營養數據、免責聲明、hashtag、emoji、公司背景
+- 絕對不要添加原文或「產品賣點」區塊冇明確提供嘅信息：品牌名、產品名、成分、功效、營養數據、免責聲明、hashtag、emoji、公司背景
 - 原文有幾多句，輸出就應該有幾多句。原文有幾多信息量，輸出就應該有同等信息量
 - 你只能改「點樣表達」，不能改「表達咗咩」
 
@@ -186,7 +189,7 @@ function getCreativityInstructions(level: number): string {
 - 加入適當嘅粵語語氣詞同港式表達
 - 根據平台需要調整內容深淺（IG 輕巧啲、FB 多啲背景、Shorts/TK 有節奏感）
 - 字數浮動唔超過 ±50%
-你唔應該：添加原文完全冇提及嘅產品資訊或品牌背景。`;
+你唔應該：添加原文或「產品賣點」區塊完全冇提及嘅產品資訊或品牌背景。`;
   }
 }
 
@@ -209,6 +212,29 @@ function buildBrandSection(brandName?: string, productName?: string): string {
 
 function buildRedLinesSection(brandRedLines?: string): string {
   return buildComplianceSection(brandRedLines);
+}
+
+export const PRODUCT_SELLING_POINTS_SECTION_MARKER = '產品賣點（港話優先）';
+
+function buildProductSellingPointsSection(productSellingPoints?: ProductSellingPoint[]): string {
+  const points = normalizeProductSellingPoints(productSellingPoints);
+  if (points.length === 0) return '';
+
+  const lines = points.map((point, index) => (
+    `${index + 1}. ${point.cantoneseText || point.sourceText}`
+  ));
+
+  return `## ✨ ${PRODUCT_SELLING_POINTS_SECTION_MARKER}
+
+以下係用戶明確提供嘅產品賣點。優先使用已港化表達，並忠實保留原本事實：
+
+${lines.join('\n')}
+
+**優先級與使用規則**：
+- 已提供嘅事實、合規規則同品牌紅線永遠高於產品賣點；如有衝突，放棄衝突賣點
+- 產品賣點高於次要語氣、修飾、創作形式同平台花巧
+- 五個平台版本都要自然融入相關賣點，唔好機械式逐條羅列
+- 不可把賣點延伸成用戶未提供嘅功效、成分、數據或保證`;
 }
 
 // ============================================================
@@ -372,7 +398,7 @@ function buildAdaptiveSoWhatRule(source: string): string {
   return `**📋 自適應 So What 規則**：
 原文檢測到產品相關描述。生成文案時請遵循：
 - 如果有產品功能/成分描述，幫佢加一句消費者利益轉化（「所以你唔使...」「即係話你可以...」）
-- 唔好憑空添加品牌背景或產品資訊——只可以基於原文已有嘅內容做轉化
+- 唔好憑空添加品牌背景或產品資訊——只可以基於原文或「產品賣點」區塊已有嘅內容做轉化
 - 呢個係輕度增強，唔係完整嘅結構化寫作框架
 - 如果原文內容太少/冇產品資訊，唔好強行做 So What 轉化`;
 }
@@ -467,6 +493,7 @@ export function buildDiagnoseGeneratePrompt(params: DiagnoseGenerateParams): str
   const creativityInstructions = getCreativityInstructions(creativityLevel);
   const writingFramework = buildWritingFramework(params);
   const redLinesSection = buildRedLinesSection(brandRedLines);
+  const productSellingPointsSection = buildProductSellingPointsSection(params.productSellingPoints);
   const selfCritiqueSection = buildSelfCritiqueSection();
   const refreshSection = refresh ? buildRefreshSection() : '';
   // W3: case library first (user just selected), then bookmark reference cases
@@ -528,6 +555,7 @@ ${source}
 
 ${writingFramework}
 ${redLinesSection}
+${productSellingPointsSection}
 ${w1Sections}
 ${refreshSection}
 ${caseLibrarySection}
@@ -586,7 +614,7 @@ ${creativityLevel === 0 ? `⚠️ **創作自由度 = 0 強制覆蓋（優先級
 - 原文冇 hashtag → 唔好加 hashtag（即使 IG 版本都唔加）
 - 原文冇品牌名 → 唔好加品牌名（即使 standardHK 版本都唔加）
 - 原文冇 emoji → 唔好加 emoji（即使 IG 版本都唔加）
-- 原文冇產品描述 → 唔好加產品描述（即使 Facebook 版本都唔加）
+- 原文同「產品賣點」區塊都冇產品描述 → 唔好加產品描述（即使 Facebook 版本都唔加）
 - 你只能做語言轉換，唔能做內容擴寫或格式升級` : ''}
 ${creativityLevel >= 3 ? `🔥 **創作自由度 = ${creativityLevel} 創意放大（優先級最高）**：
 由於用戶將創作自由度調到最高，以上版本描述只係一個起點——你應該超越佢。
@@ -727,6 +755,7 @@ export function buildCantoneseLLMPrompt(params: DiagnoseGenerateParams): string 
   const creativityInstructions = getCreativityInstructions(creativityLevel);
   const writingFramework = buildWritingFramework(params);
   const redLinesSection = buildRedLinesSection(brandRedLines);
+  const productSellingPointsSection = buildProductSellingPointsSection(params.productSellingPoints);
   const selfCritiqueSection = buildSelfCritiqueSection();
   const refreshSection = refresh ? buildRefreshSection() : '';
   const caseLibrarySection = buildCaseLibraryPromptSection(params.caseLibraryContext);
@@ -786,6 +815,7 @@ ${source}
 
 ${writingFramework}
 ${redLinesSection}
+${productSellingPointsSection}
 ${w1Sections}
 ${refreshSection}
 ${caseLibrarySection}
@@ -844,7 +874,7 @@ ${creativityLevel === 0 ? `⚠️ **創作自由度 = 0 強制覆蓋（優先級
 - 原文冇 hashtag → 唔好加 hashtag（即使 IG 版本都唔加）
 - 原文冇品牌名 → 唔好加品牌名（即使 standardHK 版本都唔加）
 - 原文冇 emoji → 唔好加 emoji（即使 IG 版本都唔加）
-- 原文冇產品描述 → 唔好加產品描述（即使 Facebook 版本都唔加）
+- 原文同「產品賣點」區塊都冇產品描述 → 唔好加產品描述（即使 Facebook 版本都唔加）
 - 你只能做語言轉換，唔能做內容擴寫或格式升級` : ''}
 ${creativityLevel >= 3 ? `🔥 **創作自由度 = ${creativityLevel} 創意放大（優先級最高）**：
 由於用戶將創作自由度調到最高，以上版本描述只係一個起點——你應該超越佢。

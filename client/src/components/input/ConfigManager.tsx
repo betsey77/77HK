@@ -11,6 +11,17 @@ function sameStringArray(a: string[] = [], b: string[] = []) {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
+function sameSellingPoints(
+  a: SavedConfig['productSellingPoints'] = [],
+  b: SavedConfig['productSellingPoints'] = [],
+) {
+  return a.length === b.length && a.every((point, index) => {
+    const other = b[index];
+    return !!other && point.id === other.id && point.sourceText === other.sourceText
+      && point.cantoneseText === other.cantoneseText && point.status === other.status;
+  });
+}
+
 export default function ConfigManager() {
   const { state, dispatch } = useContext(AppContext);
   const [showSave, setShowSave] = useState(false);
@@ -31,6 +42,7 @@ export default function ConfigManager() {
       cfg.brandName !== state.settings.brandName ||
       cfg.productName !== state.settings.productName ||
       cfg.brandRedLines !== state.settings.brandRedLines ||
+      !sameSellingPoints(cfg.productSellingPoints, state.settings.productSellingPoints) ||
       cfg.structuredBriefEnabled !== state.settings.structuredBriefEnabled ||
       cfg.creativityLevel !== state.settings.creativityLevel ||
       cfg.cantoneseLevel !== state.settings.cantoneseLevel ||
@@ -70,6 +82,7 @@ export default function ConfigManager() {
       brandName: state.settings.brandName,
       productName: state.settings.productName,
       brandRedLines: state.settings.brandRedLines,
+      productSellingPoints: state.settings.productSellingPoints.map((point) => ({ ...point })),
       structuredBriefEnabled: state.settings.structuredBriefEnabled,
       creativityLevel: state.settings.creativityLevel,
       cantoneseLevel: state.settings.cantoneseLevel,

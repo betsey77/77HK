@@ -172,7 +172,7 @@ describe('BillingPage', () => {
     );
 
     expect(await screen.findByText('套餐与结算')).toBeInTheDocument();
-    expect(screen.getByText(/此为演示结算页/)).toBeInTheDocument();
+    expect(screen.getByText(/用量来自实际账号记录/)).toBeInTheDocument();
     const logo = screen.getByRole('link', { name: /77港话通社媒文案器/ }).querySelector('img');
     expect(logo?.parentElement).toHaveClass('overflow-hidden', 'bg-black');
   });

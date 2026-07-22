@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import AuthLayout from '../components/auth/AuthLayout';
+import AuthNoticeDialog from '../components/auth/AuthNoticeDialog';
 import { useAuth } from '../context/AuthContext';
 import { resolveNextPath } from '../services/nextPath';
 import '../styles/LoginPageV4.css';
@@ -8,7 +9,17 @@ export default function LoginPage() {
   const { state, login, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const nextPath = resolveNextPath(new URLSearchParams(window.location.search).get('next'));
+  const initialParams = new URLSearchParams(window.location.search);
+  const [registrationDialogOpen, setRegistrationDialogOpen] = useState(initialParams.get('registered') === '1');
+  const nextPath = resolveNextPath(initialParams.get('next'));
+
+  useEffect(() => {
+    if (!registrationDialogOpen) return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete('registered');
+    const query = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [registrationDialogOpen]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -75,6 +86,14 @@ export default function LoginPage() {
         Sign up
       </a>
       <p className="foot-links">还没有账户？<a href="/signup">创建账户</a><br />登录遇到问题？<a href="/forgot-password">找回密码</a></p>
+      <AuthNoticeDialog
+        open={registrationDialogOpen}
+        variant="success"
+        title="恭喜完成注册"
+        description="邮箱验证已经完成，请输入注册邮箱和密码以登录。"
+        actionLabel="开始登录"
+        onClose={() => setRegistrationDialogOpen(false)}
+      />
     </AuthLayout>
   );
 }

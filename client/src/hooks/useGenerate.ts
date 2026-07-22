@@ -158,6 +158,10 @@ export function useGenerate() {
           brandName: state.settings.brandName || undefined,
           productName: state.settings.productName || undefined,
           brandRedLines: state.settings.brandRedLines || undefined,
+          productSellingPoints:
+            state.settings.productSellingPoints.length > 0
+              ? state.settings.productSellingPoints
+              : undefined,
           structuredBriefEnabled: state.settings.structuredBriefEnabled || undefined,
           creativityLevel: state.settings.creativityLevel,
           inputLanguage: state.settings.inputLanguage,

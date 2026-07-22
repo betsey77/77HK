@@ -21,6 +21,7 @@ vi.mock('../services/supabase.js', () => ({
 }));
 
 const mockAdminStats = vi.fn();
+const mockAdminActorReviewGroup = vi.fn();
 const mockAdminUsersOverview = vi.fn();
 const mockAdminGenerationMeta = vi.fn();
 const mockAdminGenerationExists = vi.fn();
@@ -43,6 +44,7 @@ vi.mock('../services/adminService.js', async (importOriginal) => {
   return {
     ...actual,
     getAdminStats: (...args: unknown[]) => mockAdminStats(...args),
+    getAdminActorReviewGroup: (...args: unknown[]) => mockAdminActorReviewGroup(...args),
     getAdminUsersOverview: (...args: unknown[]) => mockAdminUsersOverview(...args),
     getAdminGenerationMeta: (...args: unknown[]) => mockAdminGenerationMeta(...args),
     adminGenerationExists: (...args: unknown[]) => mockAdminGenerationExists(...args),
@@ -90,6 +92,7 @@ beforeEach(() => {
     totalFeedback: 0,
     adminUsers: 0,
   });
+  mockAdminActorReviewGroup.mockResolvedValue('group1');
   mockAdminFavoritesOverview.mockResolvedValue({ favorites: [], total: 0 });
   mockAdminPendingReviewSummary.mockResolvedValue({ count: 0, latestRequestedAt: null });
   mockAdminFavoriteExists.mockResolvedValue(true);
@@ -144,6 +147,51 @@ describe('R1 static contracts', () => {
 });
 
 describe('R1 route behaviour', () => {
+  it('returns the current admin role and review group in stats', async () => {
+    adminClient('admin-g1', 'admin');
+
+    const res = await request(app)
+      .get('/api/admin/stats')
+      .set('Authorization', 'Bearer t');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ role: 'admin', reviewGroup: 'group1' });
+    expect(mockAdminActorReviewGroup).toHaveBeenCalledWith('admin-g1');
+  });
+
+  it('passes actor scope to generation list', async () => {
+    adminClient('admin-g1', 'admin');
+    mockAdminGenerationMeta.mockResolvedValue({ jobs: [], total: 0 });
+
+    const res = await request(app)
+      .get('/api/admin/generations')
+      .set('Authorization', 'Bearer t');
+
+    expect(res.status).toBe(200);
+    expect(mockAdminGenerationMeta).toHaveBeenCalledWith(
+      20,
+      0,
+      { actorId: 'admin-g1', actorRole: 'admin' },
+    );
+  });
+
+  it('cross-group generation detail: 404 without audit or body read', async () => {
+    adminClient('admin-g1', 'admin');
+    mockAdminGenerationExists.mockResolvedValue(false);
+
+    const res = await request(app)
+      .get('/api/admin/generations/other-group-job')
+      .set('Authorization', 'Bearer t');
+
+    expect(res.status).toBe(404);
+    expect(mockAdminGenerationExists).toHaveBeenCalledWith(
+      'other-group-job',
+      { actorId: 'admin-g1', actorRole: 'admin' },
+    );
+    expect(mockWriteAdminAuditLog).not.toHaveBeenCalled();
+    expect(mockAdminGenerationDetail).not.toHaveBeenCalled();
+  });
+
   it('passes actor scope to favorites list', async () => {
     adminClient('admin-g1', 'admin');
     mockAdminFavoritesOverview.mockResolvedValue({

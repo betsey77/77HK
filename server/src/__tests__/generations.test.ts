@@ -482,6 +482,35 @@ describe('Input validation', () => {
       .send({ source: 'test', idempotencyKey: 'ik-1', platform: 'invalid-platform' });
     expect(res.status).toBe(400);
   });
+
+  it('fails closed before job creation when a real model is required but unavailable', async () => {
+    const previous = {
+      requireRealModel: process.env.REQUIRE_REAL_MODEL,
+      deepseekApiKey: process.env.DEEPSEEK_API_KEY,
+      cantoneseApiUrl: process.env.CANTONESE_API_URL,
+    };
+
+    process.env.REQUIRE_REAL_MODEL = 'true';
+    delete process.env.DEEPSEEK_API_KEY;
+    delete process.env.CANTONESE_API_URL;
+
+    try {
+      const res = await request(app)
+        .post('/api/generate')
+        .set('Authorization', VALID_TOKEN)
+        .send({ source: 'test', idempotencyKey: 'ik-real-model-required', platform: 'ig' });
+
+      expect(res.status).toBe(503);
+      expect(res.body.code).toBe('REAL_MODEL_NOT_CONFIGURED');
+    } finally {
+      if (previous.requireRealModel === undefined) delete process.env.REQUIRE_REAL_MODEL;
+      else process.env.REQUIRE_REAL_MODEL = previous.requireRealModel;
+      if (previous.deepseekApiKey === undefined) delete process.env.DEEPSEEK_API_KEY;
+      else process.env.DEEPSEEK_API_KEY = previous.deepseekApiKey;
+      if (previous.cantoneseApiUrl === undefined) delete process.env.CANTONESE_API_URL;
+      else process.env.CANTONESE_API_URL = previous.cantoneseApiUrl;
+    }
+  });
 });
 
 // ============================================================

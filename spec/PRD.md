@@ -343,6 +343,21 @@ Acceptance criteria:
 
 High-risk item: confirm with the user before implementation.
 
+## Change Request - 2026-07-16 - Preview 必须使用真实模型
+
+- Type: change
+- Risk: high
+- Why: 规则模板生成质量不能用于内部团队验收，Preview 必须证明真实 AI 文案链路可用。
+
+Acceptance criteria:
+
+1. Preview 只配置 DeepSeek，不配置或调用额度已耗尽的自部署粤语模型。
+2. 成功生成必须返回 `generationEngine=deepseek`；真实模型未配置、失败或超时时返回明确错误，不得返回 `generationEngine=rules`。
+3. DeepSeek 默认模型使用 `deepseek-v4-flash`，不继续依赖将在 2026-07-24 停用的 `deepseek-chat` 别名。
+   所有结构化文案调用显式关闭默认 thinking 模式，避免推理 token 挤占正文和增加超时风险。
+4. 严格模式的串行模型预算保持在 51 秒以内；失败请求不得消耗 77HK 产品生成额度。Vercel Hobby 当前函数默认/上限为 300 秒。
+5. DeepSeek API 密钥只存放于服务端 Preview 环境变量，不进入仓库、客户端 bundle、日志或聊天记录。
+
 
 ## Change Request - 2026-07-14 - R2 收藏文案句子级管理员批注
 
@@ -447,3 +462,113 @@ Acceptance criteria:
 Implementation note: 与“用户自写收藏文案与待审核队列”的管理员提醒一并设计，但用户侧审核结果弹窗必须作为独立验收项。
 
 Implementation status: 2026-07-15 已本地完成。通知只读取当前 owner 完成云同步后的收藏；不新增后端接口、Migration、Realtime 或跨组查询。
+
+## Change Request - 2026-07-16 - 内部 Preview 真实额度与人工开通 Pro
+
+- Type: bugfix
+- Risk: high
+- Why: 生成任务已经使用 Supabase 额度账本，但结算页仍显示进程内 Mock 用量，导致用户看到错误的 `0/20`；内部 Preview 暂不接入真实支付，Pro 应由管理员人工开通。
+
+Acceptance criteria:
+
+1. `/api/me/entitlements` 在可信 Supabase 可用时始终读取当前用户的真实 active subscription、套餐额度、已用次数和周期，不受 `PAYMENT_MODE=mock` 影响。
+2. 内部 Preview 不展示 `[MOCK]` 结算说明，也不允许前端调用模拟 checkout；Free 用户点击 Pro CTA 时打开人工联系弹窗。
+3. 普通用户不得通过公开 API、客户端字段或支付同步返回自行授予 Pro；内部账号 Pro 仅由受信任的 staging 运维操作开通。
+4. 不启用真实支付宝支付；已有支付宝沙箱路径保持隔离且不改变异步回调授予规则。
+5. 意见反馈继续先持久化，再通过服务端 Server酱 SendKey 尝试微信通知；密钥不得进入仓库、前端 bundle 或日志。
+
+High-risk item: 2026-07-16 已获用户明确授权，仅限 staging / Vercel Preview，不接入真实支付。
+
+## Change Request - 2026-07-16 - 注册引导、当前设备退出与热点恢复
+
+- Type: bugfix / UX
+- Risk: medium
+- Boundary: 超级管理员 Pro 管理 UI与多人审核冲突保护继续 pending，本切片不实施。
+
+Acceptance criteria:
+
+1. 注册请求被 Supabase 接受后，以弹窗提示用户前往相应邮箱点击验证链接，并明确提醒检查垃圾邮件；不得误导为已经可以直接登录。
+2. 邮箱验证完成后回到登录页，显示“恭喜完成注册，请输入邮箱和密码以登录”，不直接进入工作台。
+3. 普通退出仅终止当前浏览器会话，不影响同一账号在其他设备上的会话。
+4. 热点及语感实时数据接口只允许已登录用户调用；浏览器请求必须携带当前 Supabase JWT。
+5. YouTube 热门和搜索结果采用短时服务端缓存，减少重复消耗 API 配额；无 Key 或上游失败时仍返回可识别的空状态。
+6. `YOUTUBE_API_KEY` 仅可作为 API Preview 的敏感服务端变量，禁止进入前端、仓库和日志。
+## Change Request - 2026-07-16 - Supabase 角色邮箱识别视图
+
+- Type: admin operations
+- Risk: high
+- Why: `user_roles` 只显示 UUID，项目管理者在 Supabase Dashboard 中难以识别用户。
+
+Acceptance criteria:
+
+1. 邮箱始终实时来自 `auth.users`，不向 `user_roles` 复制容易过期的字段。
+2. 视图位于非 Data API 暴露的 `private` schema，使用 `security_invoker=true`。
+3. `public`、`anon`、`authenticated` 和 `service_role` 均无查询权限；仅 Supabase Dashboard 的数据库管理身份可查看。
+4. 不包含密码、令牌、验证状态或其他 Auth 敏感字段。
+
+## Change Request - 2026-07-18 - 工作台体验、产品卖点与运营活动
+
+- Type: feature / bugfix / operations
+- Risk: mixed（A 低到中、B/C 中、D 高）
+- Release: `1.1.4.5`
+
+### A. 注册、工作台边界与消费者画像
+
+1. Supabase 接受注册后立即弹窗：“请前往相应邮箱，点击 Supabase 邮件链接验证并登录；如未看到邮件，请检查垃圾邮件。”注册失败或邮件限流不得显示成功弹窗。
+2. 工作台使用动态视口高度并锁定页面级滚动，只允许三个工作区内部滚动；向下滑动或 overscroll 不得露出工作台外的黑色 body 区域。官网、Pricing、登录等普通页面继续允许自然滚动。
+3. 页脚统一显示 `Powered by CANTONESE API` 和 `v1.1.4.5`，不向用户暴露当前模型供应商名称。
+4. 目标消费者自由文本区明确“一次输入只生成 1 个人设”。每次 AI 解析最多接受服务端返回的第一条画像，并追加到现有画像列表，不覆盖之前的人设。
+
+### B. 产品卖点
+
+1. 在“品牌与内容场景”中、品牌红线附近新增“产品卖点”；用户可逐条输入，MVP 最多 10 条、每条原文最多 200 字。
+2. 每条卖点通过已鉴权服务端模型转换为自然香港粤语表达，同时保留原始输入与港话表达；失败时保留原文并允许重试，不静默丢失。
+3. 生成 Prompt 优先使用港话表达；品牌事实与红线优先级高于卖点。所有平台版本应自然融入相关卖点，并在不破坏语义时优先于次要修饰信息出现。
+4. 卖点随 `AppSettings` 保存到 `saved_configs.config` JSONB，并写入 generation job 的 `workbenchSettings`，从配置和生成历史载入时完整恢复；用户间继续由现有 owner RLS 隔离。
+
+### C. 审核通知时效
+
+1. 现有通知继续以 owner/review_group 权限和去重键为边界。
+2. 在页面可见且在线时使用轻量轮询，目标间隔 15 秒；窗口 focus/visibility 恢复时立即刷新。管理员提交审核、用户收藏/送审成功后也立即刷新本端状态。
+3. 通知目标为通常 0–15 秒内出现；网络失败采用退避且不得重复弹窗或高频请求正文接口。后续可评估 Supabase Realtime，但不作为首版必需项。
+
+### D. 连续签到与运营/模型指标（高风险，实施前需单独数据变更门禁）
+
+1. 按香港自然日记录签到；连续相邻 7 天完成后发放一次 30 天 Pro。漏签后下一次签到从第 1 天重新开始，服务端时间与数据库唯一约束防止重复签到/重复发放。2026-07-19 已确认：每个账号终身只发放一次。
+2. 每日首次进入已登录网站时弹出签到入口；关闭后当天不反复打扰，签到结果、连续天数和奖励状态以服务端为准。
+3. 管理员可见 DAU/WAU/MAU、会员发放、产品调用额度消耗和结余；普通管理员只看授权组，超级管理员可看全局。
+4. 超级管理员另见模型调用成功率、错误率、平均耗时、供应商/模型、异常日志和港味总分低于 50 的 bad case。日志禁止保存密钥、JWT 和不必要的完整输入/输出正文。
+5. 奖励规则（2026-07-19 已确认）：Free/无有效 Pro 在第 7 天立即获得固定 30 天 Pro 且新周期额度从 0 使用量开始；已有有效 Pro 只生成待领取奖励，当前 Pro 失效后手动领取，避免顺延订阅结束时间同时推迟额度刷新。
+6. DeepSeek 调用响应可读取官方 `usage` Token 字段，账户余额可由服务端调用官方 `GET /user/balance`。余额失败时显示“暂不可用”而不是 0；第一版不硬编码价格或展示伪造的估算账单。
+7. 详细决策、数据结构、API、隐私边界和 D0-D7 实施顺序见 `docs/plans/2026-07-19-1.1.4.5-slice-d-development-plan.md`。
+8. 2026-07-19 采用推荐遥测口径：DAU/WAU/MAU 分别为香港当天、含当天滚动 7/30 天；bad case 使用 `generation_jobs.scores.generated.total < 50`；模型调用日志保留目标为 90 天、日活聚合为 15 个月。保留期清理不在 D4 自动执行，须在基础设施切片另行授权。
+
+## Change Request - 2026-07-22 - 2.1 Bad Case 诊断审阅包
+
+- Type: feature / quality operations
+- Risk: high
+- Release: `2.1`
+
+Acceptance criteria:
+
+1. 每个自动或人工触发的 bad case 可形成审阅包，包含样本、运行 Trace、数据 owner、内部 case owner、版本化验收标准与带证据 findings。
+2. 审阅者可查看生成当时的 Prompt/规则/知识/模型策略 manifest、版本和脱敏预览；历史缺失必须显示不可追溯，不能用当前版本冒充。
+3. Trace 只展示运行阶段、attempt、耗时、有限错误类和官方 usage，不保存/展示思维链、供应商原始 payload、raw error、JWT、Key 或 Cookie。
+4. 自动提案可提供规则、知识、Prompt 的可审阅 diff，但不能自动发布；人工需记录确认、误报、接受风险、需数据或已解决。
+5. MVP 全部接口仅 `super_admin`；列表无正文/邮箱/工件正文，详情保持 `范围检查 -> 强制审计 -> 再检查 -> 正文读取` 并在审计失败时 fail-closed。
+6. 详细数据模型、API、指标、E0-E9 顺序和 Grok CLI 执行门禁见 `docs/plans/2026-07-22-2.1-bad-case-review-pack-plan.md`。
+7. 工作台右上角“账户与更多选项”新增“更新日志”，以不丢失当前创作状态的 drawer/dialog 展示真实生产版本；`2.1` 只有在全部功能验收且生产部署成功后，才写入本次实际上线的完整用户可见更新，不得把 local/staging/preview 项目标为已上线。
+8. `Bad Case 诊断指标` 默认可折叠以降低管理页长度；当现有 DTO 能确定存在未审核 Finding、重复样本、验收失败/未评估或无效时长记录时，仅向 `super_admin` 显示折叠摘要徽标，并对新的问题摘要弹出一次可关闭、可直接展开的非阻塞提醒。相同摘要刷新不得重复打扰，普通管理员不得请求或看到该提醒。
+
+## 2026-07-22：V2.1 发布边界确认（覆盖早期 MVP 表述）
+
+- V2.1 采用轻量团队协作：创作者负责生成/翻译，普通管理员只审核同一 `review_group`，`super_admin` 可跨组处理；不包含自助组织、席位、邀请、SSO 或复杂审批流。
+- 用户收藏生成文案或提交自写文案审核时，按现有审核合同进入所属 `review_group` 的共享审核范围；草稿、未收藏内容和未提交审核的历史仍只对 owner 可见。共享范围只包含最终文案与审核结果，不扩展 Prompt、品牌红线、未定稿输入或敏感 Trace。
+- V2.1 只保证生成/审核/Bad Case/Trace 等数据按既有权限持久化并可供超级管理员审阅；不实现 RAG 检索、自动反哺、自动优化、批准后生效或自动发布。这些属于 V3，不作为 V2 上线门禁。
+- 因此 V2.1 的上线验收只核对本版已实现的用户体验、权限、审计、模型可观测性和部署配置；不得因 V3 规划项阻塞本版发布。
+
+## 2026-07-22：V2.1 审核结果与签到提示优先级
+
+- 当用户同时存在未读审核结果和当日签到提示时，先显示审核结果；签到不得以全屏遮罩拦截“立即查看”。
+- 用户关闭或处理审核结果后，签到提示恢复，且不得因此被错误标记为“今天不再提醒”。
+- 账号切换、组件稍后挂载或重新挂载时仍保持相同优先级，不得依赖一次性事件的偶然时序。

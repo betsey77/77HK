@@ -2,9 +2,92 @@ import type { HKPost } from '../types/index.js';
 import { proxyFetch } from './proxyFetch.js';
 
 const YT_API_BASE = 'https://www.googleapis.com/youtube/v3';
+const YOUTUBE_CACHE_TTL_MS = 15 * 60 * 1000;
+
+export type YoutubeFailureCode =
+  | 'youtube_not_configured'
+  | 'youtube_api_key_invalid'
+  | 'youtube_quota_exceeded'
+  | 'youtube_access_denied'
+  | 'youtube_upstream_unavailable';
+
+export class YoutubeServiceError extends Error {
+  readonly code: YoutubeFailureCode;
+  readonly upstreamStatus?: number;
+
+  constructor(code: YoutubeFailureCode, upstreamStatus?: number) {
+    super(code);
+    this.name = 'YoutubeServiceError';
+    this.code = code;
+    this.upstreamStatus = upstreamStatus;
+  }
+}
+
+interface YoutubeCacheEntry {
+  expiresAt: number;
+  posts: HKPost[];
+}
+
+const youtubeCache = new Map<string, YoutubeCacheEntry>();
+const youtubeInflight = new Map<string, Promise<HKPost[]>>();
+
+async function withYoutubeCache(key: string, loader: () => Promise<HKPost[]>): Promise<HKPost[]> {
+  const now = Date.now();
+  const cached = youtubeCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.posts;
+  if (cached) youtubeCache.delete(key);
+
+  const pending = youtubeInflight.get(key);
+  if (pending) return pending;
+
+  const request = loader()
+    .then((posts) => {
+      // Empty arrays usually mean missing configuration or an upstream failure.
+      // Do not keep that state for the full TTL; allow the next request to retry.
+      if (posts.length > 0) {
+        youtubeCache.set(key, { posts, expiresAt: Date.now() + YOUTUBE_CACHE_TTL_MS });
+      }
+      return posts;
+    })
+    .finally(() => {
+      youtubeInflight.delete(key);
+    });
+
+  youtubeInflight.set(key, request);
+  return request;
+}
+
+/** Test-only reset; never exposes keys or cached content through an API route. */
+export function clearYoutubeCacheForTests(): void {
+  youtubeCache.clear();
+  youtubeInflight.clear();
+}
 
 function getApiKey(): string | null {
-  return process.env.YOUTUBE_API_KEY ?? null;
+  return process.env.YOUTUBE_API_KEY?.trim() || null;
+}
+
+function classifyYoutubeFailure(status: number, body: string): YoutubeServiceError {
+  const normalized = body.toLowerCase();
+  if (normalized.includes('api key not valid') || normalized.includes('keyinvalid')) {
+    return new YoutubeServiceError('youtube_api_key_invalid', status);
+  }
+  if (
+    normalized.includes('quotaexceeded')
+    || normalized.includes('dailylimitexceeded')
+    || normalized.includes('quota exceeded')
+  ) {
+    return new YoutubeServiceError('youtube_quota_exceeded', status);
+  }
+  if (status === 401 || status === 403) {
+    return new YoutubeServiceError('youtube_access_denied', status);
+  }
+  return new YoutubeServiceError('youtube_upstream_unavailable', status);
+}
+
+function normalizeYoutubeException(error: unknown): YoutubeServiceError {
+  if (error instanceof YoutubeServiceError) return error;
+  return new YoutubeServiceError('youtube_upstream_unavailable');
 }
 
 /** Check if proxy is configured (for logging purposes) */
@@ -43,11 +126,11 @@ function mapYtItemToHKPost(item: Record<string, unknown>): HKPost {
  * Fetch trending YouTube videos in HK region.
  * Requires YOUTUBE_API_KEY env var.
  */
-export async function getYoutubeTrending(categoryId?: string, limit = 12): Promise<HKPost[]> {
+async function fetchYoutubeTrending(categoryId?: string, limit = 12): Promise<HKPost[]> {
   const apiKey = getApiKey();
   if (!apiKey) {
     console.warn('[youtubeService] YOUTUBE_API_KEY not configured — trending unavailable');
-    return [];
+    throw new YoutubeServiceError('youtube_not_configured');
   }
 
   try {
@@ -69,8 +152,9 @@ export async function getYoutubeTrending(categoryId?: string, limit = 12): Promi
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      console.warn(`[youtubeService] Trending API returned ${res.status}: ${body.slice(0, 200)}`);
-      return [];
+      const failure = classifyYoutubeFailure(res.status, body);
+      console.warn(`[youtubeService] Trending API failed: status=${res.status} code=${failure.code}`);
+      throw failure;
     }
 
     const data = await res.json();
@@ -78,8 +162,9 @@ export async function getYoutubeTrending(categoryId?: string, limit = 12): Promi
     console.log(`[youtubeService] Trending returned ${items.length} videos`);
     return items.map(mapYtItemToHKPost);
   } catch (err) {
-    console.warn('[youtubeService] Trending failed:', (err as Error).message);
-    return [];
+    const failure = normalizeYoutubeException(err);
+    console.warn(`[youtubeService] Trending failed: code=${failure.code}`);
+    throw failure;
   }
 }
 
@@ -87,11 +172,11 @@ export async function getYoutubeTrending(categoryId?: string, limit = 12): Promi
  * Search YouTube for HK-relevant content.
  * Requires YOUTUBE_API_KEY env var.
  */
-export async function searchYoutube(query: string, limit = 12): Promise<HKPost[]> {
+async function fetchYoutubeSearch(query: string, limit = 12): Promise<HKPost[]> {
   const apiKey = getApiKey();
   if (!apiKey) {
     console.warn('[youtubeService] YOUTUBE_API_KEY not configured — search unavailable');
-    return [];
+    throw new YoutubeServiceError('youtube_not_configured');
   }
 
   try {
@@ -109,8 +194,10 @@ export async function searchYoutube(query: string, limit = 12): Promise<HKPost[]
     const res = await proxyFetch(url, { timeout: 10000 });
 
     if (!res.ok) {
-      console.warn(`[youtubeService] Search API returned ${res.status}`);
-      return [];
+      const body = await res.text().catch(() => '');
+      const failure = classifyYoutubeFailure(res.status, body);
+      console.warn(`[youtubeService] Search API failed: status=${res.status} code=${failure.code}`);
+      throw failure;
     }
 
     const data = await res.json();
@@ -158,7 +245,26 @@ export async function searchYoutube(query: string, limit = 12): Promise<HKPost[]
       return base;
     });
   } catch (err) {
-    console.warn('[youtubeService] Search failed:', (err as Error).message);
-    return [];
+    const failure = normalizeYoutubeException(err);
+    console.warn(`[youtubeService] Search failed: code=${failure.code}`);
+    throw failure;
   }
+}
+
+export function getYoutubeTrending(categoryId?: string, limit = 12): Promise<HKPost[]> {
+  const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
+  const safeCategory = categoryId?.trim() || 'all';
+  return withYoutubeCache(
+    `trending:${safeCategory}:${safeLimit}`,
+    () => fetchYoutubeTrending(categoryId, safeLimit),
+  );
+}
+
+export function searchYoutube(query: string, limit = 12): Promise<HKPost[]> {
+  const normalizedQuery = query.trim().replace(/\s+/g, ' ');
+  const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
+  return withYoutubeCache(
+    `search:${normalizedQuery.toLocaleLowerCase('zh-HK')}:${safeLimit}`,
+    () => fetchYoutubeSearch(normalizedQuery, safeLimit),
+  );
 }

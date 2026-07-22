@@ -213,17 +213,23 @@ router.get('/billing/plans', async (req: Request, res: Response) => {
  * GET /api/me/entitlements
  *
  * Returns the current user's plan, usage, and cycle info.
- * MOCK mode: in-memory per-process data.
- * Sandbox mode: reads from DB subscriptions table.
+ * Uses the trusted subscriptions table whenever Supabase is configured.
+ * Local mock data is only a development fallback when no trusted client exists.
  */
 router.get('/me/entitlements', requireAuth, async (_req: Request, res: Response) => {
   try {
     const userId = _req.userId!;
     const paymentMode = (process.env.PAYMENT_MODE || 'mock') as string;
 
-    if (paymentMode === 'alipay_sandbox') {
-      const { getTrustedSupabase } = await import('../services/trustedSupabase.js');
-      const db = getTrustedSupabase();
+    const { getTrustedSupabase } = await import('../services/trustedSupabase.js');
+    let db: ReturnType<typeof getTrustedSupabase> | undefined;
+    try {
+      db = getTrustedSupabase();
+    } catch {
+      if (paymentMode === 'alipay_sandbox') throw new Error('Trusted Supabase is required');
+    }
+
+    if (db) {
 
       // Read active subscription
       const { data: subs, error: subErr } = await db
@@ -258,7 +264,8 @@ router.get('/me/entitlements', requireAuth, async (_req: Request, res: Response)
         return;
       }
 
-      // No active subscription → Free tier defaults
+      // No active subscription → trusted Free-tier view. The generation route
+      // remains fail-closed because reserve_quota still requires a subscription.
       res.json({
         planId: 'free',
         planName: '免费版',
@@ -271,7 +278,7 @@ router.get('/me/entitlements', requireAuth, async (_req: Request, res: Response)
       return;
     }
 
-    // Mock mode
+    // Local development fallback only. Deployed Preview has trusted Supabase.
     const entitlements = getOrCreateEntitlements(userId, 'free');
     res.json(entitlements);
   } catch (err) {

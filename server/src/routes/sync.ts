@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import {
   getBootstrap,
+  getReviewResultSummary,
   upsertFavorite,
   updateFavoriteContent,
   deleteFavorite,
@@ -192,6 +193,21 @@ router.get('/sync/bootstrap', async (req: Request, res: Response) => {
       res.status(400).json({ error: err.message });
       return;
     }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================
+// GET /api/sync/review-result-summary — owner-only timestamp, no content
+// ============================================================
+router.get('/sync/review-result-summary', async (req: Request, res: Response) => {
+  try {
+    const result = await getReviewResultSummary(
+      req.userJwt as string,
+      req.userId as string,
+    );
+    res.json(result);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

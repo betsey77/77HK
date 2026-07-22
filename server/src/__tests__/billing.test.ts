@@ -44,6 +44,7 @@ function authAs(user: typeof USER_A): string {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockGetTrustedSupabase.mockReset();
   // Reset mock in-memory state by re-importing the module
   // (In-memory state persists between tests; we use unique userIds to isolate)
 });
@@ -97,6 +98,47 @@ describe('GET /api/me/entitlements', () => {
       .set('Authorization', 'Bearer mock-jwt');
     expect(resB.status).toBe(200);
     expect(resB.body.planId).toBe('free');
+  });
+
+  it('reads real Supabase usage even when online payment is disabled', async () => {
+    const previousPaymentMode = process.env.PAYMENT_MODE;
+    process.env.PAYMENT_MODE = 'mock';
+
+    const query: Record<string, any> = {};
+    query.select = vi.fn(() => query);
+    query.eq = vi.fn(() => query);
+    query.order = vi.fn(() => query);
+    query.limit = vi.fn().mockResolvedValue({
+      data: [{
+        id: 'subscription-1',
+        plan_id: 'plan-pro',
+        status: 'active',
+        quota_used: 2,
+        current_period_start: '2026-07-01T00:00:00.000Z',
+        current_period_end: '2026-08-01T00:00:00.000Z',
+        plans: { name: 'Pro', quota_per_cycle: 250 },
+      }],
+      error: null,
+    });
+    mockGetTrustedSupabase.mockReturnValue({ from: vi.fn(() => query) });
+
+    try {
+      authAs(USER_A);
+      const res = await request(app)
+        .get('/api/me/entitlements')
+        .set('Authorization', 'Bearer mock-jwt');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        planId: 'pro',
+        quotaUsed: 2,
+        quotaTotal: 250,
+        isMock: false,
+      });
+    } finally {
+      if (previousPaymentMode === undefined) delete process.env.PAYMENT_MODE;
+      else process.env.PAYMENT_MODE = previousPaymentMode;
+    }
   });
 });
 

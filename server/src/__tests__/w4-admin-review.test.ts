@@ -154,9 +154,16 @@ describe('W4 — static route & service contracts', () => {
     expect(existsBody).toContain("deleted_at");
   });
 
-  it('admin routes remain mostly read-only (only favorite review PUT is allowed)', () => {
-    // R1 introduces PUT /favorites/:id/review; other mutative verbs stay forbidden.
-    expect(adminRoute).not.toMatch(/router\.(delete|patch|post)\(/);
+  it('admin routes only expose the frozen review-pack POSTs and favorite review PUT', () => {
+    expect(adminRoute).not.toMatch(/router\.(delete|patch)\(/);
+    const postPaths = [...adminRoute.matchAll(/router\.post\('([^']+)'/g)].map((match) => match[1]);
+    expect(postPaths).toEqual([
+      '/bad-case-review-packs/:id/assign',
+      '/bad-case-review-packs/:id/status',
+      '/bad-case-review-packs/:id/analyze',
+      '/bad-case-findings/:id/review',
+      '/bad-case-findings/:id/proposal',
+    ]);
     const putMatches = adminRoute.match(/router\.put\(/g) ?? [];
     expect(putMatches.length).toBe(1);
     expect(adminRoute).toMatch(/router\.put\('\/favorites\/:id\/review'/);
@@ -177,6 +184,7 @@ vi.mock('../services/supabase.js', () => ({
 }));
 
 const mockAdminStats = vi.fn();
+const mockAdminActorReviewGroup = vi.fn();
 const mockAdminUsersOverview = vi.fn();
 const mockAdminGenerationMeta = vi.fn();
 const mockAdminGenerationExists = vi.fn();
@@ -196,6 +204,7 @@ vi.mock('../services/adminService.js', async (importOriginal) => {
   return {
     ...actual,
     getAdminStats: (...args: unknown[]) => mockAdminStats(...args),
+    getAdminActorReviewGroup: (...args: unknown[]) => mockAdminActorReviewGroup(...args),
     getAdminUsersOverview: (...args: unknown[]) => mockAdminUsersOverview(...args),
     getAdminGenerationMeta: (...args: unknown[]) => mockAdminGenerationMeta(...args),
     adminGenerationExists: (...args: unknown[]) => mockAdminGenerationExists(...args),
@@ -230,6 +239,7 @@ describe('W4 — case library detail route behavior', () => {
       totalUsers: 1, activeSubscriptions: 0, totalGenerations: 0,
       totalFeedback: 0, adminUsers: 1,
     });
+    mockAdminActorReviewGroup.mockResolvedValue('group1');
     mockAdminCaseLibraryExists.mockResolvedValue(true);
     mockAdminCaseLibraryDetail.mockResolvedValue({
       id: 'case-1',

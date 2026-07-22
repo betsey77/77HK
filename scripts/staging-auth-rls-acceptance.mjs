@@ -292,7 +292,7 @@ async function main() {
     pass('S4', 'owner RLS blocks cross-user reads, updates, and forged config ownership');
 
     const tsxCli = path.join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-    server = spawn(process.execPath, [tsxCli, path.join(root, 'server', 'src', 'index.ts')], {
+    server = spawn(process.execPath, [tsxCli, path.join(root, 'server', 'src', 'local.ts')], {
       cwd: path.join(root, 'server'),
       env: { ...process.env, PORT: '3003' },
       stdio: ['ignore', 'pipe', 'pipe'],

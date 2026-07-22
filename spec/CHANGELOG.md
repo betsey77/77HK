@@ -1,5 +1,150 @@
 # CHANGELOG
 
+## Fixed locally - 2026-07-22 - V2.1 final UI regressions
+
+- 工作台壳层固定于浏览器视口，避免文档滚动后露出大片空白。
+- 成功生成新版本时清空上一版人工修改基线，避免再次生成文案被整体标红。
+- 新增桌面/390px 再次生成闭环及文档溢出回归；E2E 生成 fixture 显式满足 `GenerateResponse`。
+- Playwright 14/14 连续两遍、Client 487/487、Server 809/809、typecheck/build 和两类 audit 全部通过。
+- 尚未 commit、push、部署或执行生产 Migration。
+
+## Verified on staging - 2026-07-22 - V2.1 Slice E8 closure
+
+- 新增 staging-only E8 验收脚本，覆盖真实 JWT、角色、生成 hook、DeepSeek、审计、Finding、提案、诊断、失败态与清理。
+- 修复审阅包详情 hash 与提案 builder hash 不一致导致“创建待审提案”稳定返回 400。
+- 修复生成后 hook 成功后未取消 timeout、稍后产生假告警的问题。
+- 未部署、commit、push、执行生产 Migration、reset/clean 或创建 Worktree。
+
+
+## Implemented and verified on staging - 2026-07-22 - V2.1 notification priority
+
+- 修复审核结果“立即查看”被每日签到全屏遮罩拦截：审核结果优先，处理完成后签到恢复。
+- owner-scoped 粘性状态覆盖同时挂载与签到晚挂载/重挂载，不因一次性事件丢失而复发。
+- staging 验收脚本兼容既有待审核数据，显式验证审核通知出现时签到为 0，并完成桌面/390px 管理员审核与用户收藏定位。
+- 相关 17/17、Client 486/486、前端 typecheck/build、Preview readiness 与 diff check 通过；Grok 只读复核无 P0，指出的 P1 已关闭。
+- 临时 staging 数据已清理；未部署、commit、push 或执行生产 Migration。
+
+## Implemented locally - 2026-07-22 - 2.1 Slice E7c
+
+- 修复 Bad Case 审阅包“AI 分析”静默点击：前端展示运行中、完成、幂等复点和安全失败分类。
+- AI 分析改为真实 DeepSeek 审阅链路：确定性 evidence/criteria/artifact refs 先行，模型只为已有 Finding 生成绑定 criterion ref 的诊断和修复建议。
+- 建议明确标记 provider/model/置信度/建议 Owner 和 `reviewRequired`，不会自动修改或发布 Prompt、规则、知识库或模型策略。
+- 旧 deterministic-only `completed` 事件可升级一次；带 `deepseek-1.0.0` 版本事件后保持幂等。
+- 完善操作手册与 v2.1 上线准备清单；Client 483/483、Server 806/806、双端 typecheck/build、两类 audit 0 vulnerabilities。
+- 未部署、commit、push 或执行生产 Migration；真实 staging DeepSeek/角色/API/浏览器闭环与最终人工验收仍待授权。
+
+## Implemented locally - 2026-07-22 - 2.1 Slice E7b
+
+- `Bad Case 诊断指标` 默认折叠，标题栏持续显示时间窗与需关注的确定性指标类别数。
+- 新的异常摘要仅向 `super_admin` 弹出一次可关闭消息卡，可直接展开详情；同摘要刷新不重复打扰，摘要变化后可再次提醒。
+- 提醒签名只包含时间窗和聚合数值并保存在当前浏览器会话，不新增轮询、接口、依赖或敏感数据。
+- Client 481/481、前端 typecheck/build、Playwright 12/12 通过；未部署、commit、push、reset/clean 或创建 Worktree。
+- 证据：`docs/evidence/2026-07-22/slice-e7b-diagnostics-alert/verification.md`。
+
+## Implemented locally - 2026-07-22 - 2.1 Slice E1-E7
+
+- 新增完整 Bad Case 审阅包：样本、脱敏 Trace、数据 owner、内部责任人、版本化验收标准、证据化 findings 和审计日志。
+- 生成链路 best-effort 固化 Prompt/规则/知识/模型策略 manifest；旧任务明确不可追溯，审阅包失败不改变生成响应。
+- `super_admin` 可筛选、查看、指派、流转、分析与处置 finding；详情固定 `scope -> audit -> recheck -> body`，普通 admin 为 403。
+- 工件改进只能创建绑定可信快照哈希的白名单 JSON Patch 待审提案；服务端拒绝伪造 before，禁止自动发布。
+- 新增问题分类、复发、确认/误报、验收覆盖、解决时长与 Token 成本可用性诊断；缺 usage/版本化价格时不伪造人民币金额。
+- 工作台显示 `v2.1` 并提供更新日志入口；生产 2.1 条目仍为空，必须等真实部署成功后填写。
+- Client 478/478、Server 805/805、双端 typecheck/build、diff check 与两类 dependency audit（0 vulnerabilities）通过；Slice E Migration 未应用，未部署、commit 或 push。
+- 证据：`docs/evidence/2026-07-22/slice-e1-e7-local/verification.md`。
+
+## Verified on staging - 2026-07-22 - 1.1.4.5 Slice D7
+
+- `20260719090000` 与 `20260719120000` 已在授权 staging 完成真实并发、幂等、RLS、RPC、约束与清理验证；未触碰生产库。
+- 修复 DAU/WAU/MAU 长期为 0 的生产调用缺口：云同步 ready 后异步上报认证活动，失败不阻塞工作台并可在后续同步重试。
+- 新增活动 API/客户端行为测试与可重复的 D7 staging 验收脚本；合成模型遥测验证后精确清理，五类临时数据均为 0。
+- Client 447/447、Server 703/703、双端 typecheck/build 通过；未部署、commit、push、reset/clean 或创建 Worktree。
+- 指标改版建议与 Token 人民币估算边界见 `docs/research/2026-07-22-model-observability-and-cost.md`。
+
+## Implemented locally - 2026-07-19 - 1.1.4.5 Slice D6b
+
+- 新增 `super_admin` 专属模型健康、低分任务与 DeepSeek 官方余额接口；普通 admin 明确 403。
+- 模型按 provider/model 聚合每次真实 attempt 的成功/错误、平均/P95 延迟、官方 Token 与 usage 缺失次数；不估算成本或缺失 Token。
+- 低分任务严格使用港味总分 `<50`，最多 20 条且只返回白名单元数据；无正文、完整 scores、owner 或邮箱。
+- DeepSeek 余额合法响应缓存 10 分钟；合法 0 / `is_available=false` 与接口不可用分开显示，失败绝不伪装成 0，也不泄露 Key/原始错误。
+- AdminPage 新增独立响应式指标面板，普通管理员只看 D6a 同组概览，超级管理员额外查看模型、余额与低分任务；桌面和 390px 延续深色 emerald / 浅色 orange 体系。
+- Grok Build 完成只读复核且未改文件；Server 696/696、Client 443/443、双端 typecheck/build、两类 audit 0、Playwright 12/12 通过。
+- D1/D4 Migration 未应用，未调用真实 provider/数据库，未部署、commit、push、reset、clean 或创建 Worktree。证据：`docs/evidence/2026-07-19/slice-d6b-admin-metrics/verification.md`。
+
+## Implemented locally - 2026-07-19 - 1.1.4.5 Slice D6a
+
+- 新增分组运营 overview API：普通管理员仅当前非空 `review_group`，`super_admin` 为全局；默认 30 个香港自然日、最多 90 日。
+- 聚合 DAU/WAU/MAU、会员奖励、区间额度消耗和当前剩余额度，不返回逐用户或正文数据。
+- 工作台滚动条改为透明轨道和低对比圆角滑块，并加入浅色与强制高对比处理；样式不外溢到官网/认证页。
+- Grok Build 完成只读复核；Server 681/681、Client 438/438、双端 typecheck/build、localhost-only Playwright 11/11 与 Web/API 200 通过。
+- D1/D4 Migration 未应用，当前仅验证 mock 合同与前端样式；无数据库执行、部署、commit、push、reset、clean 或 Worktree。证据：`docs/evidence/2026-07-19/slice-d6a-scrollbar-metrics/verification.md`。
+
+## Fixed locally - 2026-07-19 - Signup confirmation and check-in polish
+
+- 修复注册提交时 `PublicAuthRoute` 因全局 `isLoading` 卸载 `SignupPage`，导致输入清空且成功弹窗无法显示；现在只在首次恢复 Auth 会话时显示整页 loader。
+- 签到弹窗改为更清晰的 7 日连续轨道、分层标题、强化奖励完成/待领取状态和 390px 主操作，减少重复边框并保留深浅色与可访问交互。
+- 新增路由级注册回归与 localhost `/signup` 浏览器用例；聚焦 24/24、Client 437/437、build、Playwright 11/11×2 通过，18 张截图。
+- 两次 Grok Build 视觉评审调用均在本机旧 skill 元数据扫描阶段超时，未进入模型回答或修改文件，按停止规则不再重试。
+
+## Implemented locally - 2026-07-19 - 1.1.4.5 Slice D3
+
+- 新增登录用户每日签到弹窗：云同步完成后读取服务端进度，支持幂等签到、7 日奖励结果、有效 Pro 待领取说明和到期后主动领取。
+- 本机关闭状态按 `ownerId + 香港日期` 隔离；同日去扰、次日重现，客户端日期不参与签到或会员业务判定。
+- 新增运行时 API 响应校验、结构化领取冲突、安全错误提示、重复提交保护、键盘焦点循环和 390px 响应式布局。
+- 聚焦 14/14、影响面 27/27；返修后 Client 437/437、production build 与 localhost-only Playwright 11/11×2 通过；18 张截图。
+- D1 Migration 仍未应用；未执行真实数据库、staging、部署、安装、commit 或 push。证据：`docs/evidence/2026-07-19/slice-d3-checkin-ui/verification.md`。
+
+## Drafted locally - 2026-07-19 - 1.1.4.5 Slice D1
+
+- 新增未应用的 `20260719090000_slice_d1_checkin_rewards.sql`：香港自然日签到、每账号终身一次 30 天 Pro 奖励、有效 Pro pending/到期领取。
+- 浏览器仅可按 owner RLS 读取；签到和领取 RPC 仅允许 service_role，使用 invoker + 空 search_path。
+- 固定锁序为用户 advisory lock → subscription 行锁 → 签到/奖励写入；不改现有额度账本、额度 RPC 或支付 RPC。
+- 聚焦 6/6、全部 Migration 合同 56/56、Server 615/615、typecheck/build 通过。
+- Migration 未执行或 push；真实数据库语法、RLS、并发和 Advisor 尚待经授权的 D7。
+
+## Specified - 2026-07-19 - 1.1.4.5 Slice D D0
+
+- 新增签到奖励、活跃指标、额度事实、模型 Token/健康、DeepSeek 官方余额和分级管理员权限的详细开发计划。
+- 将大切片拆为 D0-D7；每个阶段都定义文件域、完成条件和 Migration/staging 门禁。
+- 识别有效 Pro 直接顺延会推迟额度周期刷新的风险，推荐改为待领取奖励；奖励是否每账号终身一次仍待用户确认。
+- 两轮 Grok Build 仅做只读评审；本轮无业务代码、Migration、部署、commit 或 push。
+
+## 2026-07-16 - YouTube Preview Key 与错误状态修复
+
+### Fixed
+- 修复 Preview 使用无效 YouTube Key 导致热点与语感接口伪返回 `200 + []`。
+- YouTube 上游失败改为安全分类的结构化 `502`；前端显示 Key 无效、额度耗尽、权限或服务不可用等明确原因。
+- 覆盖 Preview Sensitive `YOUTUBE_API_KEY` 并重新部署 API/Web 稳定别名。
+
+### Verification
+- `npm run verify`：Client 408/408，Server 594/594，typecheck/build/audit 全部通过。
+- 真实 staging 登录态请求稳定 API 返回 12 条 YouTube 热点，`source.youtube = available`。
+- 证据：`docs/evidence/2026-07-16/youtube-preview-repair/verification.md`。
+
+## 2026-07-16 - 注册引导、当前设备退出与热点接口加固
+
+### Changed
+- 注册邮件引导改为明确弹窗；验证回调完成后返回登录页，而不是携带验证会话进入工作台。
+- Supabase 退出改为 `scope: local`，不撤销共用管理员邮箱的其他设备会话。
+- 热点/语感客户端改用 JWT 请求；服务端四个 Inspiration 路由定点要求认证。
+- YouTube 上游结果增加 15 分钟进程缓存和并发请求合并；空结果不缓存。
+- 本地环境装载先保留 `server/.env` 值，再从根 `.env` 补齐缺失变量。
+
+### Added
+- 可复用注册/邮箱状态弹窗、鉴权与缓存回归测试。
+- Supabase 按邮箱手动开通 Pro 和 `user_roles` 邮箱联表查询运营文档。
+
+### Verification
+- `npm run verify`：Client 406/406，Server 592/592，typecheck/build 通过，两次 audit 均为 0 vulnerabilities。
+- 本地 health 确认 YouTube key 已装载，匿名热点请求返回 401；真实上游拉取因本机直连 Google 超时，需在 Vercel 部署后验收。
+
+### Scope boundary
+- 未接入真实支付，未部署到 production，当前 Dirty Worktree 未 commit/push。
+
+### Deployment update
+- API Preview 已配置 Sensitive `YOUTUBE_API_KEY`，API/Web Ready 部署和稳定别名切换完成。
+- `20260716150000_add_private_user_roles_email_view.sql` 已应用到 staging；post-push Migration 列表 Local/Remote 一致。
+- 新增隐藏密码输入的 `scripts/supabase-linked-dry-run.ps1`，该脚本不包含实际 push。
+
 ## 2026-07-15 — 个人案例库保存修复 + 副标题配色 + 说明澄清
 
 ### Fixed
@@ -1499,3 +1644,119 @@ returns boolean language plpgsql security definer set search_path = ''
 - 覆盖用户通过/未通过、稍后去重、新审核再次提醒、立即查看定位，以及管理员稍后/立刻审核和待审筛选。
 - Node 22 + ASCII Playwright harness 两轮各 6/6，保存 1440px 与 390px 截图；所有请求限制为 localhost。
 - 未连接真实 Supabase/Auth/RLS，未安装依赖，未执行 Migration、部署、commit 或 push。
+
+## Prepared locally - 2026-07-16 - Vercel Hobby Preview readiness 修正
+
+- 按 Vercel 2026 官方限制把 Express Function `maxDuration` 从错误的 300 秒修正为 Hobby 上限 60 秒。
+- 首个 Preview 固定为 staging Supabase、rules fallback、mock 支付；不配置模型 key、支付宝 key 或生产数据。
+- 增加 Preview 环境变量清单、两项目 URL/CORS/Auth 配置顺序和本地只读 readiness 检查。
+- 未创建 Vercel 项目、未写远端环境变量、未部署、未修改 Supabase Auth URL。
+
+## Prepared locally - 2026-07-16 - Preview 真实模型强制门禁
+
+- 用户明确要求内部 Preview 必须使用真实模型；rules fallback 不再是可接受的成功结果。
+- DeepSeek 默认模型从即将停用的 `deepseek-chat` 更新为 `deepseek-v4-flash`。
+- 所有 DeepSeek 结构化调用显式设置 `thinking=disabled`；修复 V4 默认 thinking 可能只返回推理、正文为空的问题。
+- 新增 `REQUIRE_REAL_MODEL`：严格模式下模型未配置、失败或超时返回明确错误，不输出规则模板。
+- 严格模式关闭二次质量重试并把后处理上限收紧至 18 秒，串行模型预算为 51 秒，适配 Hobby 60 秒上限。
+- Preview 明确不配置 `CANTONESE_*`；最小 DeepSeek V4 Flash 正文冒烟成功，未部署、未写远端 secret。
+
+## 2026-07-16 - Vercel Express Preview 首次构建修正
+
+- Vercel CLI 首次构建发现 `functions["src/app.ts"]` 只匹配 `api/` 函数目录，与 2026-06 官方 Express 零配置入口发现冲突；该失败部署未发布可用服务。
+- 移除 `server/vercel.json` 的 `functions` 配置，仅保留东京 `hnd1`，由 Vercel 从 `src/app.ts` 默认导出自动发现 Express 应用。
+- 按 2026-07-01 官方 duration 文档修正：Hobby Fluid Compute 当前默认/上限为 300 秒，不再沿用先前错误的 60 秒判断。
+- 后续 CLI 部署必须显式使用 `--target=preview`，不得依赖默认 target。
+
+## 2026-07-16 - 内部 Preview 真实额度、人工 Pro 与微信通知
+
+- 结算权益接口在存在可信 Supabase 配置时读取真实套餐、周期和已用额度，不再因 `PAYMENT_MODE=mock` 返回进程内假数据。
+- 内部 Preview 关闭在线结算入口，Pro 改为联系管理员人工开通；未接入支付宝或其他真实支付。
+- staging 唯一管理员账号已人工设为 Pro 250 次/月；普通用户套餐保持不变。
+- `SERVERCHAN_SENDKEY` 以 Sensitive Preview 环境变量配置到 API 项目；Server酱测试请求返回 `code=0` 和 `pushid`。
+- 关闭 Web 项目的 Vercel Authentication；Supabase Auth、管理员角色和数据库 RLS 继续作为应用权限边界。
+- API 与 Web Preview 重新部署为 Ready，公开 Web 主域名已切换至本次部署。
+- 修复本地旧后端停止后结算页仍显示默认 Free 0/20 的误导行为；额度请求失败时改为明确错误与重试，且已重启当前 `src/local.ts` 开发服务。
+
+## Planned - 2026-07-18 - 1.1.4.5 工作台与运营切片
+
+- 计划 A：注册成功提示文案、工作台动态视口边界、Footer 品牌化、Persona 单条追加修复。
+- 计划 B：产品卖点逐条港化，并贯穿 Prompt、配置云同步和生成历史恢复。
+- 计划 C：审核通知从“加载/重新聚焦”提升为可见页面 15 秒轻量轮询。
+- 计划 D：连续 7 日签到赠送 30 天 Pro，以及分级管理员运营与模型健康指标。
+- Git 状态门禁：Vercel 已部署内容仍有大量本地未提交改动；在 GitHub 自动部署继续前，必须先按功能切片验收、提交并 push，避免旧 `origin/master` 覆盖 Preview。
+
+## Implemented locally - 2026-07-18 - 1.1.4.5 Slice A
+
+- 注册成功后直接显示 Supabase 邮箱验证与垃圾邮件提示弹窗。
+- 工作台根容器限制为动态视口高度，内部面板自行滚动，避免露出页面底部黑边。
+- AI 人设解析改为每次只生成并追加 1 条，不覆盖已有画像；前端、路由和模型提示词三层限制一致。
+- 页脚统一为 `Powered by CANTONESE API` 和 `v1.1.4.5`。
+- 全量验证通过：Client 410/410、Server 594/594、typecheck、build、audit，以及 Playwright 两轮各 7/7。
+- API Preview 已更新为 Ready；Web Preview 三次部署均停在 `UNKNOWN`，稳定 Web 域名未切换，故上述前端改动尚未上线。
+- 证据：`docs/evidence/2026-07-18/workbench-slice-a-1.1.4.5/`。
+
+## Fixed locally - 2026-07-18 - Admin review-group isolation
+
+- 普通管理员的生成任务列表与详情按 `profiles.review_group` 限定为同组用户；跨组详情在读取正文前返回 404。
+- 超级管理员继续保留跨组查看权限。
+- 管理后台页头显示当前角色与组号，生成任务和用户收藏列表显示文案所属组号。
+- 真实 staging 普通管理员验收通过：group1 列表仅含 group1，访问现存 group2 详情返回 404。
+- 全量验证通过：Client 410/410、Server 597/597、typecheck、build、audit。
+- 无 Migration、部署、commit 或 push。证据：`docs/evidence/2026-07-18/admin-review-group-scope/verification.md`。
+
+## Implemented locally - 2026-07-18 - Product Selling Points Slice B
+
+- “品牌与内容场景”新增产品卖点逐条输入；最多 10 条、每条原文最多 200 字。
+- 新增已鉴权 `POST /api/localize-selling-point`，模型失败时保留原文并支持重试。
+- DeepSeek 与 CantoneseLLM Prompt 均优先使用港话表达，并明确事实/品牌红线高于卖点、卖点高于风格修饰。
+- 卖点进入 `AppSettings`、本地配置、`saved_configs.config` JSONB、generation `workbenchSettings` 与历史恢复；无需 Migration。
+- Playwright 8/8 连跑两次并保存桌面/手机截图；全量验证 Client 417/417、Server 604/604、typecheck/build、audit 0。
+- 未执行真实登录模型调用、Migration、部署、commit 或 push。证据：`docs/evidence/2026-07-18/product-selling-points/verification.md`。
+
+## Fixed locally - 2026-07-18 - Product Selling Points real-model propagation
+
+- 修复 DeepSeek 与 CantoneseLLM 服务在调用 Prompt builder 时漏传 `productSellingPoints`，导致真实生成文案完全看不到已港化卖点的问题。
+- 新增服务边界回归测试；修复前两条路径均失败，修复后相关测试 9/9、全量 Client 417/417、Server 606/606、typecheck/build/audit 全通过。
+- 待用户在现有本地登录页面重新生成一次完成真实模型复验；无 Migration、部署、commit 或 push。
+
+## Accepted locally - 2026-07-18 - Product Selling Points manual reacceptance
+
+- 用户在已登录本地工作台重新生成并确认文案已体现所填卖点；Slice B 本地人工验收通过。
+- 该结果不代表已部署、commit 或 push。
+
+## Implemented locally - 2026-07-18 - Review Notification Polling Slice C
+
+- 新增共享可见性轮询：可见页 15 秒刷新，隐藏暂停，focus/重新可见立即刷新，失败按 15/30/60 秒退避。
+- 管理员页面和工作台 Header 复用现有待审摘要；用户新增已鉴权、owner-only 的最新审核时间摘要，不返回品牌、正文、邮箱或组数量。
+- 用户侧仅在摘要版本变化时触发既有 owner bootstrap，避免每 15 秒下载全部收藏正文；审核结果去重键保持不变。
+- 修复审核结果通知只扫描首次云数据、后续云刷新无法提醒的问题。
+- 全量验证 Client 422/422、Server 609/609、typecheck/build/audit 全通过；隔离 Playwright 8/8 连跑两次。
+- 无数据库变更、Migration、部署、commit 或 push。证据：`docs/evidence/2026-07-18/review-notification-polling/verification.md`。
+
+## Implemented locally - 2026-07-19 - Check-in BFF Slice D2
+
+- 新增已鉴权的签到状态、幂等签到和奖励领取接口；所有 owner 只来自认证结果，不信任客户端用户 ID 或日期。
+- 受信任服务读取香港日期连续状态并调用 D1 两个 RPC，统一输出 camelCase，领取 UUID/404/409 与 500/503 错误语义均脱敏。
+- Grok 实现复核发现并推动修复 POST `canClaim` 与 GET 不一致、确定性账户状态误报 503 两项问题。
+- 聚焦测试 25/25、受影响回归 63/63、Server 全量 640/640、TypeScript build 通过。
+- D1 Migration 仍未应用；未执行真实数据库、staging、部署、commit 或 push。证据：`docs/evidence/2026-07-19/slice-d2-checkin-bff/verification.md`。
+
+## Implemented locally - 2026-07-19 - Activity and Model Telemetry Contracts Slice D4
+
+- 新增本地未应用 Migration 草案 `20260719120000_slice_d4_activity_model_telemetry.sql`，包含私有香港日活跃聚合、模型真实尝试日志和 service-role-only 活跃 RPC。
+- 新增严格运行时字段白名单与 400ms best-effort 模型日志写入器；敏感/未知键在 trusted client 前拒绝，数据库失败或超时不阻断模型主路径。
+- 采用 DAU/WAU/MAU 香港日 1/7/30 天、bad case `<50`、日志 90 天和活跃 15 个月推荐口径；D4 只记录保留期，不执行清理。
+- Grok Build 只读终审无 blocking 缺陷；已采纳 provider usage 至少包含一个 Token 字段的 SQL/TypeScript 对齐建议。
+- 聚焦 18/18、全部 Migration 合同 61/61、Server 658/658、typecheck/build 通过。
+- D1/D4 Migration 均未应用；未执行数据库/staging 写入、部署、commit、push、reset、clean 或 worktree。
+
+## Specified - 2026-07-22 - 2.1 Bad Case Review Pack Slice E0
+
+- 将下一版拆为 E0-E9，覆盖样本、运行 Trace、数据 owner、内部 case owner、验收标准、findings 和人工处置闭环。
+- 设计生成时 Prompt/规则/知识/模型策略版本快照，旧任务缺失明确为 `legacy_unavailable`，不以当前工件冒充历史。
+- 自动分析只产生带证据的分类、责任团队建议和待审 diff；禁止自动发布规则、知识或 Prompt 修改。
+- MVP 维持 `super_admin` only，详情继续执行 scope、强制审计、再次 scope 和正文读取，trusted client 不依赖 RLS 代替授权。
+- 记录 Grok CLI 自身 Agent Teams/Autonomous Agents/worktree/background 执行协议；用户已授权建立本地 checkpoint ref，且未移动 master、真实 index 或 Dirty Worktree。
+- 本切片只改规格和规划文档；无业务代码、Migration、远端写入、部署、commit 或 push。
+- 新增工作台“账户与更多选项 -> 更新日志”产品要求；`2.1` 完整内容必须在最终验收和生产部署成功后按部署 manifest 回填，开发中内容不标记为已上线。

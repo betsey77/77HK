@@ -17,6 +17,7 @@ const AuditPanel = lazy(() => import('./components/audit/AuditPanel'));
 const InspirationPanel = lazy(() => import('./components/inspiration/InspirationPanel'));
 const FavoritesPanel = lazy(() => import('./components/favorites/FavoritesPanel'));
 const ReviewResultNotifier = lazy(() => import('./components/favorites/ReviewResultNotifier'));
+const CheckInDialog = lazy(() => import('./components/checkin/CheckInDialog'));
 const FeedbackCenter = lazy(() => import('./components/feedback/FeedbackCenter'));
 const MarketingPage = lazy(() => import('./components/marketing/MarketingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -112,7 +113,10 @@ function AppShellWithAuth() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-950 light:bg-white">
+    <div
+      data-testid="workbench-shell"
+      className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-gray-950 light:bg-white"
+    >
       <Header
         onLogout={handleLogout}
         userEmail={authState.user?.email ?? null}
@@ -283,7 +287,13 @@ export function CloudSyncGate({ children }: { children: ReactNode }) {
       )}
 
       {cloudSync.syncStatus === 'ready' && authState.user?.id && (
-        <ReviewResultNotifier ownerId={authState.user.id} />
+        <>
+          <ReviewResultNotifier
+            ownerId={authState.user.id}
+            onReviewVersionChanged={cloudSync.retryHydration}
+          />
+          <CheckInDialog ownerId={authState.user.id} />
+        </>
       )}
 
       {children}
@@ -361,10 +371,15 @@ function LegacyImportBanner({
 // Public route — redirect to /app if already authed
 // ============================================================
 
-function PublicAuthRoute({ children }: { children: ReactNode }) {
+export function PublicAuthRoute({ children }: { children: ReactNode }) {
   const { state } = useAuth();
+  const initialAuthResolvedRef = useRef(!state.isLoading);
 
-  if (state.isLoading) {
+  if (!state.isLoading) {
+    initialAuthResolvedRef.current = true;
+  }
+
+  if (state.isLoading && !initialAuthResolvedRef.current) {
     return <AuthLoading />;
   }
 

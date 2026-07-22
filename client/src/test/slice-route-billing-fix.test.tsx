@@ -172,47 +172,55 @@ describe('官网 CTA 路由矩阵', () => {
 
 // ── B. BillingPage 支付模式成功提示 ─────────────────────────────
 
-describe('BillingPage 订单创建成功提示', () => {
-  it('paymentMode=mock 时显示模拟支付文案', async () => {
+describe('BillingPage 开通方式', () => {
+  it('额度接口失败时显示错误而不是伪造免费版 0/20', async () => {
+    setSignedIn();
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/api/me/entitlements')) {
+        return Promise.resolve({
+          ok: false,
+          status: 503,
+          json: async () => ({ error: '额度服务暂时不可用' }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => url.includes('/api/billing/orders')
+          ? { orders: [], total: 0 }
+          : { paymentMode: 'mock', plans: [] },
+      });
+    }));
+
+    renderBilling();
+
+    expect(await screen.findByText('套餐信息加载失败')).toBeInTheDocument();
+    expect(screen.getByText('额度服务暂时不可用')).toBeInTheDocument();
+    expect(screen.queryByText(/已用 0 \/ 20 次/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+  });
+
+  it('paymentMode=mock 时改为人工联系且不创建模拟订单', async () => {
     setSignedIn();
     const fetchMock = mockBillingFetch({
       planId: 'free',
       paymentMode: 'mock',
-      checkoutHandler: () =>
-        Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            orderId: 'mock_order_1',
-            redirectUrl: '/billing/result/success?orderId=mock_order_1',
-            isMock: true,
-          }),
-        } as Response),
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    // Prevent actual navigation during redirect delay
-    const hrefSpy = vi.fn();
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, href: '', assign: hrefSpy },
-      writable: true,
-      configurable: true,
-    });
-
     renderBilling();
     expect(await screen.findByText('套餐与结算')).toBeInTheDocument();
+    expect(screen.getByText(/用量来自实际账号记录/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: /升级到 Pro/ }));
+    await userEvent.click(screen.getByRole('button', { name: '联系管理员开通 Pro' }));
 
-    expect(await screen.findByText(/订单 mock_order_1 已创建，即将跳转到模拟支付页面/)).toBeInTheDocument();
-    expect(screen.queryByText(/支付宝沙箱支付页/)).not.toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: '联系开通 Pro' })).toBeInTheDocument();
 
-    // mock checkout endpoint (not alipay sandbox)
-    const checkoutCall = fetchMock.mock.calls.find(
-      ([url]: [string]) => String(url).includes('/api/billing/checkout')
-        && !String(url).includes('/alipay/'),
+    const postCalls = fetchMock.mock.calls.filter(
+      ([, init]: [string, RequestInit?]) => init?.method === 'POST',
     );
-    expect(checkoutCall).toBeTruthy();
+    expect(postCalls).toHaveLength(0);
   });
 
   it('paymentMode=alipay_sandbox 时显示支付宝沙箱文案', async () => {

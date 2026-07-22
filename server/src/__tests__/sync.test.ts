@@ -164,6 +164,11 @@ describe('Auth gate', () => {
     expect(res.status).toBe(401);
   });
 
+  it('GET /api/sync/review-result-summary without token -> 401', async () => {
+    const res = await request(app).get('/api/sync/review-result-summary');
+    expect(res.status).toBe(401);
+  });
+
   it('POST /api/sync/favorites without token -> 401', async () => {
     const res = await request(app).post('/api/sync/favorites').send({ clientId: 'test' });
     expect(res.status).toBe(401);
@@ -281,6 +286,46 @@ describe('GET /api/sync/bootstrap', () => {
       updatedAt: '2026-07-14T12:00:00.000Z',
       annotations: [],
     });
+  });
+});
+
+describe('GET /api/sync/review-result-summary', () => {
+  it('returns only the latest owner-scoped review timestamp', async () => {
+    const client = setupClient();
+    mockFromSequence(client, [
+      { data: [{ id: 'fav-uuid-001' }, { id: 'fav-uuid-002' }] },
+      { data: [{ updated_at: '2026-07-18T12:30:00.000Z' }] },
+    ]);
+
+    const res = await request(app)
+      .get('/api/sync/review-result-summary')
+      .set('Authorization', VALID_TOKEN);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ latestUpdatedAt: '2026-07-18T12:30:00.000Z' });
+    expect(client.from).toHaveBeenNthCalledWith(1, 'favorites');
+    expect(client.from).toHaveBeenNthCalledWith(2, 'favorite_admin_reviews');
+    expect(recordedCalls[0]).toContainEqual({ method: 'select', args: ['id'] });
+    expect(recordedCalls[0]).toContainEqual({ method: 'eq', args: ['owner_id', 'user-001'] });
+    expect(recordedCalls[1]).toContainEqual({ method: 'select', args: ['updated_at'] });
+    expect(recordedCalls[1]).toContainEqual({
+      method: 'in',
+      args: ['favorite_id', ['fav-uuid-001', 'fav-uuid-002']],
+    });
+    expect(recordedCalls[1]).toContainEqual({ method: 'limit', args: [1] });
+  });
+
+  it('returns null without querying reviews when the owner has no favorites', async () => {
+    const client = setupClient();
+    mockFromReturns(client, { data: [] });
+
+    const res = await request(app)
+      .get('/api/sync/review-result-summary')
+      .set('Authorization', VALID_TOKEN);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ latestUpdatedAt: null });
+    expect(client.from).toHaveBeenCalledTimes(1);
   });
 });
 

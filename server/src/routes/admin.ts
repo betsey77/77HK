@@ -19,7 +19,17 @@ import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin.js';
 import {
+  AdminMetricsError,
+  getAdminBadCaseModelAttempts,
+  getAdminBadCases,
+  getAdminMetricsOverview,
+  getAdminModelMetrics,
+  parseAdminMetricsRange,
+} from '../services/adminMetricsService.js';
+import { getDeepSeekProviderBalance } from '../services/providerBalanceService.js';
+import {
   getAdminStats,
+  getAdminActorReviewGroup,
   getAdminUsersOverview,
   getAdminGenerationMeta,
   adminGenerationExists,
@@ -39,6 +49,20 @@ import {
   type AdminFavoriteActorScope,
   type AdminReviewStatus,
 } from '../services/adminService.js';
+import {
+  BadCaseReviewPackError,
+  assertUuid,
+  getReviewPackScope,
+  isReviewPackVisible,
+  listReviewPacksMeta,
+  getReviewPackDiagnostics,
+  loadReviewPackDetailBody,
+  assignReviewPack,
+  transitionReviewPackStatus,
+  reviewFinding,
+  requestPackAnalysis,
+  createFindingProposal,
+} from '../services/badCaseReviewPackService.js';
 
 const router = Router();
 
@@ -72,15 +96,276 @@ function actorScopeFromReq(req: Request): AdminFavoriteActorScope {
 }
 
 const REVIEW_BODY_ALLOW = new Set(['status', 'note', 'annotations']);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // ── GET /api/admin/stats ───────────────────────────────────────
 
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const stats = await getAdminStats();
+    const [stats, reviewGroup] = await Promise.all([
+      getAdminStats(),
+      getAdminActorReviewGroup(req.userId as string),
+    ]);
     // role is server-verified via requireAdmin (req.userRole); never trust client.
-    res.json({ ...stats, role: req.userRole ?? 'admin' });
+    res.json({ ...stats, role: req.userRole ?? 'admin', reviewGroup });
   } catch (err) {
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+// ── GET /api/admin/metrics/overview — group-scoped operational metrics ──
+
+router.get('/metrics/overview', async (req: Request, res: Response) => {
+  try {
+    const range = parseAdminMetricsRange(req.query.from, req.query.to);
+    const overview = await getAdminMetricsOverview({
+      actorId: req.userId as string,
+      actorRole: req.userRole === 'super_admin' ? 'super_admin' : 'admin',
+    }, range);
+    res.json(overview);
+  } catch (err) {
+    if (err instanceof AdminMetricsError) {
+      res.status(err.status).json({ error: err.code });
+      return;
+    }
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+// ── Super-admin-only model health, bad cases and official balance ──
+
+router.get('/metrics/models', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const range = parseAdminMetricsRange(req.query.from, req.query.to);
+    res.json(await getAdminModelMetrics(range));
+  } catch (err) {
+    if (err instanceof AdminMetricsError) {
+      res.status(err.status).json({ error: err.code });
+      return;
+    }
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.get('/metrics/bad-cases', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const range = parseAdminMetricsRange(req.query.from, req.query.to);
+    res.json(await getAdminBadCases(range));
+  } catch (err) {
+    if (err instanceof AdminMetricsError) {
+      res.status(err.status).json({ error: err.code });
+      return;
+    }
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.get('/metrics/bad-cases/:id', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.id;
+    if (typeof jobId !== 'string' || !UUID_PATTERN.test(jobId)) {
+      res.status(400).json({ error: 'Invalid job ID' });
+      return;
+    }
+
+    const scope = actorScopeFromReq(req);
+    if (!(await adminGenerationExists(jobId, scope))) {
+      res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+
+    try {
+      await writeAdminAuditLog({
+        actorId: req.userId as string,
+        actorRole: req.userRole as string | undefined,
+        action: 'admin_view_bad_case_detail',
+        entity: 'generation_jobs',
+        entityId: jobId,
+      });
+    } catch {
+      res.status(500).json({ error: 'Internal server error' });
+      return;
+    }
+
+    const job = await getAdminGenerationDetail(jobId, scope);
+    if (!job) {
+      res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+
+    const modelAttempts = await getAdminBadCaseModelAttempts(jobId);
+    res.json({ job, modelAttempts });
+  } catch (err) {
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.get('/metrics/provider-balance', requireSuperAdmin, async (_req: Request, res: Response) => {
+  res.json(await getDeepSeekProviderBalance());
+});
+
+// ── 2.1 Slice E3: Bad Case review packs (super_admin only) ────
+
+function superAdminActor(req: Request) {
+  return {
+    actorId: req.userId as string,
+    actorRole: 'super_admin' as const,
+  };
+}
+
+function mapReviewPackError(err: unknown, res: Response): boolean {
+  if (err instanceof BadCaseReviewPackError) {
+    res.status(err.status).json({ error: err.code });
+    return true;
+  }
+  return false;
+}
+
+router.get('/bad-case-review-packs', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { limit, offset } = parsePagination(req);
+    const result = await listReviewPacksMeta({
+      status: typeof req.query.status === 'string' ? req.query.status : undefined,
+      ownerTeam: typeof req.query.ownerTeam === 'string' ? req.query.ownerTeam : undefined,
+      triggerKind: typeof req.query.triggerKind === 'string' ? req.query.triggerKind : undefined,
+      limit,
+      offset,
+    });
+    res.json(result);
+  } catch (err) {
+    if (mapReviewPackError(err, res)) return;
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.get('/bad-case-review-packs/diagnostics', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const range = parseAdminMetricsRange(req.query.from, req.query.to);
+    res.json(await getReviewPackDiagnostics(range));
+  } catch (err) {
+    if (err instanceof AdminMetricsError) {
+      res.status(err.status).json({ error: err.code });
+      return;
+    }
+    if (mapReviewPackError(err, res)) return;
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+/**
+ * Detail: strict scope -> audit -> recheck -> body (fail-closed).
+ * Never read sample body before successful audit write.
+ */
+router.get('/bad-case-review-packs/:id', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    let packId: string;
+    try {
+      packId = assertUuid(req.params.id);
+    } catch {
+      res.status(400).json({ error: 'Invalid pack ID' });
+      return;
+    }
+
+    // 1. Scope only (id + generation_job_id + subject_owner_id) + visibility
+    const scope = await getReviewPackScope(packId);
+    if (!scope || !(await isReviewPackVisible(scope))) {
+      res.status(404).json({ error: 'NOT_FOUND' });
+      return;
+    }
+
+    // 2. Audit — fail closed before any body read
+    try {
+      await writeAdminAuditLog({
+        actorId: req.userId as string,
+        actorRole: req.userRole as string | undefined,
+        action: 'admin_view_bad_case_review_pack',
+        entity: 'bad_case_review_packs',
+        entityId: packId,
+      });
+    } catch {
+      res.status(500).json({ error: 'Internal server error' });
+      return;
+    }
+
+    // 3. Recheck same scope
+    const scope2 = await getReviewPackScope(packId);
+    if (
+      !scope2
+      || scope2.generationJobId !== scope.generationJobId
+      || scope2.subjectOwnerId !== scope.subjectOwnerId
+      || !(await isReviewPackVisible(scope2))
+    ) {
+      res.status(404).json({ error: 'NOT_FOUND' });
+      return;
+    }
+
+    // 4. Body only after audit + recheck
+    const detail = await loadReviewPackDetailBody(scope2);
+    if (!detail) {
+      res.status(404).json({ error: 'NOT_FOUND' });
+      return;
+    }
+    res.json(detail);
+  } catch (err) {
+    if (mapReviewPackError(err, res)) return;
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.post('/bad-case-review-packs/:id/assign', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const result = await assignReviewPack(superAdminActor(req), String(req.params.id), req.body);
+    res.json(result);
+  } catch (err) {
+    if (mapReviewPackError(err, res)) return;
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.post('/bad-case-review-packs/:id/status', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const result = await transitionReviewPackStatus(superAdminActor(req), String(req.params.id), req.body);
+    res.json(result);
+  } catch (err) {
+    if (mapReviewPackError(err, res)) return;
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.post('/bad-case-review-packs/:id/analyze', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    // Reject untrusted actor fields on empty body payloads too
+    if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+      const keys = Object.keys(req.body as object);
+      if (keys.some((k) => ['actorId', 'actor_id', 'actorRole', 'ownerId', 'role'].includes(k))) {
+        res.status(400).json({ error: 'INVALID_INPUT' });
+        return;
+      }
+    }
+    const result = await requestPackAnalysis(superAdminActor(req), String(req.params.id));
+    res.json(result);
+  } catch (err) {
+    if (mapReviewPackError(err, res)) return;
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.post('/bad-case-findings/:id/review', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const result = await reviewFinding(superAdminActor(req), String(req.params.id), req.body);
+    res.json(result);
+  } catch (err) {
+    if (mapReviewPackError(err, res)) return;
+    res.status(500).json({ error: sanitizeError(err) });
+  }
+});
+
+router.post('/bad-case-findings/:id/proposal', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const result = await createFindingProposal(superAdminActor(req), String(req.params.id), req.body);
+    res.json(result);
+  } catch (err) {
+    if (mapReviewPackError(err, res)) return;
     res.status(500).json({ error: sanitizeError(err) });
   }
 });
@@ -102,7 +387,7 @@ router.get('/users', async (req: Request, res: Response) => {
 router.get('/generations', async (req: Request, res: Response) => {
   try {
     const { limit, offset } = parsePagination(req);
-    const result = await getAdminGenerationMeta(limit, offset);
+    const result = await getAdminGenerationMeta(limit, offset, actorScopeFromReq(req));
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: sanitizeError(err) });
@@ -120,7 +405,8 @@ router.get('/generations/:id', async (req: Request, res: Response) => {
     }
 
     // Step 1: Confirm resource existence WITHOUT reading body content
-    const exists = await adminGenerationExists(jobId);
+    const scope = actorScopeFromReq(req);
+    const exists = await adminGenerationExists(jobId, scope);
     if (!exists) {
       res.status(404).json({ error: 'Job not found' });
       return;
@@ -144,7 +430,7 @@ router.get('/generations/:id', async (req: Request, res: Response) => {
     }
 
     // Step 3: Only now read the full body — after audit is confirmed written
-    const job = await getAdminGenerationDetail(jobId);
+    const job = await getAdminGenerationDetail(jobId, scope);
     if (!job) {
       // Edge case: deleted between existence check and detail read
       res.status(404).json({ error: 'Job not found' });

@@ -33,6 +33,56 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
+/** Call an API route with the current Supabase session JWT. */
+export async function authApiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const authHeaders = await getAuthHeaders();
+  const headers = new Headers(init.headers);
+
+  for (const [name, value] of Object.entries(authHeaders)) {
+    headers.set(name, value);
+  }
+
+  return fetch(apiUrl(path), { ...init, headers });
+}
+
+/** Convert one product selling point into natural Hong Kong Cantonese. */
+export async function localizeSellingPoint(sourceText: string): Promise<string> {
+  const response = await authApiFetch('/localize-selling-point', {
+    method: 'POST',
+    body: JSON.stringify({ sourceText }),
+  });
+  const body = await response.json().catch(() => ({})) as {
+    cantoneseText?: unknown;
+    error?: unknown;
+  };
+
+  if (!response.ok) {
+    throw new ApiError(
+      typeof body.error === 'string' ? body.error : '产品卖点港化失败，请重试',
+      response.status,
+    );
+  }
+  if (typeof body.cantoneseText !== 'string' || !body.cantoneseText.trim()) {
+    throw new Error('产品卖点港化结果为空，请重试');
+  }
+  return body.cantoneseText.trim();
+}
+
+const INSPIRATION_FAILURE_MESSAGES: Record<string, string> = {
+  youtube_not_configured: 'YouTube API 尚未配置，请联系管理员',
+  youtube_api_key_invalid: 'YouTube API Key 无效，请联系管理员更新配置',
+  youtube_quota_exceeded: 'YouTube API 今日额度已用完，请稍后重试',
+  youtube_access_denied: 'YouTube API Key 没有访问权限，请联系管理员检查限制',
+  youtube_upstream_unavailable: 'YouTube 服务暂时不可用，请稍后重试',
+};
+
+/** Convert a structured inspiration API failure into safe user-facing copy. */
+export async function getInspirationErrorMessage(response: Response): Promise<string> {
+  const body = await response.json().catch(() => ({})) as { reason?: unknown };
+  const reason = typeof body.reason === 'string' ? body.reason : '';
+  return INSPIRATION_FAILURE_MESSAGES[reason] ?? '热点数据获取失败';
+}
+
 // ============================================================
 // Polling helpers for generation jobs
 // ============================================================
@@ -323,6 +373,7 @@ export interface AdminStats {
   totalGenerations: number;
   totalFeedback: number;
   adminUsers: number;
+  reviewGroup?: string | null;
 }
 
 export interface AdminUserOverview {
@@ -341,6 +392,7 @@ export interface AdminGenerationMeta {
   id: string;
   ownerId: string;
   ownerDisplayName: string;
+  ownerReviewGroup?: string | null;
   status: string;
   platform: string;
   tone: string;
@@ -398,6 +450,7 @@ export interface AdminFavoriteMeta {
   id: string;
   ownerDisplayName: string;
   userEmail: string;
+  ownerReviewGroup?: string | null;
   variantKey: string;
   rating: number | null;
   notes: string | null;
@@ -454,7 +507,7 @@ export interface AdminCaseLibraryDetail {
   updatedAt: string;
 }
 
-export async function getAdminStats(): Promise<AdminStats & { role?: 'admin' | 'super_admin' }> {
+export async function getAdminStats(): Promise<AdminStats & { role?: 'admin' | 'super_admin'; reviewGroup?: string | null }> {
   const headers = await getAuthHeaders();
   const res = await fetch(apiUrl('/admin/stats'), { headers });
   if (res.status === 403) throw new Error('FORBIDDEN');

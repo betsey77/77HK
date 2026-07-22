@@ -12,6 +12,16 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
+  /* Match workbench shell so overscroll / short pages don't flash a hard black edge */
+  background-color: #030712;
+  color: #f3f4f6;
+}
+
+html.light,
+html.light body,
+html.light #root {
+  background-color: #ffffff;
+  color: #111827;
 }
 
 body {
@@ -117,6 +127,63 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .brand-loader-orbit,
   .brand-loader::before { animation: none; }
+}
+
+/* Workbench scrollbars: visible and operable without a bright native track. */
+[data-testid="workbench-shell"],
+[data-testid="workbench-shell"] * {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(75 85 99 / 0.78) transparent;
+}
+
+[data-testid="workbench-shell"]::-webkit-scrollbar,
+[data-testid="workbench-shell"] *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+[data-testid="workbench-shell"]::-webkit-scrollbar-track,
+[data-testid="workbench-shell"] *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-testid="workbench-shell"]::-webkit-scrollbar-thumb,
+[data-testid="workbench-shell"] *::-webkit-scrollbar-thumb {
+  min-height: 44px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgb(75 85 99 / 0.78);
+  background-clip: padding-box;
+}
+
+[data-testid="workbench-shell"]::-webkit-scrollbar-thumb:hover,
+[data-testid="workbench-shell"] *::-webkit-scrollbar-thumb:hover {
+  background: rgb(156 163 175 / 0.9);
+  background-clip: padding-box;
+}
+
+html.light [data-testid="workbench-shell"],
+html.light [data-testid="workbench-shell"] * {
+  scrollbar-color: rgb(156 163 175 / 0.9) transparent;
+}
+
+html.light [data-testid="workbench-shell"]::-webkit-scrollbar-thumb,
+html.light [data-testid="workbench-shell"] *::-webkit-scrollbar-thumb {
+  background: rgb(156 163 175 / 0.9);
+  background-clip: padding-box;
+}
+
+html.light [data-testid="workbench-shell"]::-webkit-scrollbar-thumb:hover,
+html.light [data-testid="workbench-shell"] *::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
+  background-clip: padding-box;
+}
+
+@media (forced-colors: active) {
+  [data-testid="workbench-shell"],
+  [data-testid="workbench-shell"] * {
+    scrollbar-color: auto;
+  }
 }
 
 /* ============================================================

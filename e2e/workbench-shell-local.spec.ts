@@ -2,12 +2,14 @@ import { test, expect, type Locator, type Page, type Route } from '@playwright/t
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import type { GenerateResponse } from '../client/src/types';
 
 /**
  * Local mock workbench shell smoke.
  * Proves React /app shell composition under fixture auth + blocked remote network.
  * Includes fully local case-library CRUD mock (memory, per-test reset).
  * Does NOT prove real Supabase Auth, JWT, RLS, quotas, or payment.
+ * Billing assertions prove only that the UI renders a trusted entitlement DTO.
  */
 
 const shotDir =
@@ -16,10 +18,33 @@ const shotDir =
 
 const blockedHosts: string[] = [];
 
-type ApiScenario = 'shell' | 'reviewed-user' | 'admin-pending';
+type ApiScenario =
+  | 'shell'
+  | 'reviewed-user'
+  | 'admin-pending'
+  | 'admin-metrics'
+  | 'check-in-earn'
+  | 'check-in-claim';
 
 let apiScenario: ApiScenario = 'shell';
 let userReviewVersion = 1;
+let checkInStatus = initialCheckInStatus();
+let generateVersion = 0;
+
+function initialCheckInStatus() {
+  return {
+    checkedInToday: false,
+    checkinDateHk: '2026-07-19',
+    streakCount: 6,
+    streakStartedOn: '2026-07-14',
+    rewardEarned: false,
+    rewardStatus: 'none',
+    grantId: null as string | null,
+    canClaim: false,
+    grantAppliedAt: null as string | null,
+    subscriptionExpiresAt: null as string | null,
+  };
+}
 
 function reviewedFavoriteRecord() {
   const changed = userReviewVersion > 1;
@@ -303,6 +328,113 @@ async function fulfillApi(route: Route) {
   const p = normalizeApiPath(url.pathname);
   const method = route.request().method();
 
+  if (p === '/generate' && method === 'POST') {
+    generateVersion += 1;
+    const prefix = generateVersion === 1 ? '第一版' : '第二版';
+    const responseBody: GenerateResponse = {
+      diagnosis: { hasSimplifiedChars: false, mainlandPhrases: [], issues: [] },
+      variants: {
+        standardHK: `${prefix}標準繁體`,
+        lightCantonese: `${prefix}輕粵語`,
+        ig: `${prefix}IG`,
+        facebook: `${prefix}Facebook`,
+        shorts: `${prefix}Shorts`,
+      },
+      audit: {
+        thermometer: {
+          overall: 90,
+          dimensions: {
+            cantoneseFeel: 4,
+            culturalFit: 4,
+            platformFit: 4,
+            brandSafety: 5,
+            tradConsistency: 5,
+            hookStrength: 4,
+            visualStrategy: 4,
+            engagementFit: 4,
+          },
+        },
+        issues: [],
+        replacements: [],
+        risks: [],
+        comments: [],
+      },
+      generationEngine: 'deepseek',
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(responseBody),
+    });
+    return;
+  }
+
+  if (p === '/me/check-in' && method === 'GET') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(checkInStatus),
+    });
+    return;
+  }
+
+  if (p === '/me/check-in' && method === 'POST') {
+    checkInStatus = apiScenario === 'check-in-earn'
+      ? {
+          ...checkInStatus,
+          checkedInToday: true,
+          streakCount: 7,
+          rewardEarned: true,
+          rewardStatus: 'applied',
+          grantId: 'e2e-check-in-grant',
+          grantAppliedAt: '2026-07-19T04:00:00.000Z',
+          subscriptionExpiresAt: '2026-08-18T04:00:00.000Z',
+        }
+      : { ...checkInStatus, checkedInToday: true };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(checkInStatus),
+    });
+    return;
+  }
+
+  if (/^\/me\/membership-grants\/[^/]+\/claim$/.test(p) && method === 'POST') {
+    checkInStatus = {
+      ...checkInStatus,
+      rewardStatus: 'applied',
+      canClaim: false,
+      grantAppliedAt: '2026-07-19T04:00:00.000Z',
+      subscriptionExpiresAt: '2026-08-18T04:00:00.000Z',
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        idempotent: false,
+        grantId: checkInStatus.grantId,
+        grantStatus: 'applied',
+        grantAppliedAt: checkInStatus.grantAppliedAt,
+        subscriptionExpiresAt: checkInStatus.subscriptionExpiresAt,
+      }),
+    });
+    return;
+  }
+
+  if (p.endsWith('/sync/review-result-summary') || p === '/sync/review-result-summary') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        latestUpdatedAt: apiScenario === 'reviewed-user'
+          ? reviewedFavoriteRecord().adminReview.updatedAt
+          : null,
+      }),
+    });
+    return;
+  }
+
   if (p.endsWith('/sync/bootstrap') || p === '/sync/bootstrap') {
     await route.fulfill({
       status: 200,
@@ -317,17 +449,19 @@ async function fulfillApi(route: Route) {
   }
 
   if (p === '/admin/stats') {
+    const isAdmin = apiScenario === 'admin-pending' || apiScenario === 'admin-metrics';
     await route.fulfill({
-      status: apiScenario === 'admin-pending' ? 200 : 403,
+      status: isAdmin ? 200 : 403,
       contentType: 'application/json',
-      body: JSON.stringify(apiScenario === 'admin-pending'
+      body: JSON.stringify(isAdmin
         ? {
             totalUsers: 1,
             activeSubscriptions: 0,
             totalGenerations: 0,
             totalFeedback: 0,
             adminUsers: 1,
-            role: 'admin',
+            role: apiScenario === 'admin-metrics' ? 'super_admin' : 'admin',
+            reviewGroup: null,
           }
         : { error: 'E2E local mock: admin not available' }),
     });
@@ -335,11 +469,14 @@ async function fulfillApi(route: Route) {
   }
 
   if (p === '/admin/favorites/pending-summary') {
+    const isAdmin = apiScenario === 'admin-pending' || apiScenario === 'admin-metrics';
     await route.fulfill({
-      status: apiScenario === 'admin-pending' ? 200 : 403,
+      status: isAdmin ? 200 : 403,
       contentType: 'application/json',
-      body: JSON.stringify(apiScenario === 'admin-pending'
-        ? { count: 2, latestRequestedAt: '2026-07-16T02:30:00.000Z' }
+      body: JSON.stringify(isAdmin
+        ? (apiScenario === 'admin-pending'
+          ? { count: 2, latestRequestedAt: '2026-07-16T02:30:00.000Z' }
+          : { count: 0, latestRequestedAt: null })
         : { error: 'E2E local mock: admin not available' }),
     });
     return;
@@ -356,11 +493,156 @@ async function fulfillApi(route: Route) {
     return;
   }
 
-  if (apiScenario === 'admin-pending' && p === '/admin/users' && method === 'GET') {
+  if ((apiScenario === 'admin-pending' || apiScenario === 'admin-metrics') && p === '/admin/users' && method === 'GET') {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ users: [], total: 0 }),
+    });
+    return;
+  }
+
+  if (apiScenario === 'admin-metrics' && p === '/admin/metrics/overview') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        scope: 'global', reviewGroup: null, from: '2026-06-20', to: '2026-07-19',
+        activity: { dau: 12, wau: 38, mau: 91 },
+        membershipGrants: { total: 7, pending: 2, applied: 5 },
+        quota: { consumed: 146, remaining: 854 },
+      }),
+    });
+    return;
+  }
+
+  if (apiScenario === 'admin-metrics' && p === '/admin/metrics/models') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        from: '2026-06-20', to: '2026-07-19',
+        rows: [{
+          provider: 'deepseek', model: 'deepseek-v4-flash', total: 128, success: 121, error: 7,
+          errorRate: 0.0547, avgLatencyMs: 1820, p95LatencyMs: 4210,
+          promptTokens: 48200, completionTokens: 17300, totalTokens: 65500,
+          cacheHitTokens: 12800, cacheMissTokens: 35400, unavailableUsageCount: 3,
+        }],
+      }),
+    });
+    return;
+  }
+
+  if (apiScenario === 'admin-metrics' && p === '/admin/metrics/bad-cases') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        from: '2026-06-20', to: '2026-07-19', threshold: 50,
+        items: [{
+          id: '7f177000-0000-4000-8000-000000000001', score: 42, platform: 'ig', tone: '生鬼',
+          generationEngine: 'deepseek', createdAt: '2026-07-18T03:00:00.000Z', completedAt: '2026-07-18T03:01:00.000Z',
+        }],
+      }),
+    });
+    return;
+  }
+
+  if (apiScenario === 'admin-metrics' && p === '/admin/metrics/bad-cases/7f177000-0000-4000-8000-000000000001') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        job: {
+          id: '7f177000-0000-4000-8000-000000000001', status: 'completed', source: '夏日冻柠茶新品推广',
+          platform: 'ig', tone: '生鬼', generation_engine: 'deepseek',
+          variants: { ig: '热到溶？饮啖冻柠茶先啦。' },
+          diagnosis: { issues: ['港味表达不足'] }, audit: { issues: [{ severity: 'medium', tag: '港味', description: '粤语词密度偏低' }] },
+          scores: { generated: { total: 42, naturalness: 38 } },
+          created_at: '2026-07-18T03:00:00.000Z', completed_at: '2026-07-18T03:01:00.000Z',
+        },
+        modelAttempts: {
+          status: 'available',
+          items: [{ createdAt: '2026-07-18T03:00:05.000Z', operation: 'generate', provider: 'deepseek', model: 'deepseek-v4-flash', status: 'success', errorClass: null, latencyMs: 1820, attempt: 1, promptTokens: 460, completionTokens: 120, totalTokens: 580, cacheHitTokens: 0, cacheMissTokens: 460, usageSource: 'provider' }],
+        },
+      }),
+    });
+    return;
+  }
+
+  if (apiScenario === 'admin-metrics' && p === '/admin/metrics/provider-balance') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        provider: 'deepseek', status: 'ok', isAvailable: true,
+        balances: [{ currency: 'CNY', totalBalance: '88.60', grantedBalance: '8.60', toppedUpBalance: '80.00' }],
+        fetchedAt: '2026-07-19T03:00:00.000Z',
+      }),
+    });
+    return;
+  }
+
+  if (apiScenario === 'admin-metrics' && p === '/admin/bad-case-review-packs/diagnostics') {
+    const emptyCategory = { count: 0, share: 0 };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        from: '2026-06-20', to: '2026-07-19',
+        summary: {
+          categoryDistribution: {
+            total: 3,
+            byCategory: {
+              input_contract: emptyCategory, context_resolution: emptyCategory,
+              prompt_instruction: emptyCategory, knowledge_retrieval: emptyCategory,
+              model_transport: emptyCategory, model_output_schema: emptyCategory,
+              content_quality: { count: 2, share: 0.6667 },
+              compliance: { count: 1, share: 0.3333 },
+              persistence: emptyCategory, ui_presentation: emptyCategory,
+              evaluation_gap: emptyCategory,
+            },
+          },
+          recurrence: {
+            totalFindings: 3, sampleRecurrenceRate: 0.6667,
+            categoryRecurrenceRate: 0.5, duplicateSampleCount: 1,
+          },
+          dispositionRates: {
+            total: 3, reviewed: 2, reviewCoverage: 0.6667,
+            confirmationRate: 0.5, falsePositiveRate: 0.5,
+          },
+          criterionCoverage: {
+            total: 4, evaluated: 3, notEvaluated: 1,
+            evaluatedRate: 0.75, notEvaluatedRate: 0.25,
+            failRateAmongEvaluated: 0.3333,
+          },
+          resolutionLatency: {
+            sampleSize: 2, p50Ms: 3_600_000, p95Ms: 86_400_000, invalidCount: 1,
+          },
+          tokenCost: {
+            costStatus: 'partial', sumCny: 0.12, okCount: 1,
+            unavailableCount: 1, sampleSize: 2,
+          },
+        },
+      }),
+    });
+    return;
+  }
+
+  if (p === '/billing/plans') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ paymentMode: 'mock', isMock: true, plans: [] }),
+    });
+    return;
+  }
+
+  if (p === '/billing/orders' && method === 'GET') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ orders: [], total: 0 }),
     });
     return;
   }
@@ -371,10 +653,25 @@ async function fulfillApi(route: Route) {
       contentType: 'application/json',
       body: JSON.stringify({
         planId: 'free',
+        planName: '免费版',
+        quotaUsed: 2,
+        quotaTotal: 20,
+        cycleStart: '2026-07-16T00:00:00.000Z',
+        cycleEnd: '2026-07-23T00:00:00.000Z',
+        isMock: false,
         monthlyLimit: 20,
-        used: 0,
-        remaining: 20,
+        used: 2,
+        remaining: 18,
       }),
+    });
+    return;
+  }
+
+  if (p === '/localize-selling-point' && method === 'POST') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ cantoneseText: '夠輕身，拎出街都方便' }),
     });
     return;
   }
@@ -450,6 +747,15 @@ async function softShot(page: Page, name: string) {
   });
 }
 
+async function softViewportShot(page: Page, name: string) {
+  mkdirSync(shotDir, { recursive: true });
+  await page.screenshot({
+    path: path.join(shotDir, name),
+    fullPage: false,
+    animations: 'disabled',
+  });
+}
+
 async function softLocatorShot(locator: Locator, name: string) {
   mkdirSync(shotDir, { recursive: true });
   await locator.screenshot({
@@ -506,11 +812,29 @@ async function expandCaseLibrarySection(page: Page) {
 }
 
 test.describe('workbench shell local mock', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     blockedHosts.length = 0;
     apiScenario = 'shell';
     userReviewVersion = 1;
+    checkInStatus = initialCheckInStatus();
+    generateVersion = 0;
     resetCaseLibraryMock();
+    if (!testInfo.title.includes('daily check-in')) {
+      await page.addInitScript(() => {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Hong_Kong',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).formatToParts(new Date());
+        const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+        const dateHk = `${value.year}-${value.month}-${value.day}`;
+        localStorage.setItem(
+          `hk-cantonese-checkin-dismissed:e2e-local-user:${dateHk}`,
+          '1',
+        );
+      });
+    }
     await installNetworkGuard(page);
   });
 
@@ -519,6 +843,24 @@ test.describe('workbench shell local mock', () => {
       blockedHosts,
       `non-localhost requests must be empty; saw: ${blockedHosts.join(' | ')}`,
     ).toEqual([]);
+  });
+
+  test('signup keeps entered email and shows the confirmation dialog', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/signup', { waitUntil: 'networkidle' });
+
+    await page.getByLabel('邮箱 Email').fill('new@example.com');
+    await page.getByLabel('密码 Password').fill('secret123');
+    await page.getByLabel('确认密码 Confirm Password').fill('secret123');
+    await page.getByRole('button', { name: /Sign Up/ }).click();
+
+    const dialog = page.getByRole('dialog', { name: '请验证注册邮箱' });
+    await expect(dialog).toContainText('new@example.com');
+    await expect(dialog).toContainText('垃圾邮件');
+    await softShot(page, 'signup-confirmation-dialog-desktop-1440-local-mock.png');
+    await dialog.getByRole('button', { name: '我知道了' }).click();
+    await expect(page.getByRole('heading', { name: '请检查邮箱' })).toBeVisible();
+    await expect(page.getByText(/验证邮件已发送至/)).toContainText('new@example.com');
   });
 
   test('desktop /app loads workbench shell under local mock auth', async ({ page }) => {
@@ -558,11 +900,158 @@ test.describe('workbench shell local mock', () => {
     await expect(page.getByTestId('workbench-mobile-tablist')).not.toBeVisible();
 
     // Footer
-    await expect(page.getByText(/Powered by/).first()).toBeVisible();
-    await expect(page.getByText(/v1\./).first()).toBeVisible();
+    await expect(page.getByText('Powered by CANTONESE API')).toBeVisible();
+    await expect(page.getByText('v2.1')).toBeVisible();
+
+    const pageHeight = await page.evaluate(() => ({
+      body: document.body.scrollHeight,
+      root: document.documentElement.scrollHeight,
+      viewport: window.innerHeight,
+    }));
+    expect(pageHeight.body).toBeLessThanOrEqual(pageHeight.viewport + 1);
+    expect(pageHeight.root).toBeLessThanOrEqual(pageHeight.viewport + 1);
 
     await assertNoHorizontalOverflow(page);
     await softShot(page, 'workbench-shell-desktop-1440-local-mock.png');
+  });
+
+  test('desktop workbench stays pinned when the document becomes scrollable', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/app', { waitUntil: 'networkidle' });
+    await expect(page.getByText('同步云端数据…')).toHaveCount(0, { timeout: 20_000 });
+
+    // Reproduce the reported blank area: browser state or injected page content
+    // makes the document taller, then the user scrolls the page instead of a panel.
+    await page.evaluate(() => {
+      const spacer = document.createElement('div');
+      spacer.setAttribute('data-testid', 'document-overflow-probe');
+      spacer.style.height = '900px';
+      document.body.appendChild(spacer);
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+
+    const geometry = await page.getByTestId('workbench-shell').evaluate((shell) => {
+      const rect = shell.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        viewport: window.innerHeight,
+      };
+    });
+
+    expect(Math.abs(geometry.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.bottom - geometry.viewport)).toBeLessThanOrEqual(1);
+    await expect(page.getByText('Powered by CANTONESE API')).toBeVisible();
+    await softViewportShot(page, 'workbench-pinned-desktop-1440-local-mock.png');
+  });
+
+  test('regenerating copy clears the previous edit highlight on desktop and mobile', async ({ page }) => {
+    const pageErrors = collectPageErrors(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/app', { waitUntil: 'networkidle' });
+    await expect(page.getByText('同步云端数据…')).toHaveCount(0, { timeout: 20_000 });
+
+    await page
+      .getByPlaceholder('喺度贴上普通话/简体中文/英文嘅社媒文案或 campaign brief...')
+      .fill('书展期间推广爆汁美食');
+    const firstResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/generate') && response.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: /生成文案/ }).click();
+    expect((await firstResponsePromise).status()).toBe(200);
+    await page.getByRole('button', { name: '轻粤语', exact: true }).click();
+    await expect(page.getByText('第一版輕粵語')).toBeVisible();
+
+    await page.getByTitle('手动编辑文案').click();
+    const editor = page.getByTestId('workbench-panel-results').locator('textarea');
+    await expect(editor).toHaveValue('第一版輕粵語');
+    await editor.fill('第一版輕粵語（人工修改）');
+    await page.getByRole('button', { name: '储存' }).click();
+    await expect(page.getByText('红色标记为修改内容')).toBeVisible();
+
+    await page.getByTitle('同参数换一种写法，产出不同的版本').click();
+    await expect(page.getByText('第二版輕粵語')).toBeVisible();
+    await expect(page.getByText('红色标记为修改内容')).toHaveCount(0);
+    await softShot(page, 'workbench-regenerate-clean-desktop-1440-local-mock.png');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByTestId('workbench-tab-results').click();
+    await expect(page.getByText('第二版輕粵語')).toBeVisible();
+    await expect(page.getByText('红色标记为修改内容')).toHaveCount(0);
+    await assertNoHorizontalOverflow(page);
+    await softShot(page, 'workbench-regenerate-clean-mobile-390-local-mock.png');
+    expect(hardPageErrors(pageErrors), `page JS errors: ${pageErrors.join(' | ')}`).toEqual([]);
+  });
+
+  test('desktop daily check-in earns and locally dismisses the 7-day reward', async ({ page }) => {
+    apiScenario = 'check-in-earn';
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/app', { waitUntil: 'networkidle' });
+
+    const dialog = page.getByRole('dialog', { name: '每日签到' });
+    await expect(dialog).toContainText('连续签到 6 / 7 天');
+    await dialog.getByRole('button', { name: '立即签到' }).click();
+    await expect(dialog).toContainText('连续签到 7 / 7 天');
+    await expect(dialog).toContainText('30 天 Pro 奖励已发放');
+    await softShot(page, 'check-in-applied-desktop-1440-local-mock.png');
+    await assertNoHorizontalOverflow(page);
+
+    await dialog.getByRole('button', { name: '关闭每日签到' }).click();
+    await expect(dialog).toHaveCount(0);
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.getByRole('dialog', { name: '每日签到' })).toHaveCount(0);
+  });
+
+  test('mobile daily check-in claims a pending reward inside 390px viewport', async ({ page }) => {
+    apiScenario = 'check-in-claim';
+    checkInStatus = {
+      ...initialCheckInStatus(),
+      checkedInToday: true,
+      streakCount: 7,
+      rewardEarned: true,
+      rewardStatus: 'pending',
+      grantId: 'e2e-check-in-grant',
+      canClaim: true,
+    };
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/app', { waitUntil: 'networkidle' });
+
+    const dialog = page.getByRole('dialog', { name: '每日签到' });
+    await expect(dialog).toContainText('奖励已保留');
+    await dialog.getByRole('button', { name: '领取 30 天 Pro' }).click();
+    await expect(dialog).toContainText('30 天 Pro 奖励已发放');
+    const box = await dialog.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    await softShot(page, 'check-in-claim-mobile-390-local-mock.png');
+    await assertNoHorizontalOverflow(page);
+  });
+
+  test('product selling point localizes and remains usable on desktop and mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/app', { waitUntil: 'networkidle' });
+    await expect(page.getByText('同步云端数据…')).toHaveCount(0, { timeout: 20_000 });
+
+    await page.getByRole('button', { name: /品牌与内容场景/ }).click();
+    await page.getByPlaceholder('输入一条产品卖点（最多 200 字）').fill('轻便易携带');
+    await page.getByRole('button', { name: '添加并港化' }).click();
+
+    await expect(page.getByText('轻便易携带')).toBeVisible();
+    await expect(page.getByText('夠輕身，拎出街都方便')).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+    await softLocatorShot(
+      page.getByTestId('product-selling-points'),
+      'product-selling-points-desktop-1440-local-mock.png',
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText('夠輕身，拎出街都方便')).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+    await softLocatorShot(
+      page.getByTestId('product-selling-points'),
+      'product-selling-points-mobile-390-local-mock.png',
+    );
   });
 
   test('mobile /app shell uses segment tabs — one full panel, no horizontal overflow', async ({
@@ -767,6 +1256,7 @@ test.describe('workbench shell local mock', () => {
   test('user review result is deduplicated and a newer review notifies again', async ({ page }) => {
     apiScenario = 'reviewed-user';
     await page.setViewportSize({ width: 1440, height: 900 });
+    await page.clock.install();
     await page.goto('/app', { waitUntil: 'networkidle' });
 
     const approved = page.getByRole('dialog', { name: '文案审核结果' });
@@ -780,7 +1270,7 @@ test.describe('workbench shell local mock', () => {
 
     userReviewVersion = 2;
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.clock.fastForward(15_000);
     const changesRequested = page.getByRole('dialog', { name: '文案审核结果' });
     await expect(changesRequested).toContainText('你的「港饮」文案未通过审核，请立即查看');
     const box = await changesRequested.boundingBox();
@@ -830,5 +1320,82 @@ test.describe('workbench shell local mock', () => {
     await expect(page.getByTestId('admin-pending-row')).toBeVisible();
     await assertNoHorizontalOverflow(page);
     await softShot(page, 'admin-pending-queue-mobile-390-local-mock.png');
+  });
+
+  test('super admin metrics remain readable on desktop and mobile', async ({ page }) => {
+    apiScenario = 'admin-metrics';
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/admin', { waitUntil: 'networkidle' });
+
+    const diagnostics = page.getByTestId('bad-case-diagnostics-panel');
+    await expect(diagnostics.getByTestId('bad-case-diagnostics-attention')).toContainText('5 类指标需关注');
+    await expect(diagnostics.getByRole('button', { name: '展开 Bad Case 诊断指标' })).toHaveAttribute('aria-expanded', 'false');
+    const diagnosticsAlert = page.getByTestId('bad-case-diagnostics-alert');
+    await expect(diagnosticsAlert).toContainText('Bad Case 诊断发现 5 类指标需关注');
+    await softShot(page, 'admin-bad-case-diagnostics-alert-desktop-1440-local-mock.png');
+    await diagnosticsAlert.getByRole('button', { name: '展开查看' }).click();
+    await expect(diagnostics.getByTestId('bad-case-diagnostics-category')).toBeVisible();
+
+    const panel = page.getByTestId('admin-metrics-panel');
+    await expect(panel).toContainText('运营概览');
+    await expect(panel).toContainText('模型健康');
+    await expect(panel).toContainText('deepseek / deepseek-v4-flash');
+    await expect(panel).toContainText('88.60');
+    await expect(panel).toContainText('42 分');
+    await panel.getByRole('button', { name: /查看低分任务 7f177000/ }).click();
+    const badCaseDialog = page.getByRole('dialog', { name: '低分任务详情' });
+    await expect(badCaseDialog).toContainText('7f177000-0000-4000-8000-000000000001');
+    await expect(badCaseDialog).toContainText('夏日冻柠茶新品推广');
+    await expect(badCaseDialog).toContainText('deepseek-v4-flash');
+    await softShot(page, 'admin-bad-case-detail-desktop-1440-local-mock.png');
+    await badCaseDialog.getByRole('button', { name: '关闭低分任务详情' }).click();
+    await assertNoHorizontalOverflow(page);
+    await softShot(page, 'admin-metrics-super-desktop-1440-local-mock.png');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.getByTestId('bad-case-diagnostics-alert')).toHaveCount(0);
+    const mobileDiagnostics = page.getByTestId('bad-case-diagnostics-panel');
+    await expect(mobileDiagnostics.getByTestId('bad-case-diagnostics-attention')).toContainText('5 类指标需关注');
+    await mobileDiagnostics.getByRole('button', { name: '展开 Bad Case 诊断指标' }).click();
+    await expect(mobileDiagnostics.getByTestId('bad-case-diagnostics-category')).toBeVisible();
+    await expect(page.getByTestId('admin-metrics-panel')).toContainText('模型健康');
+    await page.getByTestId('admin-metrics-panel').getByRole('button', { name: /查看低分任务 7f177000/ }).click();
+    const mobileBadCaseDialog = page.getByRole('dialog', { name: '低分任务详情' });
+    await expect(mobileBadCaseDialog).toContainText('夏日冻柠茶新品推广');
+    const dialogBox = await mobileBadCaseDialog.boundingBox();
+    expect(dialogBox).not.toBeNull();
+    expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(391);
+    await assertNoHorizontalOverflow(page);
+    await softShot(page, 'admin-bad-case-detail-mobile-390-local-mock.png');
+    await mobileBadCaseDialog.getByRole('button', { name: '关闭低分任务详情' }).click();
+    await softShot(page, 'admin-metrics-super-mobile-390-local-mock.png');
+  });
+
+  test('billing shows trusted usage and manual Pro contact on desktop and mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/app/billing', { waitUntil: 'networkidle' });
+
+    await expect(page.getByText('已用 2 / 20 次')).toBeVisible();
+    await expect(page.getByText(/用量来自实际账号记录/)).toBeVisible();
+    await expect(page.getByText(/\[MOCK\]/)).toHaveCount(0);
+    await page.getByRole('button', { name: '联系管理员开通 Pro' }).click();
+    await expect(page.getByRole('dialog', { name: '联系开通 Pro' })).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+    await softShot(page, 'billing-manual-pro-desktop-1440.png');
+
+    await page.getByRole('button', { name: '关闭联系弹窗' }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: '联系管理员开通 Pro' }).click();
+    const dialog = page.getByRole('dialog', { name: '联系开通 Pro' });
+    await expect(dialog).toBeVisible();
+    const box = await dialog.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(391);
+    await assertNoHorizontalOverflow(page);
+    await softShot(page, 'billing-manual-pro-mobile-390.png');
   });
 });
