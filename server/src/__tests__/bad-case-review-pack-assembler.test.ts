@@ -285,4 +285,3 @@ describe('badCaseReviewPackAssembler deterministic triggers', () => {
     expect(JSON.stringify(result)).not.toMatch(/forged-actor/);
   });
 });
-

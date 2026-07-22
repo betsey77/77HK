@@ -203,4 +203,3 @@ export default function BadCaseReviewPackPanel({ role }: { role: AdminRole }) {
     </section>
   );
 }
-

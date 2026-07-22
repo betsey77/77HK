@@ -364,4 +364,3 @@ export function formatDurationMs(ms: number | null): string {
   const days = ms / 86_400_000;
   return `${days % 1 === 0 ? days : days.toFixed(1)}d`;
 }
-

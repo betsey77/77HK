@@ -348,4 +348,3 @@ describe('badCaseProposalService (E5)', () => {
     });
   });
 });
-

@@ -948,4 +948,3 @@ export function buildBadCaseProposal(
     rationale,
   };
 }
-

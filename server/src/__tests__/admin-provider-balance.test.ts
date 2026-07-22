@@ -71,4 +71,3 @@ describe('D6b DeepSeek provider balance', () => {
     expect(mocks.proxyFetch).toHaveBeenCalledTimes(2);
   });
 });
-

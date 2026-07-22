@@ -288,4 +288,3 @@ grant select, insert on table public.bad_case_review_events to service_role;
 
 comment on table public.bad_case_review_events is
   'Append-only review pack domain events. No UPDATE/DELETE grants. No secrets or sample bodies.';
-

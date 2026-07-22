@@ -119,4 +119,3 @@ describe('E6 Footer version', () => {
     expect(screen.getByText('v2.1')).toBeInTheDocument();
   });
 });
-

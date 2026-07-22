@@ -218,4 +218,3 @@ describe('badCaseReviewPackRepository whitelist persistence boundary', () => {
     ).toThrow(/forbidden/i);
   });
 });
-

@@ -425,4 +425,3 @@ export function evaluatePromotion(input: PromotionInput): PromotionDecision {
   const candidate = buildEvaluationCandidate(input);
   return { status: 'promoted', candidate, reasons: [] };
 }
-

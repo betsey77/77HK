@@ -229,4 +229,3 @@ describe('badCaseCriteria versioned acceptance engine', () => {
     );
   });
 });
-

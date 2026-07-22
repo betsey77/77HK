@@ -281,4 +281,3 @@ describe('E7 bad-case diagnostics API client', () => {
     expect(userFacingDiagnosticsError(new Error('internal secret stack'))).not.toMatch(/secret/);
   });
 });
-

@@ -354,4 +354,3 @@ export function evaluateBadCaseCriteria(job: CriteriaJobSnapshot): CriterionEval
 export function hasCriticalCriteriaFailure(evaluations: CriterionEvaluation[]): boolean {
   return evaluations.some((e) => e.critical && e.status === 'fail');
 }
-

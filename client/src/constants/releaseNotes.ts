@@ -51,4 +51,3 @@ export function getDeployedReleaseNotes(
       return b.version.localeCompare(a.version, undefined, { numeric: true });
     });
 }
-

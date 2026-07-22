@@ -147,4 +147,3 @@ export default function ReleaseNotesDialog({ open, onClose, notes }: Props) {
     </div>
   );
 }
-

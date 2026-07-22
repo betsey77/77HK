@@ -104,4 +104,3 @@ describe('generation review pack hook isolation', () => {
     expect(port.repo.getSnapshot(JOB_ID)?.availability).toBe('legacy_unavailable');
   });
 });
-

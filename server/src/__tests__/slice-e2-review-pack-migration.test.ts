@@ -169,4 +169,3 @@ describe('2.1 Slice E2 bad case review pack migration (static contract)', () => 
     expect(sql).not.toMatch(/delete from public\.(generation_artifact_snapshots|bad_case_)/i);
   });
 });
-
