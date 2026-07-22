@@ -9,6 +9,81 @@ Project: `D:\work\77港话通社媒文案\77`
 2. 先装依赖，再 test → typecheck → build → audit。
 3. 高风险（db push / 部署 / 支付生产）不在本文件默认命令内。
 
+## 2026-07-19 - 1.1.4.5 Slice D6c
+
+```powershell
+cd server
+npx vitest run src/__tests__/admin-model-metrics.test.ts src/__tests__/admin-bad-case-detail-route.test.ts
+cd ..\client
+npx vitest run src/test/admin-metrics-api.test.ts src/test/slice-d6b-admin-metrics-panel.test.tsx src/test/slice-d6c-bad-case-detail.test.tsx
+cd ..
+npm run test
+npm run typecheck
+npm run build
+npm run audit:prod
+npm run audit:all
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-workbench-shell.ps1 -SelfTest
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-workbench-shell.ps1 -Twice -EvidenceDir "D:\work\77港话通社媒文案\77\docs\evidence\2026-07-19\slice-d6c-bad-case-detail"
+```
+
+- 浏览器证据仍为 localhost fixture；D4 未迁移时真实模型日志不可用，不得把 fixture 结果描述为真实 DB/RLS/审计验收。
+- 部署准备按 `docs/release/2026-07-19-github-vercel-update-runbook.md`；Migration、commit/push、Vercel Preview/Production 都需逐项授权。
+
+## 2026-07-19 - 1.1.4.5 Slice D4
+
+```powershell
+cd server
+npx vitest run src/__tests__/slice-d4-telemetry-migration.test.ts src/__tests__/telemetryService.test.ts
+$tests = Get-ChildItem -LiteralPath src/__tests__ -Filter '*migration.test.ts' | ForEach-Object { $_.FullName }
+npx vitest run $tests
+cd ..
+npm run test:server
+npm run typecheck:server
+npm run build:server
+```
+
+- D4 Migration 仅为本地草案；禁止把这些静态/Mock 合同测试替换为未经授权的 `db push`、远端写入或清理任务。
+
+## 2026-07-19 - 1.1.4.5 Slice D3
+
+```powershell
+# 聚焦与影响面客户端合同
+cd client
+npx vitest run src/test/check-in-api.test.ts src/test/slice-d3-check-in.test.tsx
+npx vitest run src/test/check-in-api.test.ts src/test/slice-d3-check-in.test.tsx src/test/slice-cloud-sync-focus-refresh.test.tsx src/test/slice-review-notification-polling.test.tsx src/test/slice-a.test.tsx
+npx vitest run
+npm run build
+
+# 返回仓库根目录；先验证 fail-closed harness，再隔离双跑
+cd ..
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-workbench-shell.ps1 -SelfTest
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-workbench-shell.ps1 -Twice -EvidenceDir "D:\work\77港话通社媒文案\77\docs\evidence\2026-07-19\slice-d3-checkin-ui"
+```
+
+- 浏览器验收只使用 fixture Auth 和 localhost API mock，不证明真实 Supabase/RLS/RPC。
+- D1 Migration 未应用；禁止把本地 UI 验证替换为未经授权的远端写入、部署或 Migration 操作。
+
+## 2026-07-19 - 1.1.4.5 Slice D1
+
+```powershell
+# 聚焦 Migration 合同
+cd server
+npx vitest run src/__tests__/slice-d1-checkin-rewards-migration.test.ts
+
+# 所有 Migration 合同
+$tests = Get-ChildItem -LiteralPath src/__tests__ -Filter '*migration.test.ts' | ForEach-Object { $_.FullName }
+npx vitest run $tests
+
+# 完整 Server 回归、类型检查和构建
+cd ..
+npm run test:server
+npm run typecheck:server
+npm run build:server
+```
+
+- 本切片禁止把上述静态验证替换为未经授权的 `supabase db push`、`migration repair` 或远端写入。
+- `supabase db push --dry-run`、真实 RLS/并发/Advisor 留到单独授权的 D7。
+
 ## 推荐顺序（Phase 0 / CI）
 
 ```powershell
@@ -60,6 +135,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\e2e-workbench-shel
 ## 2026-07-14 local-vercel-readiness extras
 
 ```powershell
+# Preview configuration contract (local only; does not deploy or change remote env)
+node scripts/verify/preview-readiness.mjs
+
+# Real-model strict-mode behavior (does not call an external model)
+cd server; npx vitest run src/__tests__/modelPolicy.test.ts src/__tests__/generations.test.ts src/__tests__/me.test.ts
+cd ..
+
 # Focused unit tests
 cd client; npx vitest run src/test/apiBase.test.ts
 cd ..\server; npx vitest run src/__tests__/cors.test.ts src/__tests__/alipayUrls.test.ts
