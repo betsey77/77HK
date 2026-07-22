@@ -342,6 +342,14 @@ npm run build
 - CI 禁止 `pull_request_target`、`${{ secrets.* }}`、`db push`、`migration repair` 与部署命令。
 - `npx supabase migration list --linked` 只读输出必须保证每个 local/remote version 一致。
 - 完整验收命令：`npm run verify`；GitHub 线上 CI 状态只能在 workflow commit/push 后判定。
+
+## 2026-07-16：Preview 真实模型严格模式
+
+- 单元测试验证 `deepseek-v4-flash` 默认值、显式 `thinking=disabled`、`REQUIRE_REAL_MODEL` 解析、DeepSeek 单独配置可用及严格应用预算为 51 秒。
+- 静态 readiness 验证 `.env.example` 包含 `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL`、`REQUIRE_REAL_MODEL` 且敏感值为空。
+- 最小真实 API 冒烟必须使用服务端密钥，记录模型名、耗时和成功/失败，不保存 prompt、响应正文或密钥。
+- 部署后生成必须返回 `generationEngine=deepseek`；模型失败必须返回 503/明确错误并释放产品额度，`generationEngine=rules` 视为验收失败。
+- Preview 不配置 `CANTONESE_API_URL` 或任何 `CANTONESE_*` 密钥，并由 `/api/health` 确认 `selfHostedConfigured=false`。
 ## 2026-07-16：审核提醒本地隔离浏览器回归
 
 - 入口：`powershell -File scripts/e2e-workbench-shell.ps1 -Twice -EvidenceDir docs/evidence/2026-07-16/review-notifications-local-e2e`
@@ -350,3 +358,114 @@ npm run build
 - 视口：1440px 桌面与 390px 手机；检查页面横向溢出并保存截图。
 - 隔离门禁：只允许 localhost；E2E Auth/Supabase fixture 不含真实项目、JWT 或密钥；禁止复用历史 `user-authored-review-queue` 伪会话。
 - 证据边界：本切片证明浏览器 UI/交互，不证明真实 Auth、RLS、review_group 或 staging。
+
+## 2026-07-16：内部 Preview 真实额度与人工开通
+
+- 服务端回归：在 `PAYMENT_MODE=mock` 下提供可信 Supabase mock，验证 `/api/me/entitlements` 返回数据库的 `quota_used / quota_per_cycle / cycle` 且 `isMock=false`。
+- 服务端降级：本地没有可信 Supabase 时保留既有 mock 测试能力；缺失认证仍返回 401。
+- 客户端回归：mock 支付模式的 Pro CTA 打开“联系开通 Pro”弹窗，不发送任何 checkout POST；支付宝沙箱模式的既有行为保持不变。
+- staging 验收：脱敏核对内部账号的 plan、quota_used、review_group 和管理员可见待审核数量；不得输出邮箱、完整 UUID、JWT 或密钥。
+- 通知验收：配置 Server酱后提交一条可清理的临时反馈，验证 `notify_status=sent` 和微信实际收件；清理测试数据前需保留脱敏证据。
+- 部署门禁：客户端/服务端测试、typecheck、build、依赖审计和 `git diff --check` 通过后才重新部署 Preview。
+
+## 2026-07-16：注册、当前设备退出与热点恢复
+
+- AuthContext：退出必须调用 `signOut({ scope: 'local' })`。
+- 注册页：Supabase 接受注册后显示邮箱验证弹窗，包含邮箱、垃圾邮件和返回本站登录说明。
+- Auth callback：确认成功后仅退出当前会话并跳转 `/login?registered=1`，不得跳转工作台。
+- 登录页：`registered=1` 显示一次性注册成功弹窗，关闭后 URL 不再保留该标记。
+- Inspiration API：匿名请求返回 401；有效 JWT 可调用热点、语感、YouTube 搜索与热门接口。
+- YouTube 缓存：相同参数在 TTL 内只请求一次上游；不同查询不串数据；失败结果不长期缓存。
+- 本地真实冒烟：只记录热点数量、缓存命中和健康状态，不记录 API Key、视频正文或用户 JWT。
+- 部署仍需独立授权；未获授权前不得写 Vercel 环境变量或重新部署。
+## 2026-07-16：角色邮箱私有视图
+
+- 静态合同：确认视图在 `private` schema 且为 `security_invoker=true`。
+- 字段白名单：只联结实时 `auth.users.email`，不出现密码或令牌字段。
+- ACL：确认 `public/anon/authenticated/service_role` 全部被撤销且无 `grant select`。
+- 远程前置：`migration list` 与 `db push --dry-run` 必须只列出本迁移；未获实际 push 授权时不写入 staging。
+
+## 2026-07-18：1.1.4.5 验收矩阵
+
+### Slice A
+
+- 注册成功 mock：只在 Supabase 接受且需要确认时出现指定弹窗；429/重复邮箱不出现成功弹窗。
+- 注册路由加载回归：提交后 Auth action loading 期间 `SignupPage` 不卸载，受控输入保持；请求成功后显示目标邮箱确认弹窗，关闭后进入“请检查邮箱”状态。
+- 工作台桌面与 390px 移动端：根页面无纵向滚动和黑边，三个面板内部仍可滚动；官网/登录页自然滚动不回归。
+- Footer 精确显示 `Powered by CANTONESE API`、`v1.1.4.5`，不出现 `Powered by DeepSeek API`。
+- Persona API 即使模型返回 2 条也只响应 1 条；连续解析两次后列表为原有人设 + 2 条新画像，旧数据不被覆盖，实例 ID 不冲突。
+
+### Slice B
+
+- 卖点新增/删除/翻译成功、失败重试、10 条上限和长度校验；匿名本地化请求返回 401。
+- Prompt 契约验证卖点港话表达存在、红线优先且输入数量被限制。
+- 服务边界契约验证 DeepSeek 与 CantoneseLLM 都把生成请求中的 `productSellingPoints` 继续传给 Prompt builder，避免只测试 builder 而漏掉真实调用链。
+- 配置 JSONB 云同步、跨设备恢复和 User A/User B RLS；生成历史详情载入后卖点原文/港话表达一致。
+
+### Slice C
+
+- 假时钟验证可见页面 15 秒轮询、隐藏暂停、focus 立即刷新、错误退避和卸载清理 timer。
+- 管理员新待审与用户新审核结果在 0–15 秒内出现；同一事件只弹一次，跨用户/跨组无数量与品牌泄露。
+- 服务端验证匿名 401、owner ID 显式过滤、仅以该 owner 的 favorite IDs 查询最新审核时间，以及无收藏时不执行审核查询。
+- 浏览器用例不刷新页面，推进假时钟 15 秒后改变审核摘要版本，验证触发 owner bootstrap 并显示新的审核结果。
+
+### Slice D
+
+- 签到：香港 23:59/00:00、重复点击幂等、连续 7 天、漏签重置、并发第 7 天、每账号唯一奖励、客户端伪造日期无效。
+- 会员：Free 立即应用且新周期 `quota_used=0`；有效 Pro 生成 pending、不改变现有结束时间/额度；到期领取、领取时又有有效 Pro、事务失败全回滚。
+- 权限：匿名 401；用户只读自己的签到/奖励且不能直接写 subscription/grant；A 用户不能读取或领取 B 用户奖励。
+- 活跃：每用户每日去重，DAU=香港当天、WAU/MAU 为滚动 7/30 天；普通管理员只能看到当前 review_group，空组/跨组不得泄露数量，super_admin 可见全局。
+- 额度：消费和结余从现有 `usage_ledger`/`subscriptions` 复算，不出现第二账本或因签到奖励丢失既有用量。
+- 模型：成功、错误、超时、重试、fallback、耗时和官方 usage 聚合准确；缺失 usage 保持 null；日志写入失败不导致生成失败。
+- 隐私：日志和管理响应明确拒绝 Prompt、回复正文、原始 provider error、邮箱、JWT、Key；bad case 阈值使用已确认的港味总分字段。
+- 余额：仅 super_admin；官方接口成功、缓存命中、超时/错误“暂不可用”均覆盖，任何情况下不返回密钥或伪造 0。
+- Migration：先做本地静态/合同测试；只有用户明确授权后才可在独立 staging dry-run/实际 push，并完成 RLS A/B、并发和临时数据清理验证。
+- D3 API 客户端：三条请求必须复用鉴权 fetch，不发送客户端 userId/日期；合法 status/claim DTO 通过，缺字段或错误类型拒绝，401/404/409/5xx 按 status/code 处理且不展示原始错误。
+- D3 去扰：同账号同香港日关闭后不再显示；下一香港日重新显示；不同账号互不影响；localStorage 只含日期关闭键，不含 streak、grant、reward 或 subscription 状态。
+- D3 组件：覆盖 loading/error/retry、未签到、服务端整表替换、busy 防双点、pending 不可领/可领、claim success/404/409、applied、Escape 和焦点路径；失败不得乐观修改连续天数或奖励状态。
+- D3 浏览器：使用 localhost-only 隔离 API mock 覆盖桌面与 390px，保存签到和领奖截图，验证无横向溢出、44px 操作目标、同日关闭不重现；D1 Migration 未应用时不得把真实本地 API 503 当作 UI 验收结论。
+- D4 Migration：静态合同覆盖每日主键、香港日数据库派生、first/last seen 语义、model attempt 枚举/Token 约束、`generation_jobs` 外键、RLS/revoke/minimum service-role grants，并证明 Migration 不调度删除任务。
+- D4 writer：运行时未知键和敏感字段在 trusted client 前拒绝；合法字段只映射到固定 snake_case 列；`unavailable` usage 全为 null；数据库错误、同步异常和 400ms 超时不得中断后续模型业务。
+- D6a overview：验证默认 30 日、最多 90 日、非法/倒序/未来日期；普通管理员空组先 403、同组 owner 过滤、跨组零泄露，`super_admin` 全局；分页与 owner 分批后聚合不丢数据。
+- D6a 指标口径：DAU/WAU/MAU 分别使用结束日的 1/7/30 日窗口；会员奖励按请求区间统计，额度消耗来自 `usage_ledger.consume`，当前结余来自有效 subscription 与 plan quota。
+- 工作台滚动条：静态合同确认样式受 workbench shell 限定，暗/浅色轨道透明、滑块低对比圆角，并保留 forced-colors；localhost-only 浏览器截图确认不再出现原生白色轨道。
+- D6b 路由：models/bad-cases/provider-balance 对匿名 401、普通用户 403、ordinary admin 403、super_admin 200；非法日期在 DB/service 前 400。
+- D6b 模型聚合：多 provider/model、全成功/全失败/混合错误率、nearest-rank P95、部分 null Token、usage unavailable 和区间边界；每次 retry/fallback attempt 独立计数。
+- D6b bad case：49 入选、50 排除、缺分/非法分/软删排除、低分优先、同分新任务优先、最多 20；序列化响应不含 scores/source/variants/owner/email/prompt。
+- D6b 余额：无 Key、超时、非 2xx、坏 JSON/schema 为 unavailable；合法 `is_available=false` 和 `0.00` 保持 ok；合法响应 10 分钟缓存，任何响应不含 Key/Bearer/raw error。
+- D6b UI：普通管理员只有 overview；超级管理员显示模型/Token/余额/低分任务；覆盖 loading、empty、overview error、局部 super error、余额 unavailable。桌面与 390px 截图检查暗色层级、内部表格滚动、无页面级横向溢出。
+- 完整 D0-D7 验证矩阵见 `docs/plans/2026-07-19-1.1.4.5-slice-d-development-plan.md`。
+
+## 2.1 Slice E — Bad Case 诊断审阅包测试矩阵
+
+- 工件快照：双模型生成路径实际使用的 Prompt/规则/知识/模型策略版本、哈希和 schema 一致；旧任务返回 `legacy_unavailable`，禁止用当前版本回填假历史。
+- 自动触发：低分、生成失败、关键标准失败和人工标记均幂等创建单一审阅包；正常任务不误建。
+- Findings：每个失败结论都有可解析 evidence ref、criterion ref 和 artifact ref；缺字段为 `not_evaluated`；责任团队建议可追溯。
+- Trace：阶段顺序、retry/fallback、attempt、耗时、有限错误类和 provider usage 正确；无 prompt/response/raw error/CoT/email/JWT/Key/Cookie。
+- 权限：匿名 401，普通用户/ordinary admin 403，super_admin 200；列表无正文/邮箱/工件正文；详情审计失败拒绝正文，范围在正文读取前后各检查一次。
+- 写入：指派、状态和 disposition 只信任认证 actor，非法流转 409，所有变更产生追加审计事件；客户端伪造 owner/actor/role 无效。
+- 工件提案：before/after diff 可审阅但不能直接发布或修改源码/知识；敏感键在持久化前拒绝。
+- 评测候选：未经脱敏和人工批准不晋升；删除/跨 owner 样本不可读；价格表缺失时不显示人民币成本。
+- UI：桌面和 390px 覆盖 loading/empty/error/legacy/trace unavailable、超长正文、键盘、焦点、内部滚动和无页面级横向溢出。
+- E7b 提醒/折叠：默认折叠保留异常类别徽标；未审核 Finding、重复样本、已评估失败、未评估标准、无效时长触发提醒；同摘要刷新去重、摘要变化再提醒、提醒可直接展开；ordinary admin 零请求/零提示；桌面与 390px 截图复核。
+- Staging：E8 经独立授权后验证 Migration history、RLS/ACL、并发幂等、审计、清理与 Advisor；E0-E7 不得以本地 fixture 代替远端证据。
+- 更新日志：`HeaderMenu` 入口打开 drawer/dialog 且不重置工作台；Escape/焦点/body scroll lock/390px 内滚动通过；只渲染 `deployed` 条目，local/staging/preview 草稿不显示；生产部署 manifest 与 `2.1` 用户可见更新逐项一致。
+
+## V2.1 发布范围约束
+
+- 轻量 `review_group` 协作、收藏/提交审核后的组内共享属于 V2.1 验收范围；组织/席位/邀请/SSO 不在本版。
+- RAG、自动反哺/优化、批准生效和自动发布属于 V3，不作为 V2.1 测试或上线阻塞条件。
+
+## V2.1 审核结果/签到协调回归
+
+- 同时挂载：未读审核结果出现时签到不可见；关闭审核结果后签到恢复。
+- 晚挂载：审核结果已打开后再挂载签到，仍不得出现签到遮罩；关闭审核结果后恢复。
+- staging：桌面“审核通过”和 390px“需修改”通知出现时，显式断言“每日签到”为 0，再验证“立即查看”可点击并定位收藏。
+# 2026-07-22 - Slice E8 staging closure
+
+- 安全合同先红：验收脚本必须锁定 staging ref、临时账号前缀、公开 E8 API、真实 hook 和零残留标记，且不得包含 Migration/部署命令。
+- 真实 JWT：匿名/无效 token 401，普通用户/admin 403，super_admin 才能 list/detail/assign/status/analyze/review/proposal；浏览器角色不能直读 E8 表。
+- 真实数据：完成/失败 hook 重复运行仍各只有一个 pack/`pack_created`；隐藏任务 404 且不产生详情审计。
+- 真实 DeepSeek：旧 deterministic completion 升级一次，复点不重复事件；无效密钥进入安全失败分类；人工 disposition 不被分析覆盖。
+- 提案：详情 content hash 可创建 review-only proposal；旧 hash 返回 409；不得 publish/autoPublish。
+- 清理：临时账号及 E8 业务表归零；按保留策略存在的模型遥测必须解除 job 关联。

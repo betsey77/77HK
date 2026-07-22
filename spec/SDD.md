@@ -1,5 +1,10 @@
 # SDD：77港话通 SaaS MVP
 
+## V2.1 工作台视口与生成差异基线
+
+- `/app` 工作台壳层使用 `fixed inset-0` 占满当前视口，页面级滚动不得移动壳层；滚动仅发生在三列内部容器。
+- `SET_RESULTS` 表示一次成功生成的新权威快照；替换 variants 时必须清空 `modifiedVariants`。红色差异只表示用户对当前生成快照所做的修改，不能跨生成批次继承。
+
 > 2026-07-14 待开发架构增量：文案类型、可选长度控制、主/修饰语气、个人案例库与 Prompt 注入。具体数据与权限边界见 spec/WORKBENCH_CONTENT_CONTROLS.md；未实施。
 
 完整目标设计见 `..\..\开发日志\03-SPEC-77港话通社媒文案器-SaaS.md`。本文件是 Claude Code 的当前实现入口。
@@ -26,7 +31,7 @@ flowchart LR
 
 ## 托管与跨域（2026-07-14 本地 readiness）
 
-- **部署基线（未执行）：** 两项目 Vercel Hobby — 前端 Root=`client`，API Root=`server`，API region `hnd1`，`maxDuration` 300。详见 `docs/release/2026-07-14-hosting-platform-decision.md` 与 `docs/release/2026-07-14-vercel-two-project-setup.md`。
+- **部署基线：** 两项目 Vercel Hobby — 前端 Root=`client`，API Root=`server`，API region `hnd1`，Express 使用官方零配置入口发现。Hobby Fluid Compute 当前默认/上限为 300 秒；应用仍把严格模型串行预算控制在 51 秒。Preview 必须启用 DeepSeek V4 Flash 与 `REQUIRE_REAL_MODEL=true`，禁止把 rules fallback 当作成功结果；自部署粤语模型和支付宝 sandbox 延后。详见 `docs/release/2026-07-16-vercel-preview-readiness.md`。
 - **前端 API origin：** `client/src/services/apiBase.ts` 的 `apiUrl()`；未设 `VITE_API_BASE_URL` 时保持相对路径 `/api/...`；禁止任何 secret 进入 `VITE_*`。
 - **CORS：** `ALLOWED_ORIGINS` 逗号分隔、严格 exact Origin；空值时仅本地 `http://localhost:5173` 与 `http://127.0.0.1:5173`；无 Origin 请求（Alipay notify / S2S）允许；不默认放行 `*.vercel.app`。
 - **支付回调分域：** `ALIPAY_RETURN_URL` / `ALIPAY_NOTIFY_URL` 优先；否则 `APP_FRONTEND_URL`→`/billing/success`，`APP_API_URL`→`/api/billing/alipay/notify`；`APP_PUBLIC_URL` 兼容双用；mock 本地 5173/3001；sandbox 缺配置 fail closed。同步回跳仍不授予 Pro。
@@ -408,3 +413,112 @@ flowchart LR
 - CI 使用根 workspace 的锁文件，顺序固定为 `npm ci -> test -> typecheck -> build -> audit:prod -> audit:all`。
 - `GITHUB_TOKEN` 仅授予仓库内容只读权限，checkout 不持久化凭据，官方 Actions 使用不可变 SHA。
 - linked Migration history 只读核对完全对齐；后续仍需独立 staging 从零重放，生产数据库禁止 `db reset`。
+
+## 内部 Preview 真实权益与人工 Pro（2026-07-16）
+
+- `GET /api/me/entitlements` 优先使用 service-side Supabase 查询 owner 的 active subscription 并关联 `plans`；只有本地没有可信 Supabase 且处于 mock 模式时才允许回退进程内测试数据。
+- 生成额度仍由 `reserve_quota / consume_quota / release_quota` 原子 RPC 管理；结算页只是同一 `subscriptions.quota_used` 的只读展示，不创建第二套计数。
+- `PAYMENT_MODE=mock` 在产品语义上解释为“未启用在线支付”：客户端不调用 `/api/billing/checkout`，改为复用微信联系弹窗人工开通 Pro。
+- 不新增 grant-Pro 浏览器端点。staging 内部账号的套餐和 `profiles.review_group` 由受信任运维 SQL 精确更新，并保存脱敏验收证据。
+- 反馈通知使用现有 `ServerChanNotifier`；`SERVERCHAN_SENDKEY` 仅配置在 API Preview 的服务端环境变量，通知失败不回滚反馈数据。
+
+## 注册、退出与热点安全修复（2026-07-16）
+
+- `SignupPage` 在 `signUp` 成功且需要邮箱确认时保留当前页面并打开可访问弹窗；弹窗不保存密码、不自动重发邮件。
+- `/auth/callback` 确认邮箱后使用 `signOut({ scope: 'local' })` 清除验证产生的当前浏览器会话，再跳转 `/login?registered=1`。
+- `LoginPage` 只把 `registered=1` 解释为一次性成功提示，打开后从 URL 移除该参数；`next` 仍经既有 allowlist 解析。
+- 应用普通退出统一使用 `signOut({ scope: 'local' })`，共享账号的其他浏览器会话不被全局撤销。
+- `inspirationRouter` 在所有 YouTube 数据路由前执行 `requireAuth`；客户端使用 `authApiFetch`，不自行读取或保存 JWT。
+- `youtubeSearchService` 以请求参数为 key 使用进程内 TTL 缓存并合并并发请求。Vercel 冷启动可丢失缓存，因此该缓存仅用于配额削峰，不作为持久数据源。
+- Preview 配置 `YOUTUBE_API_KEY` 前必须先完成鉴权与缓存验证；Key 只进入 API 项目 Sensitive Preview 环境。
+## 2026-07-16：Dashboard-only 角色邮箱查询
+
+- 新增 `private.user_roles_with_email` 视图，每次查询联结 `public.user_roles` 与 `auth.users`。
+- 视图只输出 `id/user_id/email/role/created_at`，不存储邮箱副本。
+- 设置 `security_invoker=true`，并显式撤销 `public/anon/authenticated/service_role` 权限。
+- 该视图是 Supabase Dashboard/SQL Editor 运营工具，不是前端或后端 API 合约。
+
+## 2026-07-18：1.1.4.5 分阶段设计
+
+### Slice A：无数据库变更的体验修复
+
+- `AppShellWithAuth` 使用 `100dvh + overflow-hidden` 建立唯一工作台滚动边界，内部 `ThreePanel` 保持各列独立滚动。
+- `Footer` 对外固定显示 CANTONESE API；内部 `generationEngine` 仍保留真实引擎值供审计，不改变 API DTO。
+- `parse-personas` 服务端合约收敛为最多一条；Prompt 明确只生成一个画像。客户端把该条规范化为新实例 ID 后追加到现有数组。
+- 注册成功提示只由 Supabase 无错误且 `needsConfirmation=true` 触发；429/重复邮箱等错误继续走失败状态。
+- `PublicAuthRoute` 只在首次会话恢复完成前展示整页 Auth loader；后续登录/注册动作即使共用 `state.isLoading` 也必须保持公开页面挂载，避免清空受控输入和丢失异步成功弹窗。
+
+### Slice B：产品卖点纵向链路
+
+- 客户端类型新增 `ProductSellingPoint { id, sourceText, cantoneseText, status }`，`AppSettings`、`SavedConfig`、生成请求和历史快照共享该结构。
+- 新增已鉴权 `POST /api/localize-selling-point`，输入单条卖点，服务端限制长度并通过现有真实模型生成一条港话表达；不允许客户端指定模型或用户 ID。
+- `saved_configs.config` 与 generation job 的现有 JSONB 已能容纳卖点，无需 Migration；序列化、normalize、LOAD_CONFIG、历史恢复和云同步均需显式白名单该字段。
+- `diagnoseGenerate` Prompt 增加卖点区块，顺序为事实/品牌红线约束 > 产品卖点 > 风格修饰。服务端再次限制数量和长度，防止 Prompt 膨胀。
+- 生成路由规范化后的 `productSellingPoints` 必须由 DeepSeek 与 CantoneseLLM 服务显式继续传给各自 Prompt builder；服务边界测试防止路由有值但真实模型 Prompt 丢字段。
+
+### Slice C：通知轮询
+
+- 管理员调用既有 pending summary 轻量接口。用户调用已鉴权 `GET /api/sync/review-result-summary`：先按 JWT owner 显式查询其 favorite IDs，再仅返回这些收藏中最新审核的 `updated_at`，不返回品牌、正文、邮箱或组数量。
+- 页面 `visibilityState=visible` 时 15 秒轮询，隐藏页面暂停；失败采用 15/30/60 秒退避，focus 时立即一次刷新。
+- 去重仍使用当前 review result key 与管理员 session summary，不以轮询次数作为已读状态。
+- 用户摘要时间变化时才调用既有 owner-scoped bootstrap；`ReviewResultNotifier` 随新的 `bookmarkedCopies` 重新扫描，避免首次扫描后忽略后续审核结果。
+
+### Slice D：签到和可观测性
+
+#### 2026-07-22 D7 staging 运行结论
+
+- `20260719090000` 与 `20260719120000` 已应用到授权 staging `wzpaghnxlpfjojvuxplx`；真实 PostgreSQL 并发、幂等、RLS、RPC ACL、约束和清理门禁通过。生产库未变更。
+- 云同步首次成功后异步调用 `POST /api/me/activity`，只提交认证 JWT，不提交 owner 或日期。活动失败不得阻塞工作台；同一 owner 在本次挂载内只上报一次，失败后允许后续成功同步重试。
+- 模型成本只能按供应商返回的 usage 与带版本单价估算；财务事实仍以供应商账单/余额为准。模型健康下一版优先按 `operation × errorClass`、最终任务成功、首次成功、重试挽回和 fallback 拆分。
+- 运行证据见 `docs/evidence/2026-07-22/slice-d7-staging-acceptance/verification.md`；指标说明见 `docs/research/2026-07-22-model-observability-and-cost.md`。
+
+- 数据分为四类：`daily_checkins`、`membership_grants`、`app_activity_daily`、`model_call_logs`。额度消耗继续以现有 `usage_ledger`/`subscriptions` 为事实源，不新建重复账本。
+- 签到/领奖由 BFF 调用受信任事务，数据库按 `Asia/Hong_Kong` 计算日期，固定锁顺序配合 `(user_id, checkin_date_hk)` 与奖励来源唯一约束，原子完成签到、奖励审计和必要的 subscription 更新。浏览器不能直接写表或会员。
+- 已确认有效 Pro 生成 `pending` grant，失效后手动领取；Free/无有效 Pro 立即应用固定 30 天新周期；奖励每账号终身一次。
+- `app_activity_daily` 每用户每香港日一行；组指标实时关联当前 `profiles.review_group`。普通管理员聚合必须强制当前非空组，`super_admin` 才能查看全局。
+- `model_call_logs` 只保存 operation/provider/model/status/error class/latency/attempt 和供应商返回的 token usage；不保存正文、原始错误、邮箱、JWT 或 Key。bad case 复用 `generation_jobs.scores.generated.total`，不复制正文。
+- 模型服务第一版用显式可选 `ModelCallContext` 传递 job/request 上下文；遥测写入采用短超时 best-effort，失败不得中断生成。
+- 管理接口分为 group-scoped overview 与 super_admin-only models/bad-cases/provider-balance；现有全局 `/api/admin/stats` 在复用前必须先做权限和口径审计。
+- 实施拆分为 D0 规格、D1-D3 签到、D4-D5 遥测、D6 管理端、D7 经授权的独立 staging 验证。完整字段和门禁见 `docs/plans/2026-07-19-1.1.4.5-slice-d-development-plan.md`。
+- D1 本地草案使用 `20260719090000_slice_d1_checkin_rewards.sql`：`daily_checkins`、`membership_grants`、service-role-only `apply_daily_checkin`/`claim_checkin_membership_grant`。固定锁序为用户 advisory lock → subscription 行锁 → check-in/grant 写入；尚未应用到数据库。
+- D2 BFF 使用 `GET/POST /api/me/check-in` 与 `POST /api/me/membership-grants/:id/claim`；只从鉴权上下文取 owner，返回 camelCase 状态并脱敏数据库错误和内部 subscription id。
+- D3 在工作台云同步首次达到 `ready` 且存在登录用户后挂载独立签到弹窗。组件复用现有 React + Tailwind + Lucide 设计系统（深色 emerald、浅色 orange、现有圆角/边框/焦点环），不新增 UI 框架；拒绝把多状态签到流程硬塞进单按钮 `AuthNoticeDialog`，避免破坏既有认证提示合同。
+- D3 本机只保存 `hk-cantonese-checkin-dismissed:<userId>:<YYYY-MM-DD-HK>` 关闭标记；香港日期由客户端 `Intl` 计算仅用于当天去扰。签到、连续天数、奖励、领取资格和到期时间全部来自 BFF，客户端不得本地递增或推算 30 天。
+- D3 对话框覆盖 loading/error/retry、7 日进度、签到、pending/claim/applied；签到 POST 成功整表替换状态，claim 成功只用服务端返回字段合并奖励状态。操作串行化并丢弃关闭/账号切换后的过期响应；`role=dialog`、Escape、焦点循环、body scroll lock、44px 触控目标及 390px 内滚动均为必需。
+- D4 本地草案使用 `20260719120000_slice_d4_activity_model_telemetry.sql`。`record_app_activity(uuid)` 仅授权 `service_role`，在数据库内按 `Asia/Hong_Kong` 派生日期并只更新 `last_seen_at`；浏览器不接收表或 RPC 权限。
+- D4 `telemetryService` 对模型日志执行运行时精确字段白名单、枚举/UUID/非负整数校验，并把未知键与 prompt/response/raw error/email/JWT/Key 类字段在打开 trusted client 前拒绝。无 usage 时 Token 全部保持 `null`；写库错误或 400ms 超时返回 `false`，无效程序输入仍显式抛错。
+- D6a `GET /api/admin/metrics/overview` 使用独立聚合 service，不复用既有全局 `/api/admin/stats`。普通管理员先解析自身非空 `review_group`，再按该组 owner 集合查询；空组在业务表读取前 403。`super_admin` 跳过 owner 过滤并读取全局聚合。
+- D6a 日期输入按香港自然日解析，默认以香港今日结束的 30 日窗口，最多 90 日；响应只返回 DAU/WAU/MAU、奖励状态计数、区间额度消耗与当前结余，不返回 owner、邮箱、正文或逐用户额度。
+- 工作台滚动条样式仅挂在 `[data-testid="workbench-shell"]`，暗色使用透明轨道和低对比圆角滑块，浅色单独覆写；`forced-colors: active` 交还系统配色，官网和认证页不受影响。
+- D6b 三条全局模型接口在既有 `requireAuth` + `requireAdmin` 后额外挂 `requireSuperAdmin`。模型日志按 provider/model 聚合每次 attempt；P95 使用 nearest-rank `ceil(0.95*n)-1`；Token 只求和 provider 返回字段，并单列 `unavailableUsageCount`。
+- D6b bad case 使用 `generation_jobs.scores.generated.total < 50`，排除缺分/软删任务，按低分优先并最多返回 20 条。服务端可读取 scores 做判断，但响应只投影 id、score、platform、tone、engine 与时间，不提供全文入口。
+- DeepSeek 余额按官方 `GET /user/balance` schema 校验 `is_available` 和 CNY/USD 十进制字符串；只缓存合法响应 10 分钟。合法 0 或 `is_available=false` 仍为 `ok`，缺 Key、超时、非 2xx 或非法 schema 为 `unavailable`，不回传密钥或原始错误。
+- AdminMetricsPanel 自有 loading/error/data 状态，避免继续膨胀 AdminPage；普通管理员只请求 overview，超级管理员才请求全局模型数据。模型表在 390px 内部横向滚动，页面本身不溢出；局部模型失败不遮蔽 overview。
+- UI 沿用现有 React + Tailwind + Lucide、自定义后台组件和深色 emerald / 浅色 orange 体系；未引入 Ant Design、图表库或外部 Stitch 项目，因为本轮是既有页面内的小面板，新增依赖/设计空间收益不足。
+
+## 2026-07-22：2.1 Slice E Bad Case 诊断审阅包设计
+
+- 新增建议数据域：`generation_artifact_snapshots`、`bad_case_review_packs`、`bad_case_findings`、`bad_case_review_events`；E0 只写规格，Migration 在 E2 单独起草。
+- 生成时捕获 Prompt/规则/知识/模型策略的 allowlist manifest 与稳定哈希；历史记录缺失标为 `legacy_unavailable`。
+- 自动触发覆盖低分、任务失败、关键标准失败和管理员手动标记；同步路径只做确定性组装，AI 丰富为显式可降级后台任务。
+- trusted Supabase 仍需显式 actor 授权；MVP 仅 `super_admin`。完整详情严格执行 `id+owner scope -> audit -> scope recheck -> body`。
+- findings 使用证据引用连接样本、Trace、验收标准与工件版本；修改建议只形成待审 diff，不能直接发布。
+- 完整架构、API、保留策略和 E0-E9 门禁见 `docs/plans/2026-07-22-2.1-bad-case-review-pack-plan.md`。
+- 工作台更新日志复用 `HeaderMenu` 低频入口并打开独立 drawer/dialog；内容使用代码内版本化静态数据，不新增数据库/API。发布记录以最终生产部署 manifest 为事实源，只有 `deployed` 内容可见，E9 部署成功后才补齐 `2.1` 全量条目。
+
+## 2026-07-22：V2.1 发布边界与共享规则（覆盖早期 MVP 表述）
+
+- 当前版本只实现轻量团队协作：`profiles.review_group` 是既有授权边界，普通管理员按组审核，`super_admin` 可跨组；不新增组织/席位/邀请/SSO/复杂审批数据模型。
+- 自动共享只发生在两个既有入口：用户收藏生成文案，或用户提交自写收藏进入审核队列。共享读取必须继续由 owner/review_group 权限过滤；草稿、未收藏和未提交审核内容保持 owner 私有。共享 DTO 仅允许最终文案与审核结果，禁止附带 Prompt、品牌红线、未定稿输入、邮箱和敏感 Trace。
+- V2.1 只采集和审阅现有生成、审核、Bad Case、Trace 的脱敏快照与审计记录；不添加 RAG 检索、向量召回、自动优化、批准生效或自动发布链路。V3 规划可复用这些已持久化数据，但不属于本次部署门禁。
+- 发布门禁按本版实现执行：本地/Preview 测试、staging 角色与 RLS/API 验收、部署配置与回滚准备、最终人工验收；V3 规划项不作为阻塞条件。
+
+## 2026-07-22：审核结果与签到弹窗协调
+
+- `ReviewResultNotifier` 通过 owner-scoped 粘性可见状态与浏览器事件发布审核结果打开/关闭；`CheckInDialog` 挂载时先读取当前状态，再监听后续变化。
+- 审核结果打开时，签到只暂停渲染和焦点/body-scroll 副作用，不写入当天关闭键、不改变 streak/reward，也不发起签到动作；审核结果关闭后恢复原签到状态。
+- 粘性状态覆盖两个组件同时挂载和签到稍后挂载/重挂载，避免 `z-[110]` 签到遮罩压住 `z-[70]` 审核操作。
+# 2026-07-22 - Slice E8 staging closure hardening
+
+- 审阅包详情返回的每类 `contentHashes` 与提案构建器统一对 allowlisted manifest 本体做 canonical hash；服务端仍重新读取可信 snapshot，并独立校验 artifact type 与 hash，客户端不能指定可信 before。
+- `afterGenerationPersistReviewPack` 的超时 Promise 必须在成功/失败完成后清除计时器，避免成功请求稍后产生 timeout 假告警；真正超时仍返回 best-effort `timeout`，不阻断生成主流程。
