@@ -48,6 +48,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   brandName: '',
   productName: '',
   brandRedLines: '',
+  productSellingPoints: [],
   structuredBriefEnabled: false, // 🆕 Ph1
   consumerPersonas: [],
   targetDate: new Date().toISOString().slice(0, 10), // 默认当日

@@ -57,22 +57,38 @@ const FIXTURE_SESSION = {
 export const AuthContext = createContext<AuthContextValue>(null!);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    user: FIXTURE_USER,
-    session: FIXTURE_SESSION,
-    isAuthenticated: true,
-    isLoading: false,
-    error: null,
-    lastAuthEvent: null,
-  });
+  const isSignupFixture = window.location.pathname === '/signup';
+  const [state, setState] = useState<AuthState>(() => isSignupFixture
+    ? {
+        user: null,
+        session: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+        lastAuthEvent: null,
+      }
+    : {
+        user: FIXTURE_USER,
+        session: FIXTURE_SESSION,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+        lastAuthEvent: null,
+      });
 
   const login = useCallback(async () => {
     throw new Error('E2E local fixture: login() is disabled (mock shell only)');
   }, []);
 
   const signup = useCallback(async () => {
-    throw new Error('E2E local fixture: signup() is disabled (mock shell only)');
-  }, []);
+    if (!isSignupFixture) {
+      throw new Error('E2E local fixture: signup() is disabled outside /signup');
+    }
+    setState((current) => ({ ...current, isLoading: true, error: null }));
+    await Promise.resolve();
+    setState((current) => ({ ...current, isLoading: false }));
+    return { needsConfirmation: true };
+  }, [isSignupFixture]);
 
   const logout = useCallback(async () => {
     setState({

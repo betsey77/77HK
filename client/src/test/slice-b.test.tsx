@@ -143,6 +143,7 @@ function SignupLoadingProbe() {
         start-signup
       </button>
       <span data-testid="signup-loading-state">{state.isLoading ? 'loading' : 'ready'}</span>
+      {state.error && <span role="alert">{state.error}</span>}
     </div>
   );
 }
@@ -260,6 +261,20 @@ describe('Slice B — unconfirmed signup state', () => {
     await waitFor(() => {
       expect(screen.getByTestId('signup-loading-state')).toHaveTextContent('ready');
     });
+  });
+
+  it('explains that an email rate-limited signup did not succeed', async () => {
+    mockSupabase.auth.signUp.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'email rate limit exceeded', status: 429, code: 'over_email_send_rate_limit' },
+    } as never);
+
+    render(<SignupLoadingProbe />, { wrapper: Wrapper });
+    await awaitAuthReady();
+    await userEvent.click(screen.getByRole('button', { name: 'start-signup' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('此次注册未成功');
+    expect(screen.getByTestId('signup-loading-state')).toHaveTextContent('ready');
   });
 });
 
@@ -555,6 +570,23 @@ describe('Slice B — ResetPasswordPage PASSWORD_RECOVERY gate', () => {
 // Suite 7: AuthCallback with existing session
 // ============================================================
 
+describe('Slice B — completed registration login guidance', () => {
+  beforeEach(() => {
+    resetMockAuth();
+    clearThemeStore();
+    window.history.pushState({}, '', '/login?registered=1&next=%2Fapp%2Fbilling');
+  });
+
+  it('shows the success dialog and preserves the approved next path', async () => {
+    render(<LoginPage />, { wrapper: Wrapper });
+    await awaitAuthReady();
+
+    expect(screen.getByRole('dialog', { name: '恭喜完成注册' })).toBeInTheDocument();
+    expect(screen.getByText('邮箱验证已经完成，请输入注册邮箱和密码以登录。')).toBeInTheDocument();
+    expect(window.location.search).toBe('?next=%2Fapp%2Fbilling');
+  });
+});
+
 describe('Slice B — AuthCallback existing confirmed session', () => {
   beforeEach(() => {
     resetMockAuth();
@@ -583,7 +615,8 @@ describe('Slice B — AuthCallback existing confirmed session', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('邮箱验证成功！正在跳转…')).toBeInTheDocument();
+      expect(screen.getByText('邮箱验证成功！正在返回登录页…')).toBeInTheDocument();
     });
+    expect(mockSupabase.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 });

@@ -36,6 +36,7 @@ import {
   favoriteRecordToBookmark,
   configRecordToSavedConfig,
   fetchBootstrap,
+  fetchReviewResultSummary,
   syncFavoriteUp,
   syncFavoriteDelete,
   syncConfigUp,
@@ -317,6 +318,29 @@ describe('fetchBootstrap', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(fetchBootstrap()).rejects.toThrow('Failed to fetch bootstrap (500)');
+  });
+});
+
+describe('fetchReviewResultSummary', () => {
+  it('uses the lightweight owner-pinned endpoint', async () => {
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: { access_token: 'fake-jwt', user: { id: 'user-a' } } },
+      error: null,
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      mockFetchResponse({ latestUpdatedAt: '2026-07-18T12:30:00.000Z' }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchReviewResultSummary('user-a')).resolves.toEqual({
+      latestUpdatedAt: '2026-07-18T12:30:00.000Z',
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/sync/review-result-summary', {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer fake-jwt',
+      },
+    });
   });
 });
 

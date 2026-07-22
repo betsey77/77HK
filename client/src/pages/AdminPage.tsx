@@ -40,6 +40,10 @@ import {
   type AdminPendingReviewSummary,
 } from '../services/api';
 import { recordAdminPendingReviewSummary } from '../services/adminReviewReminder';
+import AdminMetricsPanel from '../components/admin/AdminMetricsPanel';
+import BadCaseDiagnosticsPanel from '../components/admin/BadCaseDiagnosticsPanel';
+import BadCaseReviewPackPanel from '../components/admin/BadCaseReviewPackPanel';
+import { useVisiblePolling } from '../hooks/useVisiblePolling';
 import { utf16OffsetToCodePoint } from '../utils/reviewAnnotations';
 import {
   formatAdminCopyType,
@@ -154,7 +158,7 @@ function Badge({
 export default function AdminPage({ userEmail }: { userEmail?: string | null } = {}) {
   const initialParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const [loadState, setLoadState] = useState<LoadState>('loading');
-  const [stats, setStats] = useState<(AdminStats & { role?: 'admin' | 'super_admin' }) | null>(null);
+  const [stats, setStats] = useState<(AdminStats & { role?: 'admin' | 'super_admin'; reviewGroup?: string | null }) | null>(null);
   const [adminRole, setAdminRole] = useState<'admin' | 'super_admin' | null>(null);
   const [tab, setTab] = useState<Tab>(initialParams.get('tab') === 'favorites' ? 'favorites' : 'users');
   const [pendingOnly, setPendingOnly] = useState(initialParams.get('pending') === '1');
@@ -217,10 +221,14 @@ export default function AdminPage({ userEmail }: { userEmail?: string | null } =
       if (recordAdminPendingReviewSummary(summary, userEmail)) {
         setReviewToast(summary);
       }
+      return true;
     } catch {
       // Keep the admin dashboard usable if the non-critical badge refresh fails.
+      return false;
     }
   }, [userEmail]);
+
+  useVisiblePolling(refreshPendingSummary, loadState === 'ready');
 
   // ── Initialize ───────────────────────────────────────────────
 
@@ -247,20 +255,6 @@ export default function AdminPage({ userEmail }: { userEmail?: string | null } =
     })();
     return () => { cancelled = true; };
   }, [refreshPendingSummary]);
-
-  useEffect(() => {
-    if (loadState !== 'ready') return;
-    const onFocus = () => { void refreshPendingSummary(); };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') void refreshPendingSummary();
-    };
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [loadState, refreshPendingSummary]);
 
   // ── Load tab data ────────────────────────────────────────────
 
@@ -557,6 +551,14 @@ export default function AdminPage({ userEmail }: { userEmail?: string | null } =
           <span className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-500 light:bg-gray-100 light:text-gray-400">
             只读
           </span>
+          <span
+            data-testid="admin-scope-badge"
+            className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300 light:bg-orange-50 light:text-orange-700"
+          >
+            {adminRole === 'super_admin'
+              ? `超级管理员 · 可跨组${stats?.reviewGroup ? ` · 当前 ${stats.reviewGroup}` : ''}`
+              : `管理员 · ${stats?.reviewGroup ?? '未分组'}`}
+          </span>
         </div>
         <a
           href="/app"
@@ -577,6 +579,10 @@ export default function AdminPage({ userEmail }: { userEmail?: string | null } =
             <StatCard label="管理员" value={stats.adminUsers} icon={<Shield className="h-5 w-5" />} />
           </div>
         )}
+
+        {adminRole && <AdminMetricsPanel role={adminRole} />}
+        {adminRole === 'super_admin' && <BadCaseDiagnosticsPanel role="super_admin" />}
+        {adminRole === 'super_admin' && <BadCaseReviewPackPanel role="super_admin" />}
 
         {/* Tabs */}
         <div className="mb-4 flex flex-wrap gap-1 border-b border-gray-800 light:border-gray-200 pb-2">
@@ -1066,7 +1072,10 @@ function GenerationsTable({ jobs, loading }: { jobs: AdminGenerationMeta[]; load
       <tbody>
         {jobs.map((j) => (
           <tr key={j.id} className="border-b border-gray-800/50 light:border-gray-100">
-            <td className="max-w-[160px] truncate px-4 py-2.5">{j.ownerDisplayName}</td>
+            <td className="max-w-[160px] px-4 py-2.5">
+              <p className="truncate">{j.ownerDisplayName}</p>
+              <p className="text-[10px] text-gray-500">组别 {j.ownerReviewGroup ?? '未分组'}</p>
+            </td>
             <td className="px-4 py-2.5 text-gray-400">{j.platform}</td>
             <td className="px-4 py-2.5 text-gray-400">{j.tone}</td>
             <td className="px-4 py-2.5 text-gray-500">{j.generationEngine ?? '—'}</td>
@@ -1258,6 +1267,9 @@ function FavoritesTable({
             <td className="max-w-[160px] px-4 py-2.5">
               <p className="truncate">{favorite.ownerDisplayName}</p>
               <p className="truncate text-[10px] text-gray-500">{favorite.userEmail}</p>
+              <p data-testid="admin-favorite-review-group" className="text-[10px] text-gray-500">
+                组别 {favorite.ownerReviewGroup ?? '未分组'}
+              </p>
             </td>
             <td className="max-w-[140px] px-4 py-2.5 text-gray-400">
               <p className="truncate">{displayField(favorite.brandName)}</p>

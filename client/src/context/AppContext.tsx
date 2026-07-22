@@ -8,6 +8,7 @@ import type {
   Platform,
   InputLanguage,
   ConsumerPersona,
+  ProductSellingPoint,
   SavedConfig,
   BookmarkedCopy,
   Theme,
@@ -16,6 +17,7 @@ import type {
 import { DEFAULT_SETTINGS, PLATFORMS, TONES, INPUT_LANGUAGES } from '../constants';
 import { normalizeW1Fields } from '../utils/w1Settings';
 import { getHongKongDateString } from '../utils/hongKongDate';
+import { normalizeProductSellingPoints } from '../utils/productSellingPoints';
 import { saveWorkbenchSnapshot, loadWorkbenchSnapshot, clearWorkbenchSnapshot, type WorkbenchSnapshot } from '../services/workbenchSnapshot';
 
 const VALID_PLATFORM_VALUES = new Set(PLATFORMS.map((platform) => platform.value));
@@ -60,6 +62,7 @@ export function normalizeSettings(settings: unknown): AppSettings {
       typeof raw.productName === 'string' ? raw.productName : DEFAULT_SETTINGS.productName,
     brandRedLines:
       typeof raw.brandRedLines === 'string' ? raw.brandRedLines : DEFAULT_SETTINGS.brandRedLines,
+    productSellingPoints: normalizeProductSellingPoints(raw.productSellingPoints),
     structuredBriefEnabled:
       typeof raw.structuredBriefEnabled === 'boolean' ? raw.structuredBriefEnabled : DEFAULT_SETTINGS.structuredBriefEnabled,
     consumerPersonas: raw.consumerPersonas ? normalizePersonas(raw.consumerPersonas) : [],
@@ -291,6 +294,14 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
       persistSettings(ownerId, next);
       return next;
     }
+    case 'SET_PRODUCT_SELLING_POINTS': {
+      const next = {
+        ...state,
+        settings: { ...state.settings, productSellingPoints: action.payload as ProductSellingPoint[] },
+      };
+      persistSettings(ownerId, next);
+      return next;
+    }
     case 'SET_STRUCTURED_BRIEF_ENABLED': {
       const next = { ...state, settings: { ...state.settings, structuredBriefEnabled: action.payload } };
       persistSettings(ownerId, next);
@@ -336,6 +347,9 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
         scores: payload.scores ?? null,
         consumerFeedback: payload.consumerFeedback ?? null,
         variantMeta: payload.variantMeta ?? null,
+        // A successful generation is a new baseline. Keeping the previous
+        // manual/feedback diff would mark unrelated regenerated copy as edited.
+        modifiedVariants: {},
         error: null,
       };
     }
@@ -397,6 +411,7 @@ function reducer(state: AppState, action: AppAction, ownerId: string): AppState 
           brandName: config.brandName,
           productName: config.productName,
           brandRedLines: config.brandRedLines,
+          productSellingPoints: normalizeProductSellingPoints(config.productSellingPoints),
           structuredBriefEnabled: config.structuredBriefEnabled,
           consumerPersonas: config.consumerPersonas,
           // Legacy configs without targetDate → current HK calendar day

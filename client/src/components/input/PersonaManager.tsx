@@ -1,7 +1,7 @@
 import { useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import type { ConsumerPersona } from '../../types';
-import { apiUrl } from '../../services/apiBase';
+import { authApiFetch } from '../../services/api';
 
 /** Stable template id — used only for preset dedupe, not instance id. */
 export type PersonaTemplate = Omit<ConsumerPersona, 'id'> & { templateKey: string };
@@ -149,7 +149,7 @@ export default function PersonaManager() {
     setParseError(null);
 
     try {
-      const res = await fetch(apiUrl('/parse-personas'), {
+      const res = await authApiFetch('/parse-personas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: freeText.trim() }),
@@ -163,9 +163,19 @@ export default function PersonaManager() {
       }
 
       if (data.personas && data.personas.length > 0) {
+        const parsed = data.personas[0] as Omit<ConsumerPersona, 'id'> & { id?: string };
+        const newPersona: ConsumerPersona = {
+          id: makeId(),
+          name: parsed.name ?? '',
+          ageRange: parsed.ageRange ?? '',
+          occupation: parsed.occupation ?? '',
+          habits: parsed.habits ?? '',
+          apps: parsed.apps ?? '',
+          notes: parsed.notes ?? '',
+        };
         dispatch({
           type: 'SET_CONSUMER_PERSONAS',
-          payload: data.personas,
+          payload: [...personas, newPersona],
         });
         setFreeText('');
         setParseError(null);
@@ -177,7 +187,7 @@ export default function PersonaManager() {
     } finally {
       setParsing(false);
     }
-  }, [freeText, dispatch]);
+  }, [freeText, personas, dispatch]);
 
   const hasUnsavedPersonas = personas.length > 0;
 
@@ -203,7 +213,7 @@ export default function PersonaManager() {
           {/* AI Free-text Parsing */}
           <div className="space-y-1.5">
             <p className="text-[10px] text-gray-500 light:text-gray-500">
-              💡 直接描述你的目标消费者，AI 会自动整理成结构化画像。
+              💡 直接描述一位目标消费者，AI 每次只生成 1 个人设，并保留已有画像。
               例如：「我的target是35-50岁香港师奶，她们对价钱敏感，钟意看Facebook...」
             </p>
             <textarea

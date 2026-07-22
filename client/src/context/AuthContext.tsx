@@ -190,9 +190,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      const msg = error.message.includes('already registered') || error.message.includes('already exists')
+      const isExistingAccount = error.message.includes('already registered')
+        || error.message.includes('already exists');
+      const isEmailRateLimited = error.status === 429
+        || error.code === 'over_email_send_rate_limit'
+        || error.message.toLowerCase().includes('rate limit');
+      const msg = isExistingAccount
         ? '该邮箱已注册，请直接登录'
-        : error.message;
+        : isEmailRateLimited
+          ? '验证邮件发送次数已达 Supabase 当前上限，请稍后再试。此次注册未成功，请不要直接登录。'
+          : error.message;
       dispatch({ type: 'AUTH_FAILURE', payload: msg });
       return { needsConfirmation: false };
     }
@@ -214,8 +221,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    // onAuthStateChange will fire SIGNED_OUT
-    await supabase.auth.signOut();
+    // Shared internal accounts may have independent browser sessions.
+    // Sign out only this session; do not revoke other devices globally.
+    await supabase.auth.signOut({ scope: 'local' });
   };
 
   const resetPassword = async (email: string): Promise<boolean> => {

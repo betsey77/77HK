@@ -56,6 +56,13 @@ export interface ConsumerPersona {
   notes: string;
 }
 
+export interface ProductSellingPoint {
+  id: string;
+  sourceText: string;
+  cantoneseText: string;
+  status: 'idle' | 'localizing' | 'ready' | 'error';
+}
+
 export interface GenerateRequest {
   source: string;
   platform: Platform;
@@ -66,6 +73,7 @@ export interface GenerateRequest {
   brandName?: string;
   productName?: string;
   brandRedLines?: string;
+  productSellingPoints?: ProductSellingPoint[];
   structuredBriefEnabled?: boolean; // 🆕 Ph1 结构化写作简报 toggle
   creativityLevel: number;      // 0-4, default 2 (平衡)
   inputLanguage: InputLanguage; // default 'mandarin'
@@ -301,6 +309,7 @@ export interface SavedConfig {
   brandName: string;
   productName: string;
   brandRedLines: string;
+  productSellingPoints?: ProductSellingPoint[];
   structuredBriefEnabled: boolean; // 🆕 Ph1
   creativityLevel: number;
   cantoneseLevel: number;
@@ -387,6 +396,7 @@ export interface AppSettings {
   brandName: string;
   productName: string;
   brandRedLines: string;
+  productSellingPoints: ProductSellingPoint[];
   structuredBriefEnabled: boolean; // 🆕 Ph1 默认 false
   consumerPersonas: ConsumerPersona[];
   /** P2: Target publish date for calendar matching */
@@ -480,6 +490,7 @@ export type AppAction =
   | { type: 'SET_BRAND_NAME'; payload: string }
   | { type: 'SET_PRODUCT_NAME'; payload: string }
   | { type: 'SET_BRAND_RED_LINES'; payload: string }
+  | { type: 'SET_PRODUCT_SELLING_POINTS'; payload: ProductSellingPoint[] }
   | { type: 'SET_STRUCTURED_BRIEF_ENABLED'; payload: boolean } // 🆕 Ph1
   | { type: 'SET_CONSUMER_PERSONAS'; payload: ConsumerPersona[] }
   | { type: 'SET_SAVED_CONFIGS'; payload: SavedConfig[] }

@@ -362,10 +362,12 @@ describe('工作台左侧四大折叠页', () => {
     );
   }
 
-  it('工作台页脚显示当前产品版本 v1.1.4', () => {
+  it('工作台页脚显示统一 API 品牌和当前产品版本', () => {
     render(<Footer />, { wrapper: InputWrapper });
 
-    expect(screen.getByText('v1.1.4')).toBeInTheDocument();
+    expect(screen.getByText('Powered by CANTONESE API')).toBeInTheDocument();
+    expect(screen.getByText('v2.1')).toBeInTheDocument();
+    expect(screen.queryByText(/DeepSeek API/)).not.toBeInTheDocument();
   });
 
   it('四个折叠页默认全部收起，使用主题强调色；Source/Language 始终可见', async () => {

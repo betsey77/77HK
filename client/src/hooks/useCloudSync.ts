@@ -108,6 +108,7 @@ export function useCloudSync(ownerId: string, isAuthenticated: boolean) {
   const { state, dispatch } = useContext(AppContext);
   const [retryNonce, setRetryNonce] = useState(0);
   const hydrateRunRef = useRef(0);
+  const activityReportedOwnerRef = useRef<string | null>(null);
   const syncQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const enqueueOutbox = useCallback((entryOwnerId: string, entry: OutboxEntry) => {
@@ -267,6 +268,14 @@ export function useCloudSync(ownerId: string, isAuthenticated: boolean) {
         }
 
         if (hydrateRunRef.current === runId) {
+          if (activityReportedOwnerRef.current !== ownerId) {
+            activityReportedOwnerRef.current = ownerId;
+            void cloudSync.recordActivity(ownerId).catch(() => {
+              if (activityReportedOwnerRef.current === ownerId) {
+                activityReportedOwnerRef.current = null;
+              }
+            });
+          }
           dispatch({ type: 'SET_SYNC_STATUS', payload: 'ready' });
         }
       } catch (error) {
