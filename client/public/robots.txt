@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /auth
+Disallow: /billing
+
+Sitemap: https://77hk.net/sitemap.xml
