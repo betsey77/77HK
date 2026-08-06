@@ -18,6 +18,11 @@ const productionMarketingAssets = [
     repositoryPath: 'client/public/brand/whiteboard_exported_image.png',
     sha256: 'd3d5f1feb2020e08e0652ac61ac454d4979b4b32717018fe4b2a2f3aa2c0a4e5',
   },
+  {
+    relativePath: 'public/brand/cases/synear-shorts.webp',
+    repositoryPath: 'client/public/brand/cases/synear-shorts.webp',
+    sha256: 'de87efbcf6db18ef3279cd4b94fcff8dfba7b5fc46ca7c6b3f36eed4007e0098',
+  },
 ] as const;
 
 describe('public SEO discovery contract', () => {

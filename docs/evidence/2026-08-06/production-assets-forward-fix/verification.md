@@ -65,3 +65,22 @@ npm run build
 
 Pre-change copies with matching SHA-256 hashes are stored at
 `C:\Users\35308\AppData\Local\Temp\77-forward-fix-2026-08-06-prechange`.
+
+## Approved Shorts case-image update
+
+The user supplied `shorts.jpg` and approved replacing the second case card image
+before the same frontend release. The existing component already points to
+`/brand/cases/synear-shorts.webp`, so no React or CSS change was required.
+
+- Source JPEG: 2,145 × 3,421; SHA-256
+  `d960041e18c3a571bd6acbbd12bc320b15fd44d63c5aa43e5949334eeda7a6ae`.
+- Accepted WebP: 1,200 × 1,914; 577,624 bytes; SHA-256
+  `de87efbcf6db18ef3279cd4b94fcff8dfba7b5fc46ca7c6b3f36eed4007e0098`.
+- Conversion preserved the full composition and used Lanczos scaling with WebP
+  quality 90.
+- RED: the focused contract received the old production hash `491fb3…` instead
+  of the accepted new hash.
+- GREEN: focused contract 4/4; isolated candidate 58 files and 491/491 tests;
+  TypeScript/Vite production build passed with 1,737 transformed modules.
+- The built `dist/brand/cases/synear-shorts.webp` hash and dimensions match the
+  accepted WebP exactly.
