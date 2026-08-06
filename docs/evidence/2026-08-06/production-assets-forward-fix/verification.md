@@ -84,3 +84,19 @@ before the same frontend release. The existing component already points to
   TypeScript/Vite production build passed with 1,737 transformed modules.
 - The built `dist/brand/cases/synear-shorts.webp` hash and dimensions match the
   accepted WebP exactly.
+
+## Preview and production evidence
+
+- Delivered Git SHA: `1f66b16624106dcaaf33eb7835dbc80f1d12ed6b`.
+- Preview: `dpl_5g2PPQomw855FjfZK3g4Pzrhbcmq`, READY, source Git SHA matched.
+- Production: `dpl_Ga46CnXVc2L2NP1oZ1pHvzBigwaP`, READY, promoted from the
+  Preview above; `77hk.net` resolves to this deployment.
+- Production `/`, `/app`, `/login`, `/pricing`, `robots.txt`, and `sitemap.xml`
+  returned HTTP 200 with their expected content types.
+- All three production image paths returned their expected JPEG/PNG/WebP types,
+  byte sizes, and accepted SHA-256 hashes.
+- Production API health returned 200; the `https://77hk.net` CORS preflight
+  returned 204 with the matching `Access-Control-Allow-Origin` value.
+- The Chrome-backed live-page visual runner was unavailable in this session;
+  the supplied image was visually inspected before conversion, and Preview plus
+  Production served the exact accepted bytes used by the component path.

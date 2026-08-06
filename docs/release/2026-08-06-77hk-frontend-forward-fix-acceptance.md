@@ -46,3 +46,16 @@ Date: 2026-08-06 (Asia/Hong_Kong)
 GO for Preview deployment. Production promotion is authorized by the user but
 remains conditional on the Preview checks above passing against the same
 immutable deployment.
+
+## Completed deployment
+
+- Git delivery SHA: `1f66b16624106dcaaf33eb7835dbc80f1d12ed6b`.
+- Preview deployment: `dpl_5g2PPQomw855FjfZK3g4Pzrhbcmq` — READY and passed
+  discovery, asset, API-health, and CORS checks.
+- Production deployment: `dpl_Ga46CnXVc2L2NP1oZ1pHvzBigwaP` — READY; promoted
+  from the Preview above.
+- Production alias: `https://77hk.net` resolves to the production deployment.
+- Production smoke: `/`, `/app`, `/login`, `/pricing`, `robots.txt`,
+  `sitemap.xml`, and all three image paths returned HTTP 200 with expected
+  content types and bytes.
+- Final verdict: GO. No rollback triggered.
