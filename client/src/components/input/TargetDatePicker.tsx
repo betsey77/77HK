@@ -25,15 +25,12 @@ export default function TargetDatePicker() {
   const currentDate = state.settings.targetDate ?? TODAY;
   const dayLabel = getDayLabel(currentDate);
 
-  const handleIconClick = () => {
-    // Use native date picker via hidden input
-    if (dateInputRef.current) {
-      try {
-        dateInputRef.current.showPicker();
-      } catch {
-        // Fallback for browsers that don't support showPicker
-        dateInputRef.current.click();
-      }
+  const openPicker = (el: HTMLInputElement) => {
+    try {
+      // Input is laid out over the field so the native popup anchors next to it.
+      el.showPicker();
+    } catch {
+      // Older browsers: native click already targets this control.
     }
   };
 
@@ -43,37 +40,45 @@ export default function TargetDatePicker() {
         🗓️ 发布日期
       </label>
 
-      <button
-        onClick={handleIconClick}
-        className="w-full flex items-center gap-2 bg-gray-800/50 light:bg-white border border-gray-700/50
-          light:border-gray-300/50 rounded-lg px-2.5 py-2 text-xs
-          hover:border-emerald-500/50 light:hover:border-orange-500/50 hover:ring-1 hover:ring-emerald-500/20 light:hover:ring-orange-500/20
-          focus:outline-none focus:border-emerald-500/50 light:focus:border-orange-500/50 focus:ring-1 focus:ring-emerald-500/20 light:focus:ring-orange-500/20
-          transition-colors group"
-      >
-        <Calendar className="w-4 h-4 text-emerald-400 light:text-orange-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
-        <span className="text-gray-200 light:text-gray-800">
-          {formatDate(currentDate)}
-        </span>
-        {dayLabel && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 light:bg-orange-500/15 text-emerald-400 light:text-orange-600 font-medium">
-            {dayLabel}
+      {/*
+        Native date popups (esp. Windows Chromium) anchor to the <input>'s box.
+        `sr-only` makes a 1px off-screen target → calendar appears far away.
+        Keep a full-size transparent input over the visible field instead.
+      */}
+      <div className="relative rounded-lg hover:border-emerald-500/50 light:hover:border-orange-500/50">
+        <div
+          className="w-full flex items-center gap-2 bg-gray-800/50 light:bg-white border border-gray-700/50
+            light:border-gray-300/50 rounded-lg px-2.5 py-2 text-xs
+            pointer-events-none"
+          aria-hidden="true"
+        >
+          <Calendar className="w-4 h-4 text-emerald-400 light:text-orange-600 flex-shrink-0" />
+          <span className="text-gray-200 light:text-gray-800">
+            {formatDate(currentDate)}
           </span>
-        )}
-        <span className="text-[10px] text-gray-500 light:text-gray-400 ml-auto">
-          点击日历修改
-        </span>
-      </button>
+          {dayLabel && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 light:bg-orange-500/15 text-emerald-400 light:text-orange-600 font-medium">
+              {dayLabel}
+            </span>
+          )}
+          <span className="text-[10px] text-gray-500 light:text-gray-400 ml-auto">
+            点击日历修改
+          </span>
+        </div>
 
-      {/* Hidden native date input — triggers native picker on click */}
-      <input
-        ref={dateInputRef}
-        type="date"
-        value={currentDate}
-        onChange={(e) => dispatch({ type: 'SET_TARGET_DATE', payload: e.target.value })}
-        className="sr-only"
-        aria-hidden="true"
-      />
+        <input
+          ref={dateInputRef}
+          type="date"
+          value={currentDate}
+          onChange={(e) => dispatch({ type: 'SET_TARGET_DATE', payload: e.target.value })}
+          onClick={(e) => openPicker(e.currentTarget)}
+          className="absolute inset-0 z-10 w-full h-full cursor-pointer opacity-0
+            rounded-lg
+            focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/40 light:focus-visible:ring-orange-500/40"
+          aria-label="发布日期"
+          title="点击选择发布日期"
+        />
+      </div>
 
       {state.settings.targetDate && state.settings.targetDate !== TODAY && (
         <p className="text-[10px] text-emerald-400 light:text-orange-600">

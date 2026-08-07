@@ -1,7 +1,7 @@
 /**
  * Workbench release notes — static, code-reviewed source of truth.
  * Only `status: 'deployed'` items are user-visible.
- * Do not add a deployed `2.1` entry until E9 production deploy + manifest check.
+ * Add `deployed` entries only for the production candidate being released.
  */
 
 export type ReleaseNoteStatus =
@@ -26,16 +26,29 @@ export interface ReleaseNote {
 }
 
 /** Product-facing version label (Footer / shell). */
-export const APP_DISPLAY_VERSION = '2.1';
+export const APP_DISPLAY_VERSION = '2.1.1';
 
-export const RELEASE_NOTES_EMPTY_COPY = '2.1 更新将在正式上线后公布';
+export const RELEASE_NOTES_EMPTY_COPY = '暂无已正式上线的更新';
 
 /**
- * Static catalogue. E6 ships with no deployed entries so the shell can show
- * the empty state. Draft/local/staging items may exist for review but never render.
+ * Draft/local/staging items may exist for review but never render.
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
-  // Intentionally no deployed 2.1 entry (E9 only).
+  {
+    version: '2.1.1',
+    status: 'deployed',
+    releasedAt: '2026-08-07',
+    title: '版本 2.1.1',
+    sections: [
+      {
+        title: '体验修复',
+        items: [
+          '修复 Windows 浏览器中发布日期弹框位置偏移的问题。',
+          '工作台版本标识更新为 v2.1.1。',
+        ],
+      },
+    ],
+  },
 ];
 
 export function getDeployedReleaseNotes(

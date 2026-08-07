@@ -49,14 +49,19 @@ describe('E6 release notes static data', () => {
     expect(deployed.every((n) => n.status === 'deployed')).toBe(true);
   });
 
-  it('does not ship a deployed 2.1 entry in the static source', () => {
-    expect(
-      RELEASE_NOTES.some((n) => n.version === '2.1' && n.status === 'deployed'),
-    ).toBe(false);
+  it('ships the concise deployed 2.1.1 release note', () => {
+    const note = RELEASE_NOTES.find(
+      (item) => item.version === '2.1.1' && item.status === 'deployed',
+    );
+    expect(note?.releasedAt).toBe('2026-08-07');
+    expect(note?.sections.flatMap((section) => section.items)).toEqual([
+      '修复 Windows 浏览器中发布日期弹框位置偏移的问题。',
+      '工作台版本标识更新为 v2.1.1。',
+    ]);
   });
 
-  it('uses the approved empty-state copy', () => {
-    expect(RELEASE_NOTES_EMPTY_COPY).toBe('2.1 更新将在正式上线后公布');
+  it('keeps a generic empty state for filtered catalogues', () => {
+    expect(RELEASE_NOTES_EMPTY_COPY).toBe('暂无已正式上线的更新');
     expect(getDeployedReleaseNotes([])).toEqual([]);
   });
 });
@@ -66,7 +71,7 @@ describe('E6 HeaderMenu release notes dialog', () => {
     document.body.style.overflow = '';
   });
 
-  it('opens a non-navigating dialog, locks body scroll, supports Escape and empty state', async () => {
+  it('opens a non-navigating dialog, locks body scroll, shows the release and supports Escape', async () => {
     render(
       <AppProvider ownerId="release-notes-user">
         <HeaderMenu userEmail="user@test.com" />
@@ -79,7 +84,8 @@ describe('E6 HeaderMenu release notes dialog', () => {
 
     const dialog = await screen.findByRole('dialog', { name: '更新日志' });
     expect(dialog).toBeInTheDocument();
-    expect(screen.getByText(RELEASE_NOTES_EMPTY_COPY)).toBeInTheDocument();
+    expect(screen.getByText('版本 2.1.1')).toBeInTheDocument();
+    expect(screen.getByText('修复 Windows 浏览器中发布日期弹框位置偏移的问题。')).toBeInTheDocument();
     expect(document.body.style.overflow).toBe('hidden');
     expect(window.location.pathname).not.toMatch(/release|changelog/i);
 
@@ -114,8 +120,8 @@ describe('E6 HeaderMenu release notes dialog', () => {
 });
 
 describe('E6 Footer version', () => {
-  it('shows product version 2.1', () => {
+  it('shows product version 2.1.1', () => {
     render(<Footer />);
-    expect(screen.getByText('v2.1')).toBeInTheDocument();
+    expect(screen.getByText('v2.1.1')).toBeInTheDocument();
   });
 });
