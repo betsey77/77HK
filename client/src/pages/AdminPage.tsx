@@ -350,11 +350,8 @@ export default function AdminPage({ userEmail }: { userEmail?: string | null } =
     setReviewError(null);
     setReviewSuccess(null);
     try {
+      // Empty note allowed for adopted and changes_requested (history still records snapshots).
       const note = reviewDraftNote.trim() || null;
-      if (status === 'changes_requested' && !note) {
-        setReviewError('需修改时请填写修改建议');
-        return;
-      }
       const result = await putAdminFavoriteReview(favoriteDetail.id, {
         status,
         note: status === null ? null : note,

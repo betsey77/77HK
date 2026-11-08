@@ -4,6 +4,16 @@
 
 - 修复 Windows 浏览器中发布日期弹框严重偏移的问题。
 - 工作台版本号更新为 `v2.1.1`，并补充用户可见更新日志。
+
+## Implemented locally - 2026-07-23 - Admin review history (append-only)
+
+- 新增 Migration `supabase/migrations/20260723120000_favorite_admin_review_events.sql`（**未授权前勿推远端**）。
+- 表 `favorite_admin_review_events`：管理员审核快照仅追加；`save` / `clear` / `invalidated_by_edit`；含 note、annotations、content_revision。
+- `admin_save_favorite_review` 与 content-invalidation trigger：写当前态前/后 archive，采纳覆盖与改文删除后仍可在 Supabase 查询历史。
+- 允许 `changes_requested` / `adopted` 空 note（去掉当前表 CHECK + BFF 强制）。
+- 管理端 UI 暂不读 history；静态 migration 单测 + 调整 R1 API 空 note 行为测试。
+- 未 apply 远端 Migration、未 deploy。
+
 ## Fixed locally - 2026-07-22 - V2.1 final UI regressions
 
 - 工作台壳层固定于浏览器视口，避免文档滚动后露出大片空白。

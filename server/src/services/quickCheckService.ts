@@ -51,9 +51,16 @@ const VARIANT_LABELS: Record<string, string> = {
 
 const EMOJI_RE = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{200D}\u{FE0F}\u{20E3}\u{2934}\u{2935}\u{3030}\u{303D}\u{3297}\u{3299}\u{0023}\u{002A}\u{0030}-\u{0039}\u{00A9}\u{00AE}\u{2122}\u{2139}\u{2320}-\u{23F3}\u{24C2}\u{25AA}\u{25AB}\u{25B6}\u{25C0}\u{25FB}-\u{25FE}\u{2611}\u{2614}\u{2615}\u{261D}\u{2620}\u{2622}\u{2623}\u{2626}\u{262A}\u{262E}\u{262F}\u{2638}-\u{263A}\u{2640}\u{2642}\u{2648}-\u{2653}\u{265F}\u{2660}\u{2663}\u{2665}\u{2666}\u{2668}\u{267B}\u{267E}\u{267F}\u{2692}-\u{2697}\u{2699}\u{269B}\u{269C}\u{26A0}\u{26A1}\u{26A7}\u{26AA}\u{26AB}\u{26B0}\u{26B1}\u{26BD}\u{26BE}\u{26C4}\u{26C5}\u{26C8}\u{26CE}\u{26CF}\u{26D1}\u{26D3}\u{26D4}\u{26E9}\u{26EA}\u{26F0}-\u{26F5}\u{26F7}-\u{26FA}\u{26FD}\u{2702}\u{2705}\u{2708}-\u{270D}\u{270F}\u{2712}\u{2714}\u{2716}\u{271D}\u{2721}\u{2728}\u{2733}\u{2734}\u{2744}\u{2747}\u{274C}\u{274E}\u{2753}-\u{2755}\u{2757}\u{2763}\u{2764}\u{2795}-\u{2797}\u{27A1}\u{27B0}\u{27BF}]/gu;
 
-const SIMPLIFIED_CHARS_RE = /[这们来个为国户闭种亲头显长机网价实动]|[\\u4e00-\\u9fff]*/g;
-// More targeted: common simplified chars that differ from traditional
-const SIMPLIFIED_SPECIFIC_RE = /[这们来个为国户闭种亲头显长机网价实动体气电风]|[呀吗呢吧]|[于与么]|[什么是]|[会开]|[东乐]|[书听听]|[对树]|[买卖]|[门问]|[说认]|[让记]|[车转]/;
+/**
+ * Glyphs that are simplified forms and differ from common HK Traditional forms.
+ * Excludes 简繁同形字 (的/了/是/成/…) to reduce false positives on pure 繁體 copy.
+ * Expanded for social/marketing coverage (incl. 粮/点/样/奖/励).
+ */
+export const SIMPLIFIED_ONLY_CHARS = '这们来个为国户闭种亲头显长机网价实动气电风体门问说认让记车转买卖对树东乐开时后会么粮点样奖励还过发应觉从无与万广义爱办帮宝报备笔边标表别并补参仓层产场称诚处传创达带单当党导读队吨夺额范饭飞费丰凤妇复该干刚钢给关观规贵汉号红护画话欢环货获击积绩鸡几际济继坚间简见将较阶节结解仅进经惊旧据决绝军看克块宽扩蓝劳类累离里礼历丽联脸练两辆辽邻灵龙楼录陆虑论轮妈吗满猫贸没迷面庙灭鸣铭摸亩纳难脑闹宁农欧盘跑喷鹏碰骗票评凭扑铺齐骑启千钱强墙抢桥轻清庆穷区权却确扰热赛伞扫杀晒伤烧绍设谁审声胜师诗湿识驶势视试适释书术数双顺苏诉肃虽随岁孙损态谈汤讨腾题条铁听厅统图团推脱完望围维伟卫温闻卧乌污误雾吸习袭戏系吓鲜闲险现线乡响向销协写谢兴醒锈须许续选学寻训压亚严颜验杨阳养药业叶页医仪艺亿议异译阴银营硬拥优邮游鱼娱语预员园远愿约云运杂灾赞脏则择责贼增战张涨帐账赵针阵镇争证郑织职执质滞钟众猪属嘱专赚庄装壮状准资综总纵组钻碍袄坝绊贝辈币变宾饼拨惨舱厕侧测偿厂尘陈衬惩迟齿冲虫础触疮闯锤纯词辞丛凑窜错胆弹灯邓敌递淀垫调叠顶订栋独镀断堕鹅讹恶饿儿尔饵罚阀贩纺废坟奋愤粪枫疯冯缝讽肤辐抚辅赋负缚钙盖赶纲岗鸽沟购够顾挂馆罐惯贯瑰轨柜锅骇韩华缓换唤秽汇绘枪窍窃寝氢倾请琼趋驱龋颧券劝缺瘸鹊';
+
+const SIMPLIFIED_ONLY_RE = new RegExp(
+  '[' + [...new Set([...SIMPLIFIED_ONLY_CHARS])].join('') + ']',
+);
 
 function countEmojis(text: string): number {
   const matches = text.match(EMOJI_RE);
@@ -70,10 +77,11 @@ function countChars(text: string): number {
   return text.replace(/\s/g, '').length;
 }
 
-function hasSimplifiedChars(text: string): boolean {
-  // Check for common simplified characters not shared with traditional
-  return /[这们来个亲头显长机网价实动气电风体门问说说认让记车转买卖对树东乐开时后会什么]/.test(text);
+/** True when text contains at least one simplified-only glyph from the expanded table. */
+export function hasSimplifiedChars(text: string): boolean {
+  return SIMPLIFIED_ONLY_RE.test(text);
 }
+
 
 const MAINLAND_PHRASES = [
   '寶子們', '宝子们', '姐妹們', '姐妹们', '家人們', '家人们',

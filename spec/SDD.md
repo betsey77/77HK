@@ -76,7 +76,8 @@ flowchart LR
 | `webhook_events` | 通知去重和处理记录 | event/order 唯一键 |
 | `audit_log` | 管理员访问与变更 | append-only，不允许管理员删除 |
 | `profiles.review_group` | 审核分组（可空） | 用户不可自改；仅运维/SQL 设置；CHECK 格式约束 |
-| `favorite_admin_reviews` | 管理员对收藏的审核状态与意见 | 1:1 `favorite_id`；owner SELECT；authenticated 不可写；service_role 经原子 RPC |
+| `favorite_admin_reviews` | 管理员对收藏的**当前**审核状态与意见 | 1:1 `favorite_id`；owner SELECT；authenticated 不可写；service_role 经原子 RPC |
+| `favorite_admin_review_events` | 管理员审核**追加历史**（采纳/覆盖后仍可查） | append-only；无 authenticated 读策略；service_role SELECT；仅 RPC/trigger 写入 |
 
 `总览/supabase/migrations` 属于报销业务域，不得直接在 77 数据库执行。
 
@@ -86,9 +87,10 @@ flowchart LR
 
 - Migration（本地 only）：`supabase/migrations/20260714190000_review_groups_admin_notes.sql`
 - `profiles.review_group text null` + CHECK + 部分索引；不扩大浏览器 `UPDATE (display_name, avatar_url)` 列权限。
-- `favorite_admin_reviews`：`favorite_id` PK、`reviewer_id`、`review_status`、`note`、`created_at`/`updated_at`；`changes_requested` 要求 trim 后 note 非空。
-- RLS：owner SELECT 自己收藏的审核；同组 admin SELECT；super_admin SELECT 全部；无 authenticated 写策略。
-- RPC `public.admin_update_favorite_review(_actor_id, _favorite_id, _status, _note)`：`SECURITY DEFINER SET search_path = ''`；仅 `GRANT EXECUTE … TO service_role`；同事务 upsert/delete review + insert `audit_log`（action=`admin_update_favorite_review`，diff 仅旧/新 status 与 note 长度）。
+- `favorite_admin_reviews`：`favorite_id` PK、`reviewer_id`、`review_status`、`note`、`created_at`/`updated_at`；**当前态**；`adopted` / `changes_requested` 均允许空 note（2026-07-23 起）。
+- `favorite_admin_review_events`（Migration `20260723120000_favorite_admin_review_events.sql`，**未授权前仅本地**）：append-only；`event_type` ∈ `save` | `clear` | `invalidated_by_edit`；完整拷贝 `review_status` / `note` / `annotations` + `content_revision`；**管理端 UI 暂不读**，仅 Supabase 查询。
+- RLS：owner SELECT 自己收藏的**当前**审核；同组 admin SELECT；super_admin SELECT 全部；无 authenticated 写策略。history 表无 authenticated 策略。
+- RPC `public.admin_save_favorite_review`（主路径）：写当前行前/后 append history；clear 与 content 失效 trigger 先 archive 再 delete；同事务 `audit_log`。
 
 ### API
 

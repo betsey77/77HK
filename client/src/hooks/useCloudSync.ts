@@ -100,6 +100,24 @@ function mergeById<T extends { id: string }>(base: T[], additions: T[]) {
   return [...merged.values()];
 }
 
+/** Map raw fetch/network errors to short user-facing Chinese (no secrets). */
+function formatSyncError(error: unknown): string {
+  if (!(error instanceof Error) || !error.message) return '';
+  const msg = error.message.trim();
+  if (!msg) return '';
+  if (/failed to fetch/i.test(msg) || /networkerror/i.test(msg) || /load failed/i.test(msg)) {
+    return '网络连接失败，请用正式网址打开并检查网络后重试';
+  }
+  if (/Session owner mismatch|当前登录账号与同步账号不一致/i.test(msg)) {
+    return '登录状态异常，请重新登录';
+  }
+  // Keep server messages short; strip noisy English prefixes.
+  return msg
+    .replace(/^Failed to fetch bootstrap\s*/i, '拉取云端数据失败')
+    .replace(/^Failed to (sync|delete|save|load)\s*/i, '')
+    .slice(0, 120);
+}
+
 /**
  * Hydrates account-scoped state and serialises later local mutations to cloud.
  * Cloud is authoritative after the one-time account-local migration succeeds.
@@ -120,6 +138,7 @@ export function useCloudSync(ownerId: string, isAuthenticated: boolean) {
 
   const replayOutbox = useCallback(async (entryOwnerId: string) => {
     const remaining: OutboxEntry[] = [];
+    let lastError: unknown = null;
     for (const entry of loadOutbox(entryOwnerId)) {
       try {
         switch (entry.op) {
@@ -148,12 +167,13 @@ export function useCloudSync(ownerId: string, isAuthenticated: boolean) {
             );
             break;
         }
-      } catch {
+      } catch (error) {
+        lastError = error;
         remaining.push(entry);
       }
     }
     saveOutbox(entryOwnerId, remaining);
-    return remaining.length === 0;
+    return { ok: remaining.length === 0, remaining: remaining.length, lastError };
   }, []);
 
   useEffect(() => {
@@ -172,11 +192,22 @@ export function useCloudSync(ownerId: string, isAuthenticated: boolean) {
 
         // Replay before bootstrap so a stale cloud response cannot overwrite
         // a previously failed local optimistic mutation.
-        if (!await replayOutbox(ownerId)) {
-          throw new Error('仍有本地数据未同步，请重试');
+        const replay = await replayOutbox(ownerId);
+        if (!replay.ok) {
+          const detail = formatSyncError(replay.lastError);
+          throw new Error(
+            detail
+              ? `仍有本地数据未同步（${detail}）。可点重试，或丢弃本机待同步并拉取云端。`
+              : '仍有本地数据未同步，请重试。可点重试，或丢弃本机待同步并拉取云端。',
+          );
         }
 
-        const bootstrap = await cloudSync.fetchBootstrap(ownerId);
+        let bootstrap: Awaited<ReturnType<typeof cloudSync.fetchBootstrap>>;
+        try {
+          bootstrap = await cloudSync.fetchBootstrap(ownerId);
+        } catch (error) {
+          throw new Error(formatSyncError(error) || '云端同步暂不可用');
+        }
         if (hydrateRunRef.current !== runId) return;
 
         const hasForeignFavorite = bootstrap.favorites.some((item) => item.ownerId !== ownerId);
@@ -398,6 +429,14 @@ export function useCloudSync(ownerId: string, isAuthenticated: boolean) {
     setRetryNonce((value) => value + 1);
   }, []);
 
+  /** Drop stuck local outbox so cloud becomes authoritative on this device. */
+  const discardLocalOutboxAndRetry = useCallback(() => {
+    if (!isAuthenticated || ownerId === 'anonymous') return;
+    saveOutbox(ownerId, []);
+    dispatch({ type: 'SET_SYNC_ERROR', payload: null });
+    setRetryNonce((value) => value + 1);
+  }, [isAuthenticated, ownerId, dispatch]);
+
   const importLegacyData = useCallback(async () => {
     if (!isAuthenticated || ownerId === 'anonymous') return null;
     try {
@@ -460,6 +499,7 @@ export function useCloudSync(ownerId: string, isAuthenticated: boolean) {
     importLegacyData,
     skipLegacyImport,
     retryHydration,
+    discardLocalOutboxAndRetry,
     dismissSyncError,
   };
 }

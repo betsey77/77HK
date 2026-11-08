@@ -353,18 +353,23 @@ describe('R1 route behaviour', () => {
     expect(bad.status).toBe(400);
   });
 
-  it('PUT review maps note_required to 400 and not_found to 404', async () => {
+  it('PUT review allows empty note for changes_requested and maps not_found to 404', async () => {
     adminClient('admin-g1', 'admin');
     const { AdminFavoriteReviewError } = await import('../services/adminService.js');
 
-    mockUpdateAdminFavoriteReview.mockRejectedValueOnce(
-      new AdminFavoriteReviewError(400, 'note_required', 'Note required for changes_requested'),
-    );
-    const r400 = await request(app)
+    mockUpdateAdminFavoriteReview.mockResolvedValueOnce({
+      favoriteId: 'f1',
+      reviewStatus: 'changes_requested',
+      reviewNote: null,
+      reviewUpdatedAt: '2026-07-23T00:00:00.000Z',
+      annotations: [],
+    });
+    const rEmpty = await request(app)
       .put('/api/admin/favorites/f1/review')
       .set('Authorization', 'Bearer t')
       .send({ status: 'changes_requested', note: '' });
-    expect(r400.status).toBe(400);
+    expect(rEmpty.status).toBe(200);
+    expect(mockUpdateAdminFavoriteReview).toHaveBeenCalled();
 
     mockUpdateAdminFavoriteReview.mockRejectedValueOnce(
       new AdminFavoriteReviewError(404, 'not_found', 'Favorite not found'),

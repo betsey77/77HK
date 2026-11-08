@@ -440,7 +440,7 @@ describe('syncFavoriteDelete', () => {
     });
   });
 
-  it('throws on error response', async () => {
+  it('treats 404 as success (idempotent delete)', async () => {
     mockSupabase.auth.getSession.mockResolvedValue({
       data: {
         session: { access_token: 'fake-jwt' },
@@ -453,7 +453,23 @@ describe('syncFavoriteDelete', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(syncFavoriteDelete('nonexistent')).rejects.toThrow('Not found');
+    await expect(syncFavoriteDelete('nonexistent')).resolves.toBeUndefined();
+  });
+
+  it('throws on non-404 error response', async () => {
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: {
+        session: { access_token: 'fake-jwt' },
+      },
+      error: null,
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      mockFetchResponse({ error: 'Internal server error' }, 500, false),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(syncFavoriteDelete('x')).rejects.toThrow('Internal server error');
   });
 });
 
