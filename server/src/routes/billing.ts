@@ -251,6 +251,13 @@ router.get('/me/entitlements', requireAuth, async (_req: Request, res: Response)
         const planName = plansData?.name || 'Free';
         const planId = planName === 'Pro' ? 'pro' : 'free';
         const quotaTotal = plansData?.quota_per_cycle || (planId === 'pro' ? 250 : 20);
+        // An `active` row whose period has ended is a historical subscription,
+        // not a live entitlement. Surface it so the client can show "expired"
+        // instead of presenting stale quota as usable.
+        const periodEndMs = typeof sub.current_period_end === 'string'
+          ? Date.parse(sub.current_period_end)
+          : Number.NaN;
+        const expired = Number.isFinite(periodEndMs) && periodEndMs <= Date.now();
 
         res.json({
           planId,
@@ -259,6 +266,7 @@ router.get('/me/entitlements', requireAuth, async (_req: Request, res: Response)
           quotaTotal,
           cycleStart: sub.current_period_start,
           cycleEnd: sub.current_period_end,
+          expired,
           isMock: false,
         });
         return;
@@ -273,6 +281,7 @@ router.get('/me/entitlements', requireAuth, async (_req: Request, res: Response)
         quotaTotal: 20,
         cycleStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         cycleEnd: new Date().toISOString(),
+        expired: false,
         isMock: false,
       });
       return;

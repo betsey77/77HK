@@ -962,6 +962,8 @@ export interface PlanEntitlements {
   quotaTotal: number;
   cycleStart: string;          // ISO date
   cycleEnd: string;            // ISO date
+  /** Server-computed: the stored period already ended (display as expired). */
+  expired?: boolean;
   isMock: true;
 }
 

@@ -200,13 +200,13 @@ export default function InputPanel() {
         </div>
       )}
 
-      {/* Free quota exhausted — only opened when API returns HTTP 402 */}
+      {/* Quota/membership blocked — only opened when API returns HTTP 402 */}
       <ConfirmDialog
         open={quotaDialogOpen}
         title="账户配额不足"
-        message="当前 Free 套餐的生成额度已用完。升级 Pro 后可继续生成，并解锁完整收藏与历史访问。"
+        message="当前套餐的生成额度已用完，或会员已到期。续费 / 升级 Pro 后可继续生成，并解锁完整收藏与历史访问。"
         cancelLabel="暂不充值"
-        confirmLabel="充值 Pro"
+        confirmLabel="去充值 / 续费"
         onCancel={closeQuotaDialog}
         onConfirm={() => {
           closeQuotaDialog();

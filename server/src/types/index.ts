@@ -657,6 +657,7 @@ export interface PlanEntitlements {
   quotaTotal: number;
   cycleStart: string;
   cycleEnd: string;
+  expired?: boolean;
   isMock: true;
 }
 

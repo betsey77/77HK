@@ -140,6 +140,83 @@ describe('GET /api/me/entitlements', () => {
       else process.env.PAYMENT_MODE = previousPaymentMode;
     }
   });
+
+  it('marks an active subscription whose period ended as expired instead of usable quota', async () => {
+    const previousPaymentMode = process.env.PAYMENT_MODE;
+    process.env.PAYMENT_MODE = 'mock';
+
+    const query: Record<string, any> = {};
+    query.select = vi.fn(() => query);
+    query.eq = vi.fn(() => query);
+    query.order = vi.fn(() => query);
+    query.limit = vi.fn().mockResolvedValue({
+      data: [{
+        id: 'subscription-expired',
+        plan_id: 'plan-pro',
+        status: 'active',
+        quota_used: 5,
+        current_period_start: '2026-08-23T01:31:24.000Z',
+        current_period_end: '2026-09-22T01:31:24.000Z',
+        plans: { name: 'Pro', quota_per_cycle: 250 },
+      }],
+      error: null,
+    });
+    mockGetTrustedSupabase.mockReturnValue({ from: vi.fn(() => query) });
+
+    try {
+      authAs(USER_A);
+      const res = await request(app)
+        .get('/api/me/entitlements')
+        .set('Authorization', 'Bearer mock-jwt');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        planId: 'pro',
+        quotaUsed: 5,
+        quotaTotal: 250,
+        expired: true,
+      });
+    } finally {
+      if (previousPaymentMode === undefined) delete process.env.PAYMENT_MODE;
+      else process.env.PAYMENT_MODE = previousPaymentMode;
+    }
+  });
+
+  it('reports expired:false for a live period', async () => {
+    const previousPaymentMode = process.env.PAYMENT_MODE;
+    process.env.PAYMENT_MODE = 'mock';
+
+    const query: Record<string, any> = {};
+    query.select = vi.fn(() => query);
+    query.eq = vi.fn(() => query);
+    query.order = vi.fn(() => query);
+    query.limit = vi.fn().mockResolvedValue({
+      data: [{
+        id: 'subscription-live',
+        plan_id: 'plan-pro',
+        status: 'active',
+        quota_used: 2,
+        current_period_start: '2026-11-08T00:00:00.000Z',
+        current_period_end: '2099-01-01T00:00:00.000Z',
+        plans: { name: 'Pro', quota_per_cycle: 250 },
+      }],
+      error: null,
+    });
+    mockGetTrustedSupabase.mockReturnValue({ from: vi.fn(() => query) });
+
+    try {
+      authAs(USER_A);
+      const res = await request(app)
+        .get('/api/me/entitlements')
+        .set('Authorization', 'Bearer mock-jwt');
+
+      expect(res.status).toBe(200);
+      expect(res.body.expired).toBe(false);
+    } finally {
+      if (previousPaymentMode === undefined) delete process.env.PAYMENT_MODE;
+      else process.env.PAYMENT_MODE = previousPaymentMode;
+    }
+  });
 });
 
 // ============================================================

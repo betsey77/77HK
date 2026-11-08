@@ -1545,11 +1545,19 @@ export async function requestPackAnalysis(
           Object.entries(rawVariants)
             .filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
         ),
+        runtime: {
+          status: typeof rawJob.status === 'string' ? rawJob.status : 'unknown',
+          errorCode: typeof rawJob.error_code === 'string' ? rawJob.error_code : null,
+          generationEngine: typeof rawJob.generation_engine === 'string'
+            ? rawJob.generation_engine
+            : null,
+        },
         criteria: (draft?.criteria ?? []).map((criterion) => ({
           criterionRef: `${criterion.criterionId}@${criterion.version}`,
           result: criterion.status,
           actual: criterion.actual,
           expected: criterion.expected,
+          evidence: criterion.evidenceRefs,
         })),
         findings: findingRows.flatMap((row) => {
           const ref = Array.isArray(row.criterion_refs) ? String(row.criterion_refs[0] ?? '') : '';

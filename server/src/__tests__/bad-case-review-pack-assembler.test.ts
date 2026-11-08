@@ -137,11 +137,52 @@ describe('badCaseReviewPackAssembler deterministic triggers', () => {
     expect(result).not.toBeNull();
     expect(result!.pack.triggerKinds).toContain('generation_failed');
     expect(result!.pack.triggerKinds).not.toContain('score_below_threshold');
+    expect(result!.pack.summary).toContain('error=GENERATION_ERROR');
     expect(result!.findings.every((f) => f.evidenceRefs.length > 0)).toBe(true);
     const serialized = JSON.stringify(result);
     expect(serialized).not.toMatch(/sk-secret-key/);
     expect(serialized).not.toMatch(/raw_error|jwt|cookie|apiKey|api_key/i);
     expect(serialized).not.toContain('provider boom sk-secret-key');
+  });
+
+  it('never turns a precondition quota block into a generation bad case', () => {
+    const result = assembleReviewPackUpsert(
+      baseInput({
+        job: {
+          ...baseInput().job,
+          status: 'failed',
+          scores: null,
+          variants: null,
+          audit: null,
+          errorCode: 'QUOTA_EXHAUSTED',
+          errorMessage: 'Insufficient quota. Please upgrade your plan.',
+        },
+        modelAttempts: { status: 'available', items: [] },
+      }),
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('keeps a super-admin manual flag reviewable even for a quota block', () => {
+    const result = assembleReviewPackUpsert(
+      baseInput({
+        job: {
+          ...baseInput().job,
+          status: 'failed',
+          scores: null,
+          variants: null,
+          audit: null,
+          errorCode: 'QUOTA_EXHAUSTED',
+          errorMessage: 'Insufficient quota. Please upgrade your plan.',
+        },
+        modelAttempts: { status: 'available', items: [] },
+        manualFlag: { actorId: OWNER_ID, actorRole: 'super_admin', reason: 'manual review' },
+      }),
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.pack.triggerKinds).toEqual(['manual']);
   });
 
   it('creates a pack for critical criteria failure even when score is 50+', () => {

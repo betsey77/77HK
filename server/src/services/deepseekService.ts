@@ -54,6 +54,22 @@ function limitedText(value: unknown, max: number): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+/** Keep only allowlisted, bounded evidence fields for the analysis prompt. */
+function compactEvidence(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const type = limitedText(row.type, 40);
+  if (!type) return null;
+  const out: Record<string, unknown> = { type };
+  if (typeof row.path === 'string') out.path = limitedText(row.path, 200);
+  const rawValue = row.value;
+  if (typeof rawValue === 'string') out.value = limitedText(rawValue, 200);
+  else if (typeof rawValue === 'number' || typeof rawValue === 'boolean' || rawValue === null) {
+    out.value = rawValue;
+  }
+  return out;
+}
+
 function parseBadCaseAiAnalysis(
   raw: unknown,
   allowedCriterionRefs: Set<string>,
@@ -106,11 +122,25 @@ export async function analyzeBadCaseWithDeepSeek(
         .slice(0, 8)
         .map(([key, value]) => [limitedText(key, 40), limitedText(value, 4000)]),
     ),
+    runtime: input.runtime
+      ? {
+          status: limitedText(input.runtime.status, 40),
+          errorCode: input.runtime.errorCode == null
+            ? null
+            : limitedText(input.runtime.errorCode, 80),
+          generationEngine: input.runtime.generationEngine == null
+            ? null
+            : limitedText(input.runtime.generationEngine, 80),
+        }
+      : null,
     criteria: input.criteria.slice(0, 30).map((item) => ({
       criterionRef: limitedText(item.criterionRef, 200),
       result: limitedText(item.result, 40),
       actual: typeof item.actual === 'string' ? limitedText(item.actual, 500) : item.actual,
       expected: typeof item.expected === 'string' ? limitedText(item.expected, 500) : item.expected,
+      evidence: Array.isArray(item.evidence)
+        ? item.evidence.slice(0, 6).map(compactEvidence).filter(Boolean)
+        : [],
     })),
     findings: input.findings.slice(0, 20).map((item) => ({
       criterionRef: limitedText(item.criterionRef, 200),

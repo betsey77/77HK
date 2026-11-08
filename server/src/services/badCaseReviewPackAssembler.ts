@@ -295,9 +295,16 @@ function buildFindingsFromCriteria(
   return findings;
 }
 
-function buildSummary(kinds: TriggerKind[], evaluations: CriterionEvaluation[]): string {
+function buildSummary(
+  kinds: TriggerKind[],
+  evaluations: CriterionEvaluation[],
+  errorCode: string | null,
+): string {
   const failed = evaluations.filter((e) => e.status === 'fail').map((e) => e.criterionId);
   const parts = [`triggers=${kinds.join(',')}`];
+  // The error code is the decisive attribution field; keep it on the list card
+  // so reviewers do not have to open the detail to see "quota" vs "provider".
+  if (errorCode) parts.push(`error=${errorCode}`);
   if (failed.length > 0) parts.push(`failed=${failed.join(',')}`);
   return parts.join('; ').slice(0, 4000);
 }
@@ -311,6 +318,15 @@ function recommendPackOwnerTeam(findings: FindingDraft[], kinds: TriggerKind[]):
 }
 
 /**
+ * Failures that happen BEFORE any model work. They are billing/precondition
+ * outcomes, not content or provider defects, so they must never become
+ * generation bad cases (and must never be routed to model_provider).
+ */
+const PRECONDITION_ERROR_CODES: ReadonlySet<string> = new Set([
+  'QUOTA_EXHAUSTED',
+]);
+
+/**
  * Decide trigger kinds for a job. Soft-deleted and non-terminal jobs never trigger
  * (including manual flags — only sealed jobs).
  */
@@ -319,20 +335,29 @@ export function resolveTriggerKinds(input: AssembleReviewPackInput): TriggerKind
   if (job.deletedAt) return [];
   if (!isTerminal(job.status)) return [];
 
+  const preconditionFailure = job.status === 'failed'
+    && typeof job.errorCode === 'string'
+    && PRECONDITION_ERROR_CODES.has(job.errorCode);
+
   const kinds: TriggerKind[] = [];
-  if (job.status === 'failed') kinds.push('generation_failed');
+  if (job.status === 'failed' && !preconditionFailure) kinds.push('generation_failed');
 
   const total = readGeneratedTotal(job.scores ?? null);
   if (total !== null && total < BAD_CASE_SCORE_THRESHOLD) {
     kinds.push('score_below_threshold');
   }
 
-  const evaluations = evaluateBadCaseCriteria(job);
-  if (hasCriticalCriteriaFailure(evaluations)) {
-    // Avoid pure duplicates when only generation_failed or score already implies criteria fail.
-    // Still record criteria_failed when there is a critical fail not solely represented above,
-    // or when score/failed already set — product wants criteria_failed as an explicit trigger.
-    kinds.push('criteria_failed');
+  // Criteria can only be judged when generation actually ran. A precondition
+  // block (quota / membership) produced no variants, so "failed criteria" would
+  // be fabricated evidence.
+  if (!preconditionFailure) {
+    const evaluations = evaluateBadCaseCriteria(job);
+    if (hasCriticalCriteriaFailure(evaluations)) {
+      // Avoid pure duplicates when only generation_failed or score already implies criteria fail.
+      // Still record criteria_failed when there is a critical fail not solely represented above,
+      // or when score/failed already set — product wants criteria_failed as an explicit trigger.
+      kinds.push('criteria_failed');
+    }
   }
 
   if (manualFlag?.actorRole === 'super_admin' && manualFlag.actorId) {
@@ -365,7 +390,7 @@ export function assembleReviewPackUpsert(
     assigneeId: null,
     criteriaVersion: CRITERIA_VERSION,
     analysisStatus: 'not_requested',
-    summary: buildSummary(kinds, criteria),
+    summary: buildSummary(kinds, criteria, input.job.errorCode ?? null),
   };
 
   const event: ReviewEventDraft = {

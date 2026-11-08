@@ -242,6 +242,10 @@ export default function BillingPage() {
 
   const currentPlan = getPlan(entitlements.planId) ?? FREE_PLAN;
   const isPro = entitlements.planId === 'pro';
+  // An expired subscription is displayed as historical: the plan is kept, but
+  // quota is not usable and the page offers renewal instead of a silent stale card.
+  const isExpired = entitlements.expired === true;
+  const needsRenewal = isPro && isExpired;
   const used = entitlements.quotaUsed;
   const total = entitlements.quotaTotal;
   const pct = quotaPercent(used, total);
@@ -311,10 +315,20 @@ export default function BillingPage() {
                     PRO
                   </span>
                 )}
+                {isExpired && (
+                  <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400 light:bg-red-100 light:text-red-700">
+                    已过期
+                  </span>
+                )}
               </h3>
               <p className="text-xs text-gray-500 light:text-gray-400 mt-0.5">
                 {entitlements?.planId === 'free' ? '每滚动 7 天' : '每自然月'} · ¥{currentPlan.priceCny}{currentPlan.priceCny > 0 ? '/月' : ''}
               </p>
+              {isExpired && (
+                <p className="mt-1 text-xs text-red-400 light:text-red-600">
+                  会员已于 {formatDate(entitlements.cycleEnd)} 到期，生成功能已暂停，请续费 Pro。
+                </p>
+              )}
             </div>
             <Zap className={`h-5 w-5 ${isPro ? 'text-emerald-400 light:text-orange-500' : 'text-gray-600'}`} />
           </div>
@@ -344,22 +358,25 @@ export default function BillingPage() {
 
           {/* Cycle info */}
           {entitlements && (
-            <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-500 light:text-gray-400">
+            <div className={`flex items-center gap-1.5 mt-3 text-xs ${
+              isExpired ? 'text-red-400 light:text-red-600' : 'text-gray-500 light:text-gray-400'
+            }`}>
               <Clock className="h-3.5 w-3.5" />
               <span>
                 周期：{formatDate(entitlements.cycleStart)} — {formatDate(entitlements.cycleEnd)}
+                {isExpired ? '（已过期）' : ''}
               </span>
             </div>
           )}
         </section>
 
-        {/* ── Upgrade CTA (if Free) ── */}
-        {!isPro && (
+        {/* ── Upgrade / Renew CTA (Free, or expired Pro) ── */}
+        {(!isPro || isExpired) && (
           <section className="rounded-xl border-2 border-emerald-500/30 light:border-orange-500/30 bg-emerald-500/5 light:bg-orange-50 p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="font-semibold flex items-center gap-2">
-                  升级到 {PRO_PLAN.nameZh}
+                  {needsRenewal ? '续费 ' : '升级到 '}{PRO_PLAN.nameZh}
                   <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400 light:bg-orange-100 light:text-orange-600">
                     ¥{PRO_PLAN.priceCny}/月
                   </span>
@@ -371,7 +388,11 @@ export default function BillingPage() {
               <button
                 onClick={() => handleCheckout('pro')}
                 disabled={checkingOut}
-                aria-label={paymentMode === 'alipay_sandbox' ? '升级到 Pro' : '联系管理员开通 Pro'}
+                aria-label={
+                  paymentMode === 'alipay_sandbox'
+                    ? (needsRenewal ? '续费 Pro' : '升级到 Pro')
+                    : (needsRenewal ? '联系管理员续费 Pro' : '联系管理员开通 Pro')
+                }
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-emerald-400 px-5 text-sm font-semibold text-gray-950 transition-colors hover:bg-emerald-300 disabled:opacity-50 light:bg-orange-500 light:text-white light:hover:bg-orange-600 shrink-0"
               >
                 {checkingOut ? (
@@ -382,9 +403,9 @@ export default function BillingPage() {
                 ) : (
                   <>
                     {paymentMode === 'alipay_sandbox' ? (
-                      <>升级到 Pro <ArrowRight className="h-4 w-4" /></>
+                      <>{needsRenewal ? '续费 Pro' : '升级到 Pro'} <ArrowRight className="h-4 w-4" /></>
                     ) : (
-                      <>联系管理员开通 Pro <MessageCircle className="h-4 w-4" /></>
+                      <>{needsRenewal ? '联系管理员续费 Pro' : '联系管理员开通 Pro'} <MessageCircle className="h-4 w-4" /></>
                     )}
                   </>
                 )}
