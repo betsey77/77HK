@@ -240,6 +240,9 @@ export async function syncFavoriteDelete(clientId: string, expectedOwnerId?: str
     headers,
   });
 
+  // Idempotent: already gone on cloud is success (avoids stuck outbox on other devices).
+  if (res.status === 404) return;
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(
@@ -274,6 +277,9 @@ export async function syncConfigDelete(clientId: string, expectedOwnerId?: strin
     method: 'DELETE',
     headers,
   });
+
+  // Idempotent: already gone on cloud is success (avoids stuck outbox on other devices).
+  if (res.status === 404) return;
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

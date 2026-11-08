@@ -1136,10 +1136,8 @@ export async function updateAdminFavoriteReview(
   let note: string | null = null;
   const annotations = status === null ? [] : normalizeReviewAnnotations(annotationsRaw);
   if (status !== null) {
+    // Empty note allowed for both adopted and changes_requested (history still appends).
     note = normalizeReviewNote(noteRaw);
-    if (status === 'changes_requested' && !note) {
-      throw new AdminFavoriteReviewError(400, 'note_required', 'Note required for changes_requested');
-    }
   }
 
   const db = getTrustedSupabase();

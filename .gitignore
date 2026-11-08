@@ -19,3 +19,14 @@ blob-report/
 
 # Local Netlify folder
 .netlify
+
+# Local env backups must never be committed
+.env.bak-*
+
+# Supabase CLI local state (linked project, pooler URL, versions)
+supabase/.temp/
+
+# Local deployment / agent state
+.vercel/
+.grok/
+.planning/runtime/
