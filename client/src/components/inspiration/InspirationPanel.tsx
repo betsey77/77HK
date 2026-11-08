@@ -8,6 +8,7 @@ import CompetitorActivityTab from './CompetitorActivityTab';
 import type { InspirationTab, CompetitorAd, HKPost } from '../../types';
 import { INSPIRATION_TABS } from '../../types';
 import { apiUrl } from '../../services/apiBase';
+import { authApiFetch, getInspirationErrorMessage } from '../../services/api';
 
 export default function InspirationPanel() {
   const { state, dispatch } = useContext(AppContext);
@@ -99,11 +100,10 @@ export default function InspirationPanel() {
     setHotLoading(true);
     setHotError(null);
     try {
-      const res = await fetch(apiUrl('/inspiration/hot-trends'), {
+      const res = await authApiFetch('/inspiration/hot-trends', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
-      if (!res.ok) throw new Error('热点数据获取失败');
+      if (!res.ok) throw new Error(await getInspirationErrorMessage(res));
       const data = await res.json();
       setHotPosts((data as { posts: HKPost[] }).posts ?? []);
       setHotFetched(true);

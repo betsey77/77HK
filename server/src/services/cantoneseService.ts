@@ -3,6 +3,11 @@ import { SYSTEM_PROMPT } from '../prompts/systemPrompt.js';
 import { buildCantoneseLLMPrompt } from '../prompts/diagnoseGenerate.js';
 import { parseJSON } from './parseJson.js';
 import { TONE_TEMPERATURE } from '../types/index.js';
+import {
+  observeModelAttempt,
+  type ModelCallContext,
+  type ModelCallProvider,
+} from './telemetryService.js';
 import type { GenerateRequest, DiagnoseGenerateResult } from '../types/index.js';
 
 const FEATHERLESS_MODEL = 'hon9kon9ize/CantoneseLLMChat-v1.0-32B';
@@ -61,6 +66,7 @@ interface ClientOption {
   client: OpenAI;
   model: string;
   label: string; // for error logging
+  provider: ModelCallProvider;
 }
 
 function getClients(): ClientOption[] {
@@ -78,6 +84,7 @@ function getClients(): ClientOption[] {
       }),
       model: SELF_HOSTED_MODEL,
       label: 'self-hosted',
+      provider: 'cantonese_self_hosted',
     });
   }
 
@@ -94,6 +101,7 @@ function getClients(): ClientOption[] {
       }),
       model: FEATHERLESS_MODEL,
       label: 'featherless',
+      provider: 'featherless',
     });
   }
   */
@@ -104,41 +112,53 @@ function getClients(): ClientOption[] {
 async function callModel(
   client: OpenAI,
   model: string,
+  provider: ModelCallProvider,
   userPrompt: string,
   temperature: number,
+  context: ModelCallContext | undefined,
+  attempt: number,
 ): Promise<DiagnoseGenerateResult> {
-  const response = await client.chat.completions.create({
+  return observeModelAttempt(context, {
+    operation: 'generate',
+    provider,
     model,
-    max_tokens: 2200,
-    temperature,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt },
-    ],
+    attempt,
+  }, async (captureUsage) => {
+    const response = await client.chat.completions.create({
+      model,
+      max_tokens: 2200,
+      temperature,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+    });
+    captureUsage(response.usage);
+
+    const raw = response.choices[0]?.message?.content ?? '';
+    const content = stripThinking(raw);
+
+    const result = parseJSON(content) as DiagnoseGenerateResult;
+
+    if (
+      !result?.diagnosis ||
+      !result?.variants ||
+      !result.variants.standardHK ||
+      !result.variants.lightCantonese ||
+      !result.variants.ig ||
+      !result.variants.facebook ||
+      !result.variants.shorts
+    ) {
+      throw new Error('Incomplete variants in response');
+    }
+
+    return result;
   });
-
-  const raw = response.choices[0]?.message?.content ?? '';
-  const content = stripThinking(raw);
-
-  const result = parseJSON(content) as DiagnoseGenerateResult;
-
-  if (
-    !result?.diagnosis ||
-    !result?.variants ||
-    !result.variants.standardHK ||
-    !result.variants.lightCantonese ||
-    !result.variants.ig ||
-    !result.variants.facebook ||
-    !result.variants.shorts
-  ) {
-    throw new Error('Incomplete variants in response');
-  }
-
-  return result;
 }
 
 export async function generateWithCantoneseLLM(
   params: GenerateRequest,
+  context?: ModelCallContext,
 ): Promise<DiagnoseGenerateResult | null> {
   const clients = getClients();
   if (clients.length === 0) return null;
@@ -155,6 +175,7 @@ export async function generateWithCantoneseLLM(
     brandName: params.brandName,
     productName: params.productName,
     brandRedLines: params.brandRedLines,
+    productSellingPoints: params.productSellingPoints,
     structuredBriefEnabled: params.structuredBriefEnabled,
     creativityLevel: params.creativityLevel ?? 2,
     inputLanguage: params.inputLanguage ?? 'mandarin',
@@ -171,21 +192,32 @@ export async function generateWithCantoneseLLM(
   });
 
   // Try each available Cantonese client in priority order
-  for (const { client, model, label } of clients) {
-    let coldStartAttempts = 0;
+  for (const { client, model, label, provider } of clients) {
+    let coldStartRetries = 0;
+    let regularRetries = 0;
+    let providerAttempt = 1;
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    while (true) {
       try {
-        const result = await callModel(client, model, userPrompt, temperature);
+        const result = await callModel(
+          client,
+          model,
+          provider,
+          userPrompt,
+          temperature,
+          context,
+          providerAttempt,
+        );
         console.log(`[Cantonese] ${label} succeeded`);
         return result;
       } catch (err) {
         // Cold start: model warming up — wait and retry with longer backoff
-        if (isColdStart(err) && coldStartAttempts < COLD_START_RETRIES) {
-          const delay = COLD_START_DELAYS_MS[coldStartAttempts] ?? 30000;
-          console.warn(`[Cantonese] ${label} cold start (${coldStartAttempts + 1}/${COLD_START_RETRIES}), waiting ${delay / 1000}s...`);
-          coldStartAttempts++;
+        if (isColdStart(err) && coldStartRetries < COLD_START_RETRIES) {
+          const delay = COLD_START_DELAYS_MS[coldStartRetries] ?? 30000;
+          console.warn(`[Cantonese] ${label} cold start (${coldStartRetries + 1}/${COLD_START_RETRIES}), waiting ${delay / 1000}s...`);
+          coldStartRetries++;
           await sleep(delay);
+          providerAttempt++;
           continue; // retry same client
         }
 
@@ -196,16 +228,14 @@ export async function generateWithCantoneseLLM(
           break;
         }
 
-        if (attempt === MAX_RETRIES) {
+        if (!isRetryable(err) || regularRetries >= MAX_RETRIES) {
           console.warn(`[Cantonese] ${label} exhausted retries, trying next...`);
           break;
         }
-        if (!isRetryable(err)) {
-          console.warn(`[Cantonese] ${label} error:`, (err as Error).message || String(err));
-          break;
-        }
-        const delay = RETRY_DELAYS_MS[attempt] ?? 8000;
+        const delay = RETRY_DELAYS_MS[regularRetries] ?? 8000;
+        regularRetries++;
         await sleep(delay);
+        providerAttempt++;
       }
     }
   }

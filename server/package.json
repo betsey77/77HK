@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/local.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/local.js",
     "test": "vitest run"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "openai": "^4.77.0",
+    "opencc-js": "^1.4.1",
     "serverless-http": "^4.0.0"
   },
   "devDependencies": {

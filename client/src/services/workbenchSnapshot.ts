@@ -17,6 +17,7 @@
 
 import type { AppState, AppSettings, Diagnosis, Variants, Audit, Enhancement, GenerationEngine, ConsumerFeedback, VariantMeta, VariantKey, UIState, GenerationJob, Platform, BrandTone, InputLanguage, ConsumerPersona } from '../types';
 import { DEFAULT_SETTINGS, INPUT_LANGUAGES, PLATFORMS, TONES, VARIANT_TABS } from '../constants';
+import { normalizeProductSellingPoints } from '../utils/productSellingPoints';
 
 // ── Snapshot shape (subset of AppState) ────────────────────────
 
@@ -270,6 +271,7 @@ export function buildWorkbenchSnapshotFromHistory(job: GenerationJob): { snapsho
         brandName: job.brandName ?? '',
         productName: job.productName ?? '',
         brandRedLines: job.brandRedLines ?? '',
+        productSellingPoints: normalizeProductSellingPoints(savedSettings.productSellingPoints),
         structuredBriefEnabled: typeof savedSettings.structuredBriefEnabled === 'boolean'
           ? savedSettings.structuredBriefEnabled
           : DEFAULT_SETTINGS.structuredBriefEnabled,

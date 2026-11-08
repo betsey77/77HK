@@ -1,9 +1,11 @@
 import { useContext, useEffect, useRef, useState, useCallback } from 'react';
-import { Home, RotateCcw, Sun, Moon, LogOut, Menu, User, MessageSquare, CreditCard, Shield, Bell, X } from 'lucide-react';
+import { Home, RotateCcw, Sun, Moon, LogOut, Menu, User, MessageSquare, CreditCard, Shield, Bell, X, ScrollText } from 'lucide-react';
 import { AppContext } from '../../context/AppContext';
 import { checkAdminAccess, getAdminPendingReviewSummary, type AdminPendingReviewSummary } from '../../services/api';
 import { recordAdminPendingReviewSummary } from '../../services/adminReviewReminder';
+import { useVisiblePolling } from '../../hooks/useVisiblePolling';
 import ConfirmDialog from '../shared/ConfirmDialog';
+import ReleaseNotesDialog from './ReleaseNotesDialog';
 
 interface Props {
   userEmail?: string | null;
@@ -19,6 +21,7 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
   const [reviewToast, setReviewToast] = useState<AdminPendingReviewSummary | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restore' | 'logout' | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -29,10 +32,14 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
       if (recordAdminPendingReviewSummary(summary, userEmail)) {
         setReviewToast(summary);
       }
+      return true;
     } catch {
       // The menu remains usable if the non-critical badge refresh fails.
+      return false;
     }
   }, [userEmail]);
+
+  useVisiblePolling(refreshPendingReviews, isAdmin);
 
   // Server-verified admin check (not based on browser role string)
   useEffect(() => {
@@ -45,20 +52,6 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
     });
     return () => { cancelled = true; };
   }, [refreshPendingReviews]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    const onFocus = () => { void refreshPendingReviews(); };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') void refreshPendingReviews();
-    };
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [isAdmin, refreshPendingReviews]);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -240,6 +233,20 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
               </button>
             )}
 
+            {/* 更新日志 — 静态 dialog，不跳转、不重置工作台 */}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                close();
+                setReleaseNotesOpen(true);
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-[11px] text-gray-300 light:text-gray-700 transition-colors hover:bg-gray-800 light:hover:bg-gray-100"
+            >
+              <ScrollText className="h-3.5 w-3.5 text-gray-500" />
+              更新日志
+            </button>
+
             {/* 复原配置 */}
             <button
               type="button"
@@ -345,6 +352,14 @@ export default function HeaderMenu({ userEmail, onLogout, onOpenFeedback }: Prop
         onConfirm={handleConfirm}
         onCancel={() => {
           if (!isConfirming) setConfirmAction(null);
+        }}
+      />
+
+      <ReleaseNotesDialog
+        open={releaseNotesOpen}
+        onClose={() => {
+          setReleaseNotesOpen(false);
+          triggerRef.current?.focus();
         }}
       />
     </div>

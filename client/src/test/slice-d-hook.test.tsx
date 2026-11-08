@@ -20,6 +20,7 @@ import type { BookmarkedCopy, SavedConfig, BootstrapResponse, FavoriteRecord, Ap
 
 const {
   mockFetchBootstrap,
+  mockRecordActivity,
   mockSyncFavoriteUp,
   mockSyncFavoriteDelete,
   mockSyncConfigUp,
@@ -34,6 +35,7 @@ const {
   mockGetSession,
 } = vi.hoisted(() => ({
   mockFetchBootstrap: vi.fn(),
+  mockRecordActivity: vi.fn(),
   mockSyncFavoriteUp: vi.fn(),
   mockSyncFavoriteDelete: vi.fn(),
   mockSyncConfigUp: vi.fn(),
@@ -50,6 +52,7 @@ const {
 
 vi.mock('../services/cloudSync', () => ({
   fetchBootstrap: mockFetchBootstrap,
+  recordActivity: mockRecordActivity,
   syncFavoriteUp: mockSyncFavoriteUp,
   syncFavoriteDelete: mockSyncFavoriteDelete,
   syncConfigUp: mockSyncConfigUp,
@@ -253,6 +256,7 @@ beforeEach(() => {
   mockFetchBootstrap.mockResolvedValue({
     favorites: [], savedConfigs: [], brandProfile: null,
   } as BootstrapResponse);
+  mockRecordActivity.mockResolvedValue(undefined);
   mockIsLegacyImported.mockReturnValue(true);
   mockHasLegacyGlobalKeys.mockReturnValue(false);
   mockSyncImport.mockResolvedValue({ favorites: { imported: 0, updated: 0 }, savedConfigs: { imported: 0, updated: 0 } });
@@ -283,6 +287,25 @@ describe('useCloudSync', () => {
     const statuses = results.map((r) => r.syncStatus);
     expect(statuses).toContain('hydrating');
     expect(statuses).toContain('ready');
+  });
+
+  it('1b. reports the authenticated account once after the first successful bootstrap', async () => {
+    const { results } = renderSingleHarness();
+    expect(await waitForStatus('ready', results)).not.toBeNull();
+    await waitFor(() => mockRecordActivity.mock.calls.length > 0);
+
+    expect(mockRecordActivity).toHaveBeenCalledTimes(1);
+    expect(mockRecordActivity).toHaveBeenCalledWith(OWNER_ID);
+  });
+
+  it('1c. keeps the workbench ready when activity reporting fails', async () => {
+    mockRecordActivity.mockRejectedValueOnce(new Error('telemetry unavailable'));
+    const { results } = renderSingleHarness();
+
+    const ready = await waitForStatus('ready', results);
+    expect(ready).not.toBeNull();
+    expect(ready!.syncError).toBeNull();
+    expect(mockRecordActivity).toHaveBeenCalledWith(OWNER_ID);
   });
 
   // 2. Not permanently spinning

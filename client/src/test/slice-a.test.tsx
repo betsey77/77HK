@@ -245,6 +245,7 @@ describe('AuthContext — real Supabase auth behavior', () => {
     await waitFor(() => {
       expect(screen.getByText('Logged out')).toBeInTheDocument();
     });
+    expect(mockSupabase.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 });
 

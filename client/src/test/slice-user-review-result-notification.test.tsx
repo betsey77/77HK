@@ -138,6 +138,29 @@ describe('user review result notification', () => {
     expect(openedId).toBe('favorite-1');
     window.removeEventListener(OPEN_REVIEWED_FAVORITE_EVENT, listener);
   });
+
+  it('rescans when a later cloud refresh adds a new review result', async () => {
+    const initial = reviewedBookmark({ adminReview: null });
+    const view = renderNotifier('owner-later-review', [initial]);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '文案审核结果' })).toBeNull());
+
+    view.rerender(
+      <AppProvider ownerId="owner-later-review">
+        <Seed bookmarks={[reviewedBookmark({
+          adminReview: {
+            status: 'adopted',
+            note: '新审核',
+            updatedAt: '2026-07-15T14:00:00.000Z',
+          },
+        })]}>
+          <ReviewResultNotifier ownerId="owner-later-review" />
+        </Seed>
+      </AppProvider>,
+    );
+
+    expect(await screen.findByRole('dialog', { name: '文案审核结果' }))
+      .toHaveTextContent('已通过审核');
+  });
 });
 
 describe('reviewed favorite focus', () => {

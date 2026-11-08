@@ -1,0 +1,60 @@
+﻿# workbench-shell local smoke
+# utc=2026-07-22T09:57:00.6169885Z
+# node=v22.23.1
+# nodePath=C:\Users\35308\AppData\Local\nodejs-versions\node-v22.23.1-win-x64\node.exe
+# repo=D:\work\77港话通社媒文案\77
+# asciiCwd=C:\work\77hk-workbench-e2e
+# baseURL=http://127.0.0.1:5184
+# E2E_SCREENSHOT_DIR=D:\work\77港话通社媒文案\77\docs\evidence\2026-07-22\slice-v2-release-ui-regressions-release\screenshots
+# NOTE: local mock shell only 鈥?not real Auth/RLS/payment
+
+
+===== RUN1 =====
+exit=0
+elapsed_ms=38093
+
+
+Running 14 tests using 1 worker
+
+  ok  1 [chromium] › e2e\workbench-shell-local.spec.ts:848:3 › workbench shell local mock › signup keeps entered email and shows the confirmation dialog (1.5s)
+  ok  2 [chromium] › e2e\workbench-shell-local.spec.ts:866:3 › workbench shell local mock › desktop /app loads workbench shell under local mock auth (2.6s)
+  ok  3 [chromium] › e2e\workbench-shell-local.spec.ts:918:3 › workbench shell local mock › desktop workbench stays pinned when the document becomes scrollable (1.8s)
+  ok  4 [chromium] › e2e\workbench-shell-local.spec.ts:948:3 › workbench shell local mock › regenerating copy clears the previous edit highlight on desktop and mobile (2.4s)
+  ok  5 [chromium] › e2e\workbench-shell-local.spec.ts:986:3 › workbench shell local mock › desktop daily check-in earns and locally dismisses the 7-day reward (3.3s)
+  ok  6 [chromium] › e2e\workbench-shell-local.spec.ts:1005:3 › workbench shell local mock › mobile daily check-in claims a pending reward inside 390px viewport (1.8s)
+  ok  7 [chromium] › e2e\workbench-shell-local.spec.ts:1031:3 › workbench shell local mock › product selling point localizes and remains usable on desktop and mobile (2.1s)
+  ok  8 [chromium] › e2e\workbench-shell-local.spec.ts:1057:3 › workbench shell local mock › mobile /app shell uses segment tabs — one full panel, no horizontal overflow (1.6s)
+  ok  9 [chromium] › e2e\workbench-shell-local.spec.ts:1119:3 › workbench shell local mock › desktop case-library full local CRUD via memory mock (dark + light) (4.2s)
+  ok 10 [chromium] › e2e\workbench-shell-local.spec.ts:1256:3 › workbench shell local mock › user review result is deduplicated and a newer review notifies again (3.5s)
+  ok 11 [chromium] › e2e\workbench-shell-local.spec.ts:1285:3 › workbench shell local mock › user can open and focus the reviewed favorite immediately (1.9s)
+  ok 12 [chromium] › e2e\workbench-shell-local.spec.ts:1300:3 › workbench shell local mock › admin pending reminder supports later and immediate queue navigation (3.7s)
+  ok 13 [chromium] › e2e\workbench-shell-local.spec.ts:1325:3 › workbench shell local mock › super admin metrics remain readable on desktop and mobile (3.5s)
+  ok 14 [chromium] › e2e\workbench-shell-local.spec.ts:1376:3 › workbench shell local mock › billing shows trusted usage and manual Pro contact on desktop and mobile (2.8s)
+
+  14 passed (37.5s)
+
+
+===== RUN2 =====
+exit=0
+elapsed_ms=38746
+
+
+Running 14 tests using 1 worker
+
+  ok  1 [chromium] › e2e\workbench-shell-local.spec.ts:848:3 › workbench shell local mock › signup keeps entered email and shows the confirmation dialog (1.6s)
+  ok  2 [chromium] › e2e\workbench-shell-local.spec.ts:866:3 › workbench shell local mock › desktop /app loads workbench shell under local mock auth (1.8s)
+  ok  3 [chromium] › e2e\workbench-shell-local.spec.ts:918:3 › workbench shell local mock › desktop workbench stays pinned when the document becomes scrollable (1.9s)
+  ok  4 [chromium] › e2e\workbench-shell-local.spec.ts:948:3 › workbench shell local mock › regenerating copy clears the previous edit highlight on desktop and mobile (2.5s)
+  ok  5 [chromium] › e2e\workbench-shell-local.spec.ts:986:3 › workbench shell local mock › desktop daily check-in earns and locally dismisses the 7-day reward (3.6s)
+  ok  6 [chromium] › e2e\workbench-shell-local.spec.ts:1005:3 › workbench shell local mock › mobile daily check-in claims a pending reward inside 390px viewport (1.9s)
+  ok  7 [chromium] › e2e\workbench-shell-local.spec.ts:1031:3 › workbench shell local mock › product selling point localizes and remains usable on desktop and mobile (2.3s)
+  ok  8 [chromium] › e2e\workbench-shell-local.spec.ts:1057:3 › workbench shell local mock › mobile /app shell uses segment tabs — one full panel, no horizontal overflow (1.4s)
+  ok  9 [chromium] › e2e\workbench-shell-local.spec.ts:1119:3 › workbench shell local mock › desktop case-library full local CRUD via memory mock (dark + light) (4.3s)
+  ok 10 [chromium] › e2e\workbench-shell-local.spec.ts:1256:3 › workbench shell local mock › user review result is deduplicated and a newer review notifies again (3.7s)
+  ok 11 [chromium] › e2e\workbench-shell-local.spec.ts:1285:3 › workbench shell local mock › user can open and focus the reviewed favorite immediately (1.9s)
+  ok 12 [chromium] › e2e\workbench-shell-local.spec.ts:1300:3 › workbench shell local mock › admin pending reminder supports later and immediate queue navigation (3.6s)
+  ok 13 [chromium] › e2e\workbench-shell-local.spec.ts:1325:3 › workbench shell local mock › super admin metrics remain readable on desktop and mobile (3.6s)
+  ok 14 [chromium] › e2e\workbench-shell-local.spec.ts:1376:3 › workbench shell local mock › billing shows trusted usage and manual Pro contact on desktop and mobile (2.7s)
+
+  14 passed (38.0s)
+

@@ -42,7 +42,8 @@ export function PlanAccessProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const entitlements = await getEntitlements();
-      setPlanId(entitlements.planId === 'pro' ? 'pro' : 'free');
+      // An expired subscription is historical, not a live Pro grant.
+      setPlanId(entitlements.planId === 'pro' && !entitlements.expired ? 'pro' : 'free');
       setError(null);
     } catch {
       // Fail closed: unknown entitlement must never unlock Pro-only data.

@@ -20,6 +20,7 @@ param(
   [string]$AsciiRoot = 'C:\work\77hk-workbench-e2e',
   [string]$Node22Home = '',
   [string]$EvidenceDir = '',
+  [string]$TestGrep = '',
   # Default 5184: avoid clashing with common 5173 (user Vite) and any stuck 5174 listeners.
   [int]$E2ePort = 5184,
   [switch]$Twice,
@@ -378,6 +379,9 @@ try {
     '--reporter=list',
     '--workers=1'
   )
+  if (-not [string]::IsNullOrWhiteSpace($TestGrep)) {
+    $pwArgs += @('--grep', $TestGrep)
+  }
 
   function Invoke-Focused([string]$Label) {
     Write-Host "===== $Label ====="
@@ -407,14 +411,14 @@ try {
   $shots = @(Get-ChildItem -LiteralPath $ShotDir -Filter '*.png' -ErrorAction SilentlyContinue)
   Write-Host "screenshots_count=$($shots.Count)"
   # desktop + 3 mobile + case-library-dark + case-library-light
-  if ($shots.Count -lt 6) {
+  if ([string]::IsNullOrWhiteSpace($TestGrep) -and $shots.Count -lt 6) {
     throw "Expected >=6 screenshots (desktop/mobile/case-library dark+light) under $ShotDir; got $($shots.Count)"
   }
   $shotNames = ($shots | ForEach-Object { $_.Name }) -join ' '
-  if ($shotNames -notmatch 'case-library-dark') {
+  if ([string]::IsNullOrWhiteSpace($TestGrep) -and $shotNames -notmatch 'case-library-dark') {
     throw "Missing case-library-dark screenshot under $ShotDir"
   }
-  if ($shotNames -notmatch 'case-library-light') {
+  if ([string]::IsNullOrWhiteSpace($TestGrep) -and $shotNames -notmatch 'case-library-light') {
     throw "Missing case-library-light screenshot under $ShotDir"
   }
 

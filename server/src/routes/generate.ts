@@ -1,18 +1,34 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { diagnoseAndGenerate, audit, scoreSource, generateConsumerFeedback, scoreCantoneseNaturalness } from '../services/deepseekService.js';
 import { generateWithCantoneseLLM } from '../services/cantoneseService.js';
 import { fallbackAudit, fallbackGenerate } from '../services/fallbackService.js';
+import {
+  getModelRuntimePolicy,
+  RealModelUnavailableError,
+} from '../services/modelPolicy.js';
 import { resolvePersonas } from '../services/personaService.js';
 import { HK_CALENDAR } from '../services/calendarData.js';
 import { requireAuth } from '../middleware/auth.js';
 import { upsertJob, markProcessing, completeJob, failJob } from '../services/generationJobsService.js';
-import { reserveQuota, consumeQuota, releaseQuota } from '../services/quotaService.js';
+import {
+  reserveQuota,
+  reserveQuotaWithReason,
+  consumeQuota,
+  releaseQuota,
+  type QuotaDenialReason,
+} from '../services/quotaService.js';
+import { recordQuotaDenial } from '../services/quotaDenialService.js';
 import {
   validateDiagnoseGenerateResult,
   validateAuditResult,
 } from '../parsers/parseResponse.js';
 import { validateCalendarCoverage, ensureCalendarCoverage } from '../services/calendarValidation.js';
+import {
+  traditionalizeVariantMeta,
+  traditionalizeVariants,
+} from '../services/traditionalizeHk.js';
 import type { GenerateRequest, GenerationEngine, InputLanguage } from '../types/index.js';
 import { resolveW1Fields, VALID_PRIMARY_TONES } from '../prompts/w1Constraints.js';
 import { createUserClient } from '../services/supabase.js';
@@ -24,6 +40,13 @@ import {
   sanitizeCaseLibraryFieldsForPersistence,
   CASE_LIBRARY_PARTIAL_NOTICE,
 } from '../services/caseLibraryContext.js';
+import { normalizeProductSellingPoints } from '../services/sellingPoints.js';
+import type { ModelCallContext } from '../services/telemetryService.js';
+import {
+  afterGenerationPersistReviewPack,
+  buildCaptureInputFromGenerateContext,
+  buildManifestForGeneration,
+} from '../services/badCaseReviewPackService.js';
 
 // ============================================================
 // Error classification helpers
@@ -135,6 +158,12 @@ function validateRequest(body: unknown): GenerateRequest {
   const brandRedLines = obj.brandRedLines && typeof obj.brandRedLines === 'string' ? obj.brandRedLines.trim() : undefined;
   const structuredBriefEnabled = obj.structuredBriefEnabled === true ? true : undefined;
   const refresh = obj.refresh === true ? true : undefined;
+  const workbench = (obj.workbenchSettings && typeof obj.workbenchSettings === 'object'
+    ? obj.workbenchSettings
+    : {}) as Record<string, unknown>;
+  const productSellingPoints = normalizeProductSellingPoints(
+    obj.productSellingPoints ?? workbench.productSellingPoints,
+  );
 
   // Consumer personas: accept array or undefined
   let consumerPersonas = undefined;
@@ -169,9 +198,6 @@ function validateRequest(body: unknown): GenerateRequest {
 
   // W3: accept selectedCaseLibraryIds only (UUIDs, max 3). Never accept client case bodies.
   // Prefer top-level IDs; fall back to workbenchSettings.selectedCaseLibraryIds.
-  const workbench = (obj.workbenchSettings && typeof obj.workbenchSettings === 'object'
-    ? obj.workbenchSettings
-    : {}) as Record<string, unknown>;
   const selectedCaseLibraryIds = normalizeSelectedCaseLibraryIds(
     obj.selectedCaseLibraryIds ?? workbench.selectedCaseLibraryIds,
   );
@@ -197,6 +223,7 @@ function validateRequest(body: unknown): GenerateRequest {
     brandName: brandName || undefined,
     productName: productName || undefined,
     brandRedLines: brandRedLines || undefined,
+    productSellingPoints: productSellingPoints.length > 0 ? productSellingPoints : undefined,
     structuredBriefEnabled: structuredBriefEnabled || undefined,
     creativityLevel,
     inputLanguage: inputLanguage as InputLanguage,
@@ -219,14 +246,43 @@ function validateRequest(body: unknown): GenerateRequest {
 // POST /api/generate — authenticated generation with persistence
 // ============================================================
 
+/** Map a machine-readable denial to a stable, non-PII message. */
+function quotaDenialMessage(reason: QuotaDenialReason | null): string {
+  switch (reason) {
+    case 'period_expired':
+      return 'Your membership period has expired. Renew Pro to continue generating.';
+    case 'quota_exhausted':
+      return 'You have used all generation quota for the current period.';
+    case 'no_subscription':
+      return 'No active subscription was found for this account.';
+    case 'inactive_subscription':
+      return 'The subscription is not active.';
+    case 'period_not_started':
+      return 'The subscription period has not started yet.';
+    default:
+      return 'You have no remaining generation quota. Please upgrade your plan to continue.';
+  }
+}
+
 router.post('/generate', requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId as string;
   const userJwt = req.userJwt as string;
   let jobId: string | undefined;
   let reservation: Awaited<ReturnType<typeof reserveQuota>> = null;
+  // One correlation id for this request: job row, model attempts and review pack.
+  const traceId = randomUUID();
 
   try {
     const params = validateRequest(req.body);
+    const modelPolicy = getModelRuntimePolicy();
+
+    if (modelPolicy.requireRealModel && !modelPolicy.hasConfiguredRealModel) {
+      res.status(503).json({
+        error: 'A real AI model is required but not configured.',
+        code: 'REAL_MODEL_NOT_CONFIGURED',
+      });
+      return;
+    }
 
     // ---- W3: resolve personal case library via user JWT (RLS), never service role ----
     // Client may only send selectedCaseLibraryIds; bodies come from DB.
@@ -272,9 +328,11 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
     const resolvedSnapshots = buildCaseLibrarySnapshots(caseResolve.entries);
     const brief = {
       ...rawBody,
+      productSellingPoints: params.productSellingPoints ?? [],
       selectedCaseLibraryIds: caseResolve.requestedIds,
       workbenchSettings: {
         ...incomingWorkbench,
+        productSellingPoints: params.productSellingPoints ?? [],
         selectedCaseLibraryIds: caseResolve.requestedIds,
         resolvedCaseLibrarySnapshots: resolvedSnapshots,
       },
@@ -294,7 +352,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       productName: params.productName,
       brandRedLines: params.brandRedLines,
       brief,
-    });
+    }, traceId);
 
     // Duplicate request handling:
     // - completed → return existing result (200)
@@ -313,6 +371,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
           scores: existingJob.scores ?? undefined,
           consumerFeedback: existingJob.consumerFeedback ?? undefined,
           jobId: existingJob.id,
+          traceId: existingJob.traceId ?? traceId,
           idempotent: true,
         });
         return;
@@ -321,6 +380,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       if (existingJob.status === 'processing' || existingJob.status === 'pending') {
         res.status(202).json({
           jobId: existingJob.id,
+          traceId: existingJob.traceId ?? traceId,
           status: existingJob.status,
           message: existingJob.status === 'processing'
             ? 'Generation is already in progress. Poll for results.'
@@ -333,6 +393,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       // failed — return error info, client must use new idempotency key to retry
       res.status(200).json({
         jobId: existingJob.id,
+        traceId: existingJob.traceId ?? traceId,
         status: 'failed',
         error: existingJob.errorMessage ?? 'Previous generation failed',
         errorCode: existingJob.errorCode,
@@ -348,25 +409,66 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
     // @C2a-TRUSTED-WRITE: Quota is checked and reserved server-side using the
     // trusted Supabase client (service_role). The browser cannot forge quota.
     // Uses the same idempotencyKey as the job for coordinated idempotency.
-    reservation = await reserveQuota(userId, idempotencyKey);
+    // reserve_quota_v2 also reports WHY a denial happened; it falls back to v1
+    // until migration 20261108120000 is applied.
+    const outcome = await reserveQuotaWithReason(userId, idempotencyKey);
+    reservation = outcome.reservation;
     if (!reservation) {
       // No active subscription or quota exhausted — do NOT call any model.
-      // Mark the job as failed (no quota) and return 402.
+      // Record the precise reason (2026-11-08 incident: "expired Pro" and
+      // "quota used up" used to be indistinguishable) and fail the job.
+      const reason: QuotaDenialReason = outcome.reason ?? 'unknown';
+      await recordQuotaDenial({
+        userId,
+        jobId: jobId ?? null,
+        traceId,
+        reason,
+        planName: outcome.planName,
+        periodEnd: outcome.periodEnd,
+      });
+      const denialMessage = quotaDenialMessage(reason);
       try {
-        await failJob(jobId, userId, 'Insufficient quota. Please upgrade your plan.', 'QUOTA_EXHAUSTED');
+        await failJob(
+          jobId,
+          userId,
+          `Insufficient quota (reason=${reason}). ${denialMessage}`,
+          'QUOTA_EXHAUSTED',
+        );
       } catch (e) {
         console.error('[Generate] Failed to persist quota-exhausted state:', e);
       }
+      try {
+        await afterGenerationPersistReviewPack({
+          jobId,
+          ownerId: userId,
+          status: 'failed',
+          errorCode: 'QUOTA_EXHAUSTED',
+          generationEngine: null,
+          artifactManifest: buildManifestForGeneration({
+            generationEngine: null,
+            captureInput: null,
+          }),
+        });
+      } catch {
+        console.error(`[review_pack] category=review_pack.unexpected jobId=${jobId}`);
+      }
       res.status(402).json({
         error: 'Insufficient quota',
-        message: 'You have no remaining generation quota. Please upgrade your plan to continue.',
+        message: denialMessage,
+        reason,
         jobId,
+        traceId,
       });
       return;
     }
 
     // Mark as processing
     await markProcessing(jobId, userId);
+    const modelCallContext: ModelCallContext = {
+      jobId,
+      requestId: randomUUID(),
+      traceId,
+    };
 
     // ---- Step 1: Generate ----
     let generateResult;
@@ -374,7 +476,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
 
     const hasSelfHosted = !!process.env.CANTONESE_API_URL;
     const cantoResult = hasSelfHosted
-      ? await withTimeout(generateWithCantoneseLLM(params), 15_000, null)
+      ? await withTimeout(generateWithCantoneseLLM(params, modelCallContext), 15_000, null)
       : null;
 
     if (cantoResult) {
@@ -383,7 +485,14 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       console.log('[Generate] Using self-hosted Cantonese LLM engine');
     } else {
       console.warn('[Generate] Cantonese LLM unavailable, falling back to DeepSeek...');
-      let deepseekResult = await withTimeout(diagnoseAndGenerate(params), 25_000, null);
+      const deepseekResult = await withTimeout(
+        diagnoseAndGenerate(params, modelCallContext, 1).catch((error) => {
+          console.error('[Generate] DeepSeek request failed:', error);
+          return null;
+        }),
+        modelPolicy.generationTimeoutMs,
+        null,
+      );
       if (deepseekResult) {
         generateResult = deepseekResult;
         generationEngine = 'deepseek';
@@ -391,19 +500,23 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
 
         // §16.3: Score Cantonese naturalness — if < 3, auto-retry once
         const cantoScore = await withTimeout(
-          scoreCantoneseNaturalness(deepseekResult.variants),
-          8_000,
+          scoreCantoneseNaturalness(deepseekResult.variants, modelCallContext, 1),
+          modelPolicy.qualityScoreTimeoutMs,
           null,
         );
         if (cantoScore) {
           console.log(`[Generate] Cantonese naturalness: avg=${cantoScore.average}`);
-          if (cantoScore.average < 3) {
+          if (cantoScore.average < 3 && modelPolicy.allowQualityRetry) {
             console.warn(`[Generate] Cantonese score ${cantoScore.average} < 3 — auto-retrying generation...`);
-            const retryResult = await withTimeout(diagnoseAndGenerate(params), 25_000, null);
+            const retryResult = await withTimeout(
+              diagnoseAndGenerate(params, modelCallContext, 2),
+              modelPolicy.generationTimeoutMs,
+              null,
+            );
             if (retryResult) {
               const retryScore = await withTimeout(
-                scoreCantoneseNaturalness(retryResult.variants),
-                8_000,
+                scoreCantoneseNaturalness(retryResult.variants, modelCallContext, 2),
+                modelPolicy.qualityScoreTimeoutMs,
                 null,
               );
               if (retryScore && retryScore.average > cantoScore.average) {
@@ -416,6 +529,9 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
           }
         }
       } else {
+        if (modelPolicy.requireRealModel) {
+          throw new RealModelUnavailableError();
+        }
         console.warn('[Generate] DeepSeek also unavailable, using rules engine');
         generateResult = fallbackGenerate(params);
         generationEngine = 'rules';
@@ -456,6 +572,21 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       }
     }
 
+    // ---- Last-mile: simplified → HK traditional (no model call) ----
+    // Prompts already require 繁體; models still leak 简体. Normalize before
+    // audit / feedback / persist so users never see residual simplified glyphs
+    // that our map can fix.
+    {
+      const before = validatedGen.variants.shorts;
+      validatedGen.variants = traditionalizeVariants(validatedGen.variants);
+      if (validatedGen.variantMeta) {
+        validatedGen.variantMeta = traditionalizeVariantMeta(validatedGen.variantMeta);
+      }
+      if (before !== validatedGen.variants.shorts) {
+        console.log('[Generate] Traditionalize pass adjusted at least one variant glyph');
+      }
+    }
+
     // ---- Steps 2/3/4 run in parallel ----
     const personas = resolvePersonas(params.consumerPersonas);
     const hasPersonas = personas.length > 0;
@@ -463,12 +594,12 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
 
     const [auditResult, sourceScores, consumerFeedbackRaw] = await Promise.all([
       withTimeout(
-        audit(validatedGen.variants, params.brandRedLines).catch(() => fallbackAuditResult),
-        25_000,
+        audit(validatedGen.variants, params.brandRedLines, modelCallContext).catch(() => fallbackAuditResult),
+        modelPolicy.postProcessingTimeoutMs,
         fallbackAuditResult,
       ),
       generationEngine !== 'rules'
-        ? withTimeout(scoreSource(params.source).catch(() => null), 8_000, null)
+        ? withTimeout(scoreSource(params.source, modelCallContext).catch(() => null), 8_000, null)
         : Promise.resolve(null),
       generationEngine !== 'rules' && hasPersonas
         ? withTimeout(
@@ -480,8 +611,9 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
               params.brandName,
               params.productName,
               params.brandRedLines,
+              modelCallContext,
             ).catch(() => null),
-            35_000,
+            modelPolicy.postProcessingTimeoutMs,
             null,
           )
         : Promise.resolve(null),
@@ -522,6 +654,64 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       generationEngine,
     });
 
+    // ---- E1/E2 best-effort: artifact snapshot + conditional review pack ----
+    // Must not change the generation HTTP result on failure.
+    try {
+      const captureInput = buildCaptureInputFromGenerateContext({
+        params: {
+          platform: params.platform,
+          tone: params.tone,
+          toneModifiers: params.toneModifiers,
+          cantoneseLevel: params.cantoneseLevel,
+          englishMixingLevel: params.englishMixingLevel,
+          creativityLevel: params.creativityLevel,
+          inputLanguage: params.inputLanguage,
+          copyType: params.copyType,
+          customCopyType: params.customCopyType,
+          lengthControlEnabled: params.lengthControlEnabled,
+          copyLengthLevel: params.copyLengthLevel,
+          refresh: params.refresh,
+          brandName: params.brandName,
+          productName: params.productName,
+          brandRedLines: params.brandRedLines,
+          productSellingPoints: params.productSellingPoints,
+          referenceCases: params.referenceCases,
+          calendarEvents: params.calendarEvents,
+        },
+        caseResolve: {
+          requestedIds: caseResolve.requestedIds,
+          entries: caseResolve.entries.map((e) => ({
+            id: e.id,
+            caseType: e.caseType,
+            title: e.title,
+            updatedAt: null,
+          })),
+          partialUnavailable: caseResolve.partialUnavailable,
+        },
+        generationEngine,
+      });
+      const artifactManifest = buildManifestForGeneration({
+        generationEngine,
+        captureInput,
+      });
+      await afterGenerationPersistReviewPack({
+        jobId,
+        ownerId: userId,
+        status: 'completed',
+        variants: validatedGen.variants as never,
+        audit: validatedAudit as never,
+        scores: generatedScores
+          ? ({ generated: generatedScores, source: sourceScores } as never)
+          : null,
+        brandRedLines: params.brandRedLines ?? null,
+        productSellingPoints: (params.productSellingPoints as never) ?? null,
+        generationEngine,
+        artifactManifest,
+      });
+    } catch {
+      console.error(`[review_pack] category=review_pack.unexpected jobId=${jobId}`);
+    }
+
     // ---- Quota: consume the reservation on success ----
     try {
       const consumed = await consumeQuota(userId, reservation.reservationId);
@@ -549,6 +739,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
         : undefined,
       consumerFeedback,
       jobId,
+      traceId,
       // W3: generic notice only — no existence leak for foreign/deleted IDs
       ...(caseResolve.partialUnavailable
         ? { warnings: [CASE_LIBRARY_PARTIAL_NOTICE] }
@@ -576,6 +767,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       console.warn(`[Generate] Uncertain error — keeping job ${jobId} as processing, reservation alive: ${message}`);
       res.status(202).json({
         jobId,
+        traceId,
         status: 'processing',
         message: 'Generation may still be in progress. Poll for results.',
         retryable: true,
@@ -588,15 +780,40 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
     // Uncertain error without jobId: nothing to keep alive, fall through.
 
     // Known business failure: fail the job and release quota
-    const status = message.includes('required') || message.includes('Invalid') || message.includes('must be')
-      ? 400
-      : 500;
+    const status = err instanceof RealModelUnavailableError
+      ? 503
+      : message.includes('required') || message.includes('Invalid') || message.includes('must be')
+        ? 400
+        : 500;
 
     if (jobId) {
       try {
         await failJob(jobId, userId, message, status === 400 ? 'VALIDATION_ERROR' : 'GENERATION_ERROR');
       } catch (e) {
         console.error('[Generate] Failed to persist error state:', e);
+      }
+
+      // E1/E2 best-effort failure pack (snapshot_missing when engine unknown).
+      // Never alters the generation error HTTP response.
+      try {
+        const engine =
+          typeof (err as { generationEngine?: string })?.generationEngine === 'string'
+            ? (err as { generationEngine?: string }).generationEngine
+            : undefined;
+        const artifactManifest = buildManifestForGeneration({
+          generationEngine: engine ?? null,
+          captureInput: null,
+        });
+        await afterGenerationPersistReviewPack({
+          jobId,
+          ownerId: userId,
+          status: 'failed',
+          errorCode: status === 400 ? 'VALIDATION_ERROR' : 'GENERATION_ERROR',
+          generationEngine: engine ?? null,
+          artifactManifest,
+        });
+      } catch {
+        console.error(`[review_pack] category=review_pack.unexpected jobId=${jobId}`);
       }
     }
 
@@ -610,7 +827,12 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       }
     }
 
-    res.status(status).json({ error: message, jobId });
+    res.status(status).json({
+      error: message,
+      jobId,
+      traceId,
+      ...(err instanceof RealModelUnavailableError ? { code: err.code } : {}),
+    });
   }
 });
 

@@ -1,8 +1,19 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { createUserClient } from '../services/supabase.js';
+import { recordAppActivity } from '../services/telemetryService.js';
 
 const router = Router();
+
+/** Record one server-owned Hong Kong activity day for the signed-in user. */
+router.post('/me/activity', requireAuth, async (req: Request, res: Response) => {
+  try {
+    await recordAppActivity(req.userId!);
+    res.status(204).send();
+  } catch {
+    res.status(503).json({ error: 'Activity telemetry unavailable' });
+  }
+});
 
 /**
  * GET /api/me

@@ -1,8 +1,8 @@
 /**
  * Slice E: BillingPage (/app/billing)
  *
- * ⚠️ MOCK — displays current plan, usage, and upgrade flow.
- * All data is MOCK — no real Alipay, no remote order writes.
+ * Displays Supabase-backed plan usage for the signed-in account.
+ * Online payment can be disabled; internal Preview then uses manual Pro activation.
  *
  * Protected route: requires authentication.
  */
@@ -10,10 +10,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Zap, Clock, BarChart3, Receipt, ArrowRight,
-  AlertTriangle, Check, X, Loader2, RefreshCw,
+  AlertTriangle, Check, X, Loader2, RefreshCw, MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import HeaderMenu from '../components/layout/HeaderMenu';
+import TeamContactDialog from '../components/marketing/TeamContactDialog';
 import type {
   PlanEntitlements, PaymentOrder, CheckoutResponse, PlanInfo,
 } from '../types';
@@ -58,7 +59,7 @@ export default function BillingPage() {
 
   // Plans (public — no auth needed, but we fetch to get paymentMode)
   const [paymentMode, setPaymentMode] = useState<'mock' | 'alipay_sandbox'>('mock');
-  const [isMock, setIsMock] = useState(true);
+  const [proContactOpen, setProContactOpen] = useState(false);
 
   // Entitlements
   const [entitlements, setEntitlements] = useState<PlanEntitlements | null>(null);
@@ -82,7 +83,6 @@ export default function BillingPage() {
       if (res.ok) {
         const data = await res.json();
         setPaymentMode(data.paymentMode || 'mock');
-        setIsMock(data.isMock !== false);
       }
     } catch {
       // Default to mock
@@ -138,6 +138,10 @@ export default function BillingPage() {
   // ── Handle checkout ──
   async function handleCheckout(planId: string) {
     if (!jwt) return;
+    if (paymentMode !== 'alipay_sandbox') {
+      setProContactOpen(true);
+      return;
+    }
     setCheckingOut(true);
     setCheckoutError(null);
     setCheckoutResult(null);
@@ -208,10 +212,42 @@ export default function BillingPage() {
     );
   }
 
-  const currentPlan = (entitlements ? getPlan(entitlements.planId) : FREE_PLAN) ?? FREE_PLAN;
-  const isPro = entitlements?.planId === 'pro';
-  const used = entitlements?.quotaUsed ?? 0;
-  const total = entitlements?.quotaTotal ?? 20;
+  // Never present fallback quota as real account data when the API is unavailable.
+  if (entError || !entitlements) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 light:bg-white">
+        <div className="w-full max-w-sm rounded-lg border border-red-500/30 bg-red-500/10 p-5 text-center">
+          <AlertTriangle className="mx-auto mb-3 h-6 w-6 text-red-400" />
+          <h1 className="text-base font-semibold text-gray-100 light:text-gray-900">套餐信息加载失败</h1>
+          <p className="mt-2 text-sm text-red-300 light:text-red-600">
+            {entError || '暂时无法读取当前账号额度'}
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <a href="/app" className="text-sm text-gray-400 hover:text-gray-200 light:text-gray-600 light:hover:text-gray-900">
+              返回工作台
+            </a>
+            <button
+              type="button"
+              onClick={fetchEntitlements}
+              className="inline-flex items-center gap-1.5 rounded-md bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-400"
+            >
+              <RefreshCw className="h-4 w-4" />
+              重试
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentPlan = getPlan(entitlements.planId) ?? FREE_PLAN;
+  const isPro = entitlements.planId === 'pro';
+  // An expired subscription is displayed as historical: the plan is kept, but
+  // quota is not usable and the page offers renewal instead of a silent stale card.
+  const isExpired = entitlements.expired === true;
+  const needsRenewal = isPro && isExpired;
+  const used = entitlements.quotaUsed;
+  const total = entitlements.quotaTotal;
   const pct = quotaPercent(used, total);
   const returnParams = new URLSearchParams(window.location.search);
   const returnedOrderId = returnParams.get('payment') === 'success'
@@ -260,7 +296,7 @@ export default function BillingPage() {
               {paymentMode === 'alipay_sandbox' ? (
                 <><strong>[支付宝沙箱]</strong> 沙箱测试环境。所有支付通过支付宝沙箱网关，未产生真实交易。</>
               ) : (
-                <><strong>[MOCK]</strong> 此为演示结算页。所有套餐数据和订单均为本地 Mock，未接入真实支付宝支付。</>
+                <><strong>内部开通</strong> 用量来自实际账号记录；Pro 由管理员人工开通，当前不会自动扣款。</>
               )}
             </span>
           </p>
@@ -279,10 +315,20 @@ export default function BillingPage() {
                     PRO
                   </span>
                 )}
+                {isExpired && (
+                  <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400 light:bg-red-100 light:text-red-700">
+                    已过期
+                  </span>
+                )}
               </h3>
               <p className="text-xs text-gray-500 light:text-gray-400 mt-0.5">
                 {entitlements?.planId === 'free' ? '每滚动 7 天' : '每自然月'} · ¥{currentPlan.priceCny}{currentPlan.priceCny > 0 ? '/月' : ''}
               </p>
+              {isExpired && (
+                <p className="mt-1 text-xs text-red-400 light:text-red-600">
+                  会员已于 {formatDate(entitlements.cycleEnd)} 到期，生成功能已暂停，请续费 Pro。
+                </p>
+              )}
             </div>
             <Zap className={`h-5 w-5 ${isPro ? 'text-emerald-400 light:text-orange-500' : 'text-gray-600'}`} />
           </div>
@@ -312,22 +358,25 @@ export default function BillingPage() {
 
           {/* Cycle info */}
           {entitlements && (
-            <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-500 light:text-gray-400">
+            <div className={`flex items-center gap-1.5 mt-3 text-xs ${
+              isExpired ? 'text-red-400 light:text-red-600' : 'text-gray-500 light:text-gray-400'
+            }`}>
               <Clock className="h-3.5 w-3.5" />
               <span>
                 周期：{formatDate(entitlements.cycleStart)} — {formatDate(entitlements.cycleEnd)}
+                {isExpired ? '（已过期）' : ''}
               </span>
             </div>
           )}
         </section>
 
-        {/* ── Upgrade CTA (if Free) ── */}
-        {!isPro && (
+        {/* ── Upgrade / Renew CTA (Free, or expired Pro) ── */}
+        {(!isPro || isExpired) && (
           <section className="rounded-xl border-2 border-emerald-500/30 light:border-orange-500/30 bg-emerald-500/5 light:bg-orange-50 p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="font-semibold flex items-center gap-2">
-                  升级到 {PRO_PLAN.nameZh}
+                  {needsRenewal ? '续费 ' : '升级到 '}{PRO_PLAN.nameZh}
                   <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400 light:bg-orange-100 light:text-orange-600">
                     ¥{PRO_PLAN.priceCny}/月
                   </span>
@@ -339,6 +388,11 @@ export default function BillingPage() {
               <button
                 onClick={() => handleCheckout('pro')}
                 disabled={checkingOut}
+                aria-label={
+                  paymentMode === 'alipay_sandbox'
+                    ? (needsRenewal ? '续费 Pro' : '升级到 Pro')
+                    : (needsRenewal ? '联系管理员续费 Pro' : '联系管理员开通 Pro')
+                }
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-emerald-400 px-5 text-sm font-semibold text-gray-950 transition-colors hover:bg-emerald-300 disabled:opacity-50 light:bg-orange-500 light:text-white light:hover:bg-orange-600 shrink-0"
               >
                 {checkingOut ? (
@@ -348,7 +402,11 @@ export default function BillingPage() {
                   </>
                 ) : (
                   <>
-                    升级到 Pro <ArrowRight className="h-4 w-4" />
+                    {paymentMode === 'alipay_sandbox' ? (
+                      <>{needsRenewal ? '续费 Pro' : '升级到 Pro'} <ArrowRight className="h-4 w-4" /></>
+                    ) : (
+                      <>{needsRenewal ? '联系管理员续费 Pro' : '联系管理员开通 Pro'} <MessageCircle className="h-4 w-4" /></>
+                    )}
                   </>
                 )}
               </button>
@@ -430,10 +488,16 @@ export default function BillingPage() {
           }`}>
             {paymentMode === 'alipay_sandbox'
               ? '[支付宝沙箱] 订单存储在数据库中'
-              : '[MOCK] 所有订单记录存储在内存中，重启后清空'}
+              : '当前未启用在线支付，不会产生自动扣款订单'}
           </p>
         </section>
       </div>
+
+      <TeamContactDialog
+        open={proContactOpen}
+        onClose={() => setProContactOpen(false)}
+        context="pro"
+      />
 
       {showSuccessDialog && verifiedPaidOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">

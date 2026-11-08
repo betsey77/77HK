@@ -1,5 +1,135 @@
 # Acceptance Criteria
 
+## 2026-07-22 - V2.1 统一人工验收与最终 UI 回归
+
+| 验收项 | 结果 |
+| --- | --- |
+| 普通管理员仅审核同 `review_group`，`super_admin` 全局可见 | 用户验收通过；既有权限代码未改 |
+| 工作台异常文档滚动不露出大片空白 | 通过；视口几何断言与桌面截图 |
+| 手改后再次生成不沿用旧差异、不整段标红 | 通过；桌面与 390px 生成闭环 |
+| 隔离浏览器完整回归 | 14/14 连续两遍 |
+| 全量发布门禁 | Client 487/487；Server 809/809；双端 typecheck/build；audit 0 |
+
+证据：`docs/evidence/2026-07-22/slice-v2-release-ui-regressions-release/verification.md`。
+
+## 2026-07-22 - Slice E8 staging API/DeepSeek closure
+
+| 验收项 | 结果 |
+| --- | --- |
+| 真实 Auth/JWT 与普通 admin 403 | 通过 |
+| super_admin E8 公开 API 写操作 | 通过 |
+| 完成/失败生成 hook 与幂等 | 通过 |
+| 真实 DeepSeek、旧记录升级、复点幂等 | 通过 |
+| 无效密钥安全失败态 | 通过 |
+| 详情审计、隐藏对象 fail-closed | 通过 |
+| Finding 人工结论、旧哈希 409、review-only 提案 | 通过 |
+| 诊断指标与领域事件 | 通过 |
+| 临时业务数据零残留、遥测解除 job 关联 | 通过 |
+| Server 809/809、typecheck/build；相关 Client 22/22 | 通过 |
+| staging 浏览器按钮与桌面/390px 截图 | 待统一人工验收 |
+
+
+## 2026-07-22：2.1 Slice E7b 诊断提醒与折叠
+
+| 验收项 | 结果 |
+| --- | --- |
+| `super_admin` 默认看到折叠摘要，仍可识别时间窗与异常类别数 | ✅ 5 类确定性信号；44px 展开控件 |
+| 新问题摘要弹出可关闭提醒，并可直接展开详情 | ✅ `role="alert"` 非阻塞消息卡 |
+| 同一时间窗/同一摘要刷新不重复提醒，摘要变化可再提醒 | ✅ 会话级、无敏感数据签名 |
+| 普通管理员不请求、不显示面板或提醒 | ✅ 组件权限回归 |
+| 桌面与 390px 可读、无页面级横向溢出 | ✅ Playwright 12/12 + 截图 |
+| 前端全量回归、类型检查、生产构建 | ✅ Client 481/481；均通过 |
+
+证据：`docs/evidence/2026-07-22/slice-e7b-diagnostics-alert/verification.md`。
+
+## 2026-07-22：2.1 Slice E1-E7 本地门禁
+
+| 验收项 | 结果 |
+| --- | --- |
+| 工件快照、稳定哈希、旧任务不可追溯语义 | ✅ 自动化合同 |
+| 审阅包包含样本、Trace、owner、标准、findings、审计 | ✅ 本地 API/UI 合同 |
+| 详情 `scope -> audit -> recheck -> body`、普通 admin 403 | ✅ 路由回归 |
+| 指派/状态/Finding 审核/分析频控 | ✅ 服务与路由回归 |
+| Prompt/规则/知识/模型策略待审 diff | ✅ 可信快照哈希 + 白名单 JSON Patch；不自动发布 |
+| 分类/复发/误报/覆盖/时长/成本可用性诊断 | ✅ null 与合法 0 分离；无价格不伪造金额 |
+| 工作台版本号与更新日志入口 | ✅ `v2.1`；部署前无已上线条目 |
+| 全量测试、类型检查、生产构建 | ✅ Client 478/478；Server 805/805；双端通过 |
+| Slice E Migration | ⏳ 本地草案，未应用 |
+| 真实 staging、统一人工验收、GitHub/Vercel 发布 | ⏳ 独立门禁 |
+
+证据：`docs/evidence/2026-07-22/slice-e1-e7-local/verification.md`。
+
+## 2026-07-22：1.1.4.5 Slice D7 staging 数据门禁
+
+| 验收项 | 结果 |
+| --- | --- |
+| D1/D4 Migration 在授权 staging 的 Local/Remote 版本一致 | ✅ `20260719090000`、`20260719120000` |
+| 第 7 日 8 路并发、终身唯一奖励、Free 立即发放 | ✅ 真实 PostgreSQL |
+| 有效 Pro pending、提前/跨 owner 拒绝、到期领取与重复幂等 | ✅ 真实 PostgreSQL |
+| owner 只读、浏览器禁写、service-role-only RPC/私表 | ✅ 真实 Auth + RLS/ACL |
+| 活动 API 按认证 owner 与香港日去重，客户端伪造字段无效 | ✅ 真实 API + DB |
+| 模型日志合法/非法约束与浏览器隔离 | ✅ 合成 usage；未调用真实模型 |
+| 临时用户与测试行清理 | ✅ 五项复核均为 0 |
+| 全量回归、类型检查、生产构建 | ✅ Client 447/447；Server 703/703；双端通过 |
+| 最终人工视觉/业务验收与部署 | ⏳ 仍是发布前独立门禁 |
+
+证据：`docs/evidence/2026-07-22/slice-d7-staging-acceptance/verification.md`。
+
+## 2026-07-19：注册确认与签到视觉返修
+
+| 验收项 | 结果 |
+| --- | --- |
+| 注册操作期不卸载表单或清空本地输入状态 | ✅ 路由级红/绿回归 |
+| Supabase 接受注册后显示邮箱确认弹窗 | ✅ 单元 + `/signup` localhost E2E |
+| 关闭弹窗后显示“请检查邮箱”和目标邮箱 | ✅ Playwright |
+| 签到层级、7 日连线、奖励完成态与主操作可辨 | ✅ 桌面/390px 截图目视 |
+| 深浅色、44px、键盘与 reduced-motion 约束保留 | ✅ build/组件合同 |
+| 全量与浏览器双跑 | ✅ Client 437/437；Playwright 11/11×2；18 张截图 |
+
+证据：`docs/evidence/2026-07-19/slice-d3-checkin-ui/verification.md`。
+
+## 2026-07-19：1.1.4.5 Slice D3 本地签到 UI 门禁
+
+| 验收项 | 结果 |
+| --- | --- |
+| 云同步 ready 后按登录 owner 展示每日签到 | ✅ 组件与影响面测试 |
+| 连续进度、今日状态和奖励均使用服务端 DTO | ✅ 客户端不计算/提交业务日期或连续天数 |
+| 同账号同香港日期关闭去扰、次日重现 | ✅ 单元合同与浏览器 reload 验证 |
+| 第 7 天立即奖励、有效 Pro 待领取、到期领取 | ✅ API/组件合同；桌面 earning 与 390px claim E2E |
+| 加载失败重试、重复点击防护、领取冲突安全提示 | ✅ 聚焦 14/14 |
+| 可访问弹窗、键盘关闭/焦点循环、44px 操作目标和移动端无横溢 | ✅ 组件实现；截图目视；Playwright viewport 断言 |
+| 影响面/全量/构建 | ✅ 27/27；最新 437/437；production build |
+| 本地隔离浏览器双跑 | ✅ SelfTest；最新 11/11×2；18 张截图；零外网；零残留进程 |
+| 真实数据库/RLS/RPC | ⏳ D1 Migration 未应用，本切片不宣称通过 |
+
+证据：`docs/evidence/2026-07-19/slice-d3-checkin-ui/verification.md`。
+
+## 2026-07-19：1.1.4.5 Slice D1 本地草案门禁
+
+| 验收项 | 结果 |
+| --- | --- |
+| 香港自然日、连续/漏签、同日幂等和每账号唯一奖励的 SQL 契约 | ✅ 静态合同通过 |
+| Free/无有效 Pro 立即固定 30 天；有效 Pro pending、到期后领取 | ✅ SQL 契约通过 |
+| owner 只读 RLS；浏览器无写权限；RPC 仅 service_role | ✅ 静态 ACL/RLS 契约通过 |
+| 不修改 `usage_ledger`、额度 RPC 或支付 RPC | ✅ 静态禁止项通过 |
+| 聚焦/受影响/全量 Server 验证 | ✅ 6/6；56/56；615/615；typecheck/build |
+| Migration 实际执行、RLS A/B、并发和 Advisor | ⏳ 未执行，留待经授权的 D7 |
+| D2 API 与 D3 本地 UI | ✅ 已完成；真实数据库与用户人工验收仍待 D7/后续 |
+
+证据：`docs/evidence/2026-07-19/slice-d1-checkin-rewards/verification.md`。
+
+## 2026-07-19：1.1.4.5 Slice D D0 规格门禁
+
+| 验收项 | 结果 |
+| --- | --- |
+| 签到、奖励、活跃、额度、模型用量和管理权限拆分为可验证子切片 | ✅ D0-D7 已定义 |
+| Dirty Worktree 与远端变更边界 | ✅ 未 reset/clean/worktree，未 Migration/部署/commit/push |
+| 奖励产品规则 | ✅ 2026-07-19 已确认每账号终身一次、有效 Pro 待领取 |
+| Slice D 业务功能 | 🟡 D1-D3 已本地实现；D4-D7 与最终人工验收尚未完成 |
+
+计划：`docs/plans/2026-07-19-1.1.4.5-slice-d-development-plan.md`。
+证据：`docs/evidence/2026-07-19/slice-d-spec-plan/verification.md`。
+
 ## 2026-07-15 — E2E harness 安全收口
 
 | 门禁 | 状态 |
@@ -113,7 +243,7 @@
 | 运行时 fetch 统一走 helper | ✅ |
 | CORS `ALLOWED_ORIGINS` 严格 exact；无 Origin 允许；拒未授权 | ✅ |
 | 支付 return/notify 分域 + 兼容 + sandbox fail closed | ✅ 同步回跳仍不授 Pro |
-| `client/vercel.json` + `server/vercel.json`（hnd1 / 300s）合法 JSON | ✅ 未部署 |
+| `client/vercel.json` + `server/vercel.json`（hnd1 / Express zero-config）合法 JSON | ✅ 2026-07-16 按官方现行入口修正 |
 | 托管决策与 Dashboard 空变量清单文档 | ✅ |
 | `.env.example` 空值契约更新 | ✅ |
 | `npm run verify` + secret pattern 扫描 | ✅ 见 evidence |
@@ -1028,3 +1158,181 @@ Manual visual confirmation remains available at `http://localhost:5175/app` whil
 | staging 从零 Migration 重放 | ⚠️ staging 尚未创建，未执行 |
 
 证据：`docs/evidence/2026-07-15/phase0-ci-migration-baseline/verification.md`
+
+## 2026-07-16：Preview 真实模型门禁（本地）
+
+| 验收项 | 状态 |
+| --- | --- |
+| DeepSeek 默认模型改为 `deepseek-v4-flash` | ✅ |
+| V4 显式关闭默认 thinking，正文最小真实调用成功 | ✅ 0.56 秒，未保存正文 |
+| `REQUIRE_REAL_MODEL=true` 时禁止静默 rules fallback | ✅ 聚焦单元测试 |
+| 严格模式模型应用预算 | ✅ 51 秒；Hobby 当前上限 300 秒 |
+| Preview 不配置/调用自部署粤语模型 | ✅ 配置边界；远端部署后复验 |
+| 最小真实 DeepSeek API 调用 | ✅ `deepseek-v4-flash`，finish reason `stop` |
+| Vercel Preview `generationEngine=deepseek` | ⏳ 尚未部署 |
+
+## 2026-07-16：内部 Preview 真实额度、人工 Pro 与通知
+
+| 验收项 | 状态 |
+| --- | --- |
+| 结算页读取 staging Supabase 实际套餐与用量 | ✅ 服务端聚焦测试及全量验证通过 |
+| 内部 Preview 不创建模拟订单、不接入真实支付 | ✅ 升级入口改为联系管理员人工开通 |
+| staging 管理员账号人工开通 Pro 250 次/月 | ✅ 管理员为 Pro 2/250；普通用户保持 Free 1/20 |
+| Server酱密钥仅配置到 API Preview | ✅ Sensitive Preview 环境变量，未输出、未提交 |
+| Server酱通道请求 | ✅ 返回 `code=0` 且生成 `pushid`；用户已确认微信客户端送达 |
+| Web Vercel Authentication | ✅ 已关闭；主域名匿名访问 HTTP 200，无申请访问页 |
+| API/Web Preview 重新部署 | ✅ 两个部署均为 Ready，API health 为 `ok` |
+| 额度接口失败状态 | ✅ 不再显示伪造的 Free 0/20，改为明确错误与重试按钮 |
+
+证据：`docs/evidence/2026-07-16/internal-preview-billing/verification.md`
+
+## 2026-07-16：注册引导、当前设备退出与热点恢复
+
+| 验收项 | 结果 |
+| --- | --- |
+| 注册后弹窗引导邮箱验证、垃圾邮件与返回登录 | ✅ 相关客户端测试通过 |
+| 验证成功后返回登录页并显示一次性成功引导 | ✅ 保留安全 `next` 路径 |
+| 共用管理员邮箱退出不撤销其他设备会话 | ✅ `signOut({ scope: 'local' })` |
+| 热点、语感和 YouTube 接口禁止匿名消耗配额 | ✅ 四个路由定点鉴权；公开套餐/回调不受影响 |
+| 相同上游请求合并并缓存 15 分钟 | ✅ 并发合并、命中复用和空结果不缓存测试通过 |
+| 本地密钥装载与匿名接口检查 | ✅ health 显示已配置；匿名请求返回 401 |
+| 本地真实 YouTube 数据 | ⚠️ 本机直连 Google 超时；留待 Vercel 网络部署后复验 |
+| 全量验证 | ✅ Client 406/406；Server 589/589；typecheck/build；audit 0 |
+
+证据：`docs/evidence/2026-07-16/auth-hot-trends-hardening/verification.md`
+
+边界：尚未写入 Vercel `YOUTUBE_API_KEY`、未重新部署，也未新建或执行 `user_roles` 相关 Migration。
+
+### 2026-07-16 Preview 部署更新
+
+- ✅ `YOUTUBE_API_KEY` 已作为 Sensitive Preview 变量配置到 API 项目。
+- ✅ API/Web 新部署均为 Ready，稳定别名已切换。
+- ⚠️ 本机 DNS 将 Vercel 部署域名错误解析到 Meta/Facebook 地址，运行时 HTTP 复验需换网络人工完成。
+- ✅ 私有角色邮箱视图 Migration 和合同测试已创建；服务端 592/592 通过。
+- ⏳ staging `migration list/db push --dry-run` 等待 Database Password；未实际 push。
+
+证据：`docs/evidence/2026-07-16/auth-hot-trends-preview-deployment/`、`docs/evidence/2026-07-16/private-role-email-view/`。
+
+## 2026-07-18：产品卖点纵向链路（本地）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 卖点逐条新增、删除、失败保留与重试 | ✅ 客户端行为测试通过 |
+| 最多 10 条、原文每条最多 200 字 | ✅ 客户端与服务端双层限制 |
+| 港化接口必须登录 | ✅ 匿名请求 401，未调用模型 |
+| Prompt 使用港话表达并保持“事实/红线 > 卖点 > 风格” | ✅ DeepSeek 与 CantoneseLLM 双路径契约通过 |
+| 本地配置、云配置 JSONB 与生成历史恢复 | ✅ 原文、港话表达和状态完整往返 |
+| 桌面与 390px 手机 UI | ✅ Playwright 8/8 连跑两次，无非 localhost 请求或横向溢出 |
+| 全量质量门禁 | ✅ Client 417/417；Server 604/604；typecheck/build；audit 0 |
+
+证据：`docs/evidence/2026-07-18/product-selling-points/verification.md`、`docs/evidence/2026-07-18/slice-03/test-output.txt`。
+
+边界：尚未使用真实登录账号执行一次实际 DeepSeek 港化调用；无 Migration、部署、commit 或 push。
+
+### 2026-07-18 真实生成复验修复
+
+| 验收项 | 结果 |
+| --- | --- |
+| 首次登录生成是否体现已保存卖点 | ❌ 港化/保存成功，但文案未包含 HMO 与乳铁蛋白卖点 |
+| 真实模型服务是否向 Prompt 传递卖点 | ✅ DeepSeek 与 CantoneseLLM 两条服务边界测试通过 |
+| 修复后全量质量门禁 | ✅ Client 417/417；Server 606/606；typecheck/build；audit 0 |
+| 修复后真实登录生成 | ✅ 用户重新生成并确认文案已体现所填卖点 |
+
+证据：`docs/evidence/2026-07-18/product-selling-points/verification.md`、`docs/evidence/2026-07-18/slice-04/test-output.txt`。
+
+## 2026-07-18：审核通知可见页轮询 Slice C（本地）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 可见页每 15 秒刷新；隐藏暂停；focus/重新可见立即刷新 | ✅ 假时钟行为测试通过 |
+| 失败按 15/30/60 秒退避，成功恢复 15 秒，卸载清理 timer | ✅ 行为测试通过 |
+| 管理员待审摘要复用现有权限与去重 | ✅ 管理页和工作台 Header 接入 |
+| 用户轮询不下载全部收藏正文 | ✅ 仅返回 owner-only 最新审核时间；版本变化后才执行 owner bootstrap |
+| 匿名与跨 owner 边界 | ✅ 匿名 401；服务查询先显式限定当前 owner 的 favorite IDs，不返回品牌/正文/组数量 |
+| 后续云刷新能再次产生新审核提醒 | ✅ 修复一次性扫描并新增回归测试 |
+| 浏览器 0–15 秒通知路径 | ✅ 隔离 Playwright 8/8 连跑两次，假时钟推进 15 秒且不刷新页面 |
+| 全量质量门禁 | ✅ Client 422/422；Server 609/609；typecheck/build；audit 0 |
+
+边界：本地浏览器使用隔离 fixture；未执行 staging 双会话时效验收、Migration、部署、commit 或 push。
+
+证据：`docs/evidence/2026-07-18/review-notification-polling/verification.md`、`docs/evidence/2026-07-18/slice-05/test-output.txt`。
+
+## 2026-07-19：1.1.4.5 Slice D4 活跃与模型遥测契约（本地）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 每用户每香港日一条活跃记录，日期不由浏览器提供 | ✅ 数据库 RPC 合同通过 |
+| 模型日志只含固定指标字段，不含用户/组/正文/原始错误/密钥 | ✅ Migration 与运行时双层白名单 |
+| 浏览器不能直接读写遥测表或执行活跃 RPC | ✅ RLS、revoke 与 service-role-only grants |
+| 缺失 usage 不猜 Token；provider usage 至少一个 Token 字段 | ✅ SQL/TypeScript 一致约束 |
+| 日志写库失败或 400ms 超时不阻断模型主路径 | ✅ 单元测试通过 |
+| 自动验证 | ✅ 聚焦 18/18；Migration 61/61；Server 658/658；typecheck/build |
+
+边界：D1/D4 Migration 均未应用；未做真实数据库/RLS/RPC、清理任务、D5 模型接入、部署、commit 或 push。
+
+证据：`docs/evidence/2026-07-19/slice-d4-telemetry-contracts/verification.md`。
+
+## 2026-07-19：1.1.4.5 Slice D6a 分组运营概览与滚动条（本地）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 普通管理员只看当前非空 review_group，空组先拒绝 | ✅ 路由与 service 合同通过 |
+| super_admin 全局聚合、响应不含用户级敏感数据 | ✅ 聚合合同通过 |
+| 香港日期默认 30 日、最多 90 日，拒绝非法范围 | ✅ 日期边界测试通过 |
+| DAU/WAU/MAU、奖励、额度消耗与当前结余口径 | ✅ mock 聚合测试通过 |
+| 工作台暗/浅色滚动条融入背景且不影响站外页面 | ✅ scoped CSS 合同与 localhost 截图通过 |
+| 自动验证 | ✅ Server 681/681；Client 438/438；双端 typecheck/build；Playwright 11/11 |
+
+边界：D1/D4 Migration 未应用，因此当前 localhost 还不能显示真实 D4/D5/D6 数据；D6b 模型健康、bad cases、provider balance 与最小指标 UI 尚未实现。无数据库执行、部署、commit 或 push。
+
+证据：`docs/evidence/2026-07-19/slice-d6a-scrollbar-metrics/verification.md`。
+
+## 2026-07-19：1.1.4.5 Slice D6b 管理指标与模型健康页（本地）
+
+| 验收项 | 结果 |
+| --- | --- |
+| models / bad-cases / provider-balance 仅 super_admin | ✅ 路由 401/403/200 合同通过 |
+| attempt 级成功/错误/延迟/P95/官方 Token 聚合 | ✅ 聚合测试通过，不估算缺失 usage |
+| 低分任务 `<50` 且只返回白名单元数据 | ✅ 阈值、软删、排序、20 条上限和隐私测试通过 |
+| DeepSeek 合法 0 与失败态分离；合法响应缓存 10 分钟 | ✅ provider mock 测试通过 |
+| 普通管理员只见 overview；超级管理员见模型/余额/低分任务 | ✅ Client 行为测试通过 |
+| 桌面与 390px 暗色后台层级、局部错误与横向滚动 | ✅ localhost-only Playwright 12/12，20 张截图 |
+| 自动质量门禁 | ✅ Server 696/696；Client 443/443；双端 typecheck/build；两类 audit 0 |
+
+边界：D1/D4 Migration 未应用，截图和数据来自 localhost-only fixture；未调用真实 DeepSeek/数据库。D7 dry-run、Migration、RLS/并发与真实日志验收必须另行授权。
+
+证据：`docs/evidence/2026-07-19/slice-d6b-admin-metrics/verification.md`。
+
+## 2.1 Slice E0 — Bad Case 诊断审阅包规格
+
+| 验收项 | 结果 |
+| --- | --- |
+| 样本、Trace、双 Owner、验收标准、工件和 Findings 产品模型 | ✅ 已写入详细规格 |
+| Trace 与隐藏思维链、原始 provider payload 的边界 | ✅ 明确禁止采集/展示 |
+| Prompt/规则/知识历史版本与旧任务缺失语义 | ✅ 实际快照；缺失为 `legacy_unavailable` |
+| 自动提案发布边界 | ✅ 只生成待审 diff，不自动发布 |
+| `super_admin`、审计 fail-closed 与 trusted client 显式授权 | ✅ 写入 API/测试门禁 |
+| E1-E9 实施与 staging/人工发布门禁 | ✅ 已拆分 |
+| Grok CLI 内部团队、一级成员、同权限和 background/worktree 协议 | ✅ 已写入；approved checkpoint ref 已建立 |
+| 工作台更新日志入口与生产后回填规则 | ✅ HeaderMenu drawer/dialog；只记录实际 deployed 内容 |
+
+边界：本项仅规格验收；无业务代码、Migration、远端写入、Grok worktree、部署、commit 或 push。
+
+证据：`docs/evidence/2026-07-22/slice-e0-bad-case-review-pack-spec/verification.md`。
+
+## V2.1 发布范围约束
+
+- 轻量 `review_group` 协作、收藏/提交审核后的组内共享属于 V2.1 验收范围；组织/席位/邀请/SSO 不在本版。
+- RAG、自动反哺/优化、批准生效和自动发布属于 V3，不作为 V2.1 验收或上线阻塞条件。
+
+## 2026-07-22：V2.1 审核结果/签到协调
+
+| 验收项 | 结果 |
+| --- | --- |
+| 审核结果优先且签到不拦截按钮 | ✅ 同挂载与晚挂载回归测试通过 |
+| 关闭审核结果后签到恢复 | ✅ 未写当天关闭键，原状态恢复 |
+| staging 桌面审核通过通知与收藏定位 | ✅ 通过，签到显式为 0 |
+| staging 390px 需修改通知与收藏定位 | ✅ 通过，签到显式为 0 |
+| 自动门禁 | ✅ 相关 17/17；Client 486/486；typecheck/build；Preview 配置与 diff check |
+
+证据：`docs/evidence/2026-07-22/v2-release-wrap-up/verification.md`。

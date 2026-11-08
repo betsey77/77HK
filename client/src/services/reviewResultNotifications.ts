@@ -1,6 +1,27 @@
 import type { BookmarkedCopy } from '../types';
 
 export const OPEN_REVIEWED_FAVORITE_EVENT = 'open-reviewed-favorite';
+export const REVIEW_RESULT_DIALOG_VISIBILITY_EVENT = 'review-result-dialog-visibility';
+
+export interface ReviewResultDialogVisibilityDetail {
+  ownerId: string;
+  open: boolean;
+}
+
+const openReviewResultOwners = new Set<string>();
+
+export function isReviewResultDialogOpen(ownerId: string): boolean {
+  return openReviewResultOwners.has(ownerId);
+}
+
+export function publishReviewResultDialogVisibility(ownerId: string, open: boolean): void {
+  if (open) openReviewResultOwners.add(ownerId);
+  else openReviewResultOwners.delete(ownerId);
+  window.dispatchEvent(new CustomEvent<ReviewResultDialogVisibilityDetail>(
+    REVIEW_RESULT_DIALOG_VISIBILITY_EVENT,
+    { detail: { ownerId, open } },
+  ));
+}
 const STORAGE_PREFIX = 'hk-cantonese-bookmark-review-seen:';
 const MAX_SEEN_RESULTS = 100;
 const memorySeen = new Map<string, string[]>();

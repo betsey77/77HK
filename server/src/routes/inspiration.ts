@@ -1,9 +1,48 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { getYoutubeTrending, searchYoutube } from '../services/youtubeSearchService.js';
+import {
+  getYoutubeTrending,
+  searchYoutube,
+  YoutubeServiceError,
+  type YoutubeFailureCode,
+} from '../services/youtubeSearchService.js';
 import type { YoutubeTrendingRequest, YoutubeSearchRequest } from '../types/index.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+
+interface YoutubeBatchResult {
+  posts: Awaited<ReturnType<typeof getYoutubeTrending>>;
+  failureCode: YoutubeFailureCode | null;
+}
+
+const FAILURE_PRIORITY: YoutubeFailureCode[] = [
+  'youtube_api_key_invalid',
+  'youtube_quota_exceeded',
+  'youtube_access_denied',
+  'youtube_not_configured',
+  'youtube_upstream_unavailable',
+];
+
+async function resolveYoutubeBatch(requests: Promise<Awaited<ReturnType<typeof getYoutubeTrending>>>[]): Promise<YoutubeBatchResult> {
+  const settled = await Promise.allSettled(requests);
+  const posts = settled.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
+  const failureCodes = settled.flatMap((result) => (
+    result.status === 'rejected' && result.reason instanceof YoutubeServiceError
+      ? [result.reason.code]
+      : []
+  ));
+  const failureCode = FAILURE_PRIORITY.find((code) => failureCodes.includes(code)) ?? null;
+  return { posts, failureCode };
+}
+
+function youtubeFailureBody(reason: YoutubeFailureCode, emptyKey: 'posts' | 'videos') {
+  return {
+    error: 'youtube_unavailable',
+    reason,
+    [emptyKey]: [],
+  };
+}
 
 /**
  * POST /api/inspiration/language-vibe
@@ -18,17 +57,20 @@ const router = Router();
  * Note: IG scraping was replaced because Instagram blocks server-side requests.
  * YouTube API provides sufficient HK Cantonese content for language reference.
  */
-router.post('/inspiration/language-vibe', async (_req: Request, res: Response) => {
+router.post('/inspiration/language-vibe', requireAuth, async (_req: Request, res: Response) => {
   try {
     // Search HK-relevant content categories via YouTube (Cantonese language filter)
-    const [food, lifestyle, beauty, trending] = await Promise.all([
-      searchYoutube('香港美食 試食', 3).catch(() => []),
-      searchYoutube('香港生活 開箱', 3).catch(() => []),
-      searchYoutube('香港 好物推介', 2).catch(() => []),
-      getYoutubeTrending(undefined, 4).catch(() => []),
+    const { posts, failureCode } = await resolveYoutubeBatch([
+      searchYoutube('香港美食 試食', 3),
+      searchYoutube('香港生活 開箱', 3),
+      searchYoutube('香港 好物推介', 2),
+      getYoutubeTrending(undefined, 4),
     ]);
 
-    const posts = [...food, ...lifestyle, ...beauty, ...trending];
+    if (posts.length === 0 && failureCode) {
+      res.status(502).json(youtubeFailureBody(failureCode, 'posts'));
+      return;
+    }
 
     res.json({
       posts,
@@ -49,15 +91,18 @@ router.post('/inspiration/language-vibe', async (_req: Request, res: Response) =
  * Returns trending content from YouTube (HK region) with metadata.
  * Uses multiple search angles to capture diverse trending topics.
  */
-router.post('/inspiration/hot-trends', async (_req: Request, res: Response) => {
+router.post('/inspiration/hot-trends', requireAuth, async (_req: Request, res: Response) => {
   try {
-    const [trending, hotSearch, latestSearch] = await Promise.all([
-      getYoutubeTrending(undefined, 6).catch(() => []),
-      searchYoutube('香港熱門話題 2026', 3).catch(() => []),
-      searchYoutube('香港 最新 趨勢', 3).catch(() => []),
+    const { posts, failureCode } = await resolveYoutubeBatch([
+      getYoutubeTrending(undefined, 6),
+      searchYoutube('香港熱門話題 2026', 3),
+      searchYoutube('香港 最新 趨勢', 3),
     ]);
 
-    const posts = [...trending, ...hotSearch, ...latestSearch];
+    if (posts.length === 0 && failureCode) {
+      res.status(502).json(youtubeFailureBody(failureCode, 'posts'));
+      return;
+    }
 
     res.json({
       posts,
@@ -77,7 +122,7 @@ router.post('/inspiration/hot-trends', async (_req: Request, res: Response) => {
  * POST /api/inspiration/youtube-search
  * Search YouTube for HK-relevant content.
  */
-router.post('/inspiration/youtube-search', async (req: Request, res: Response) => {
+router.post('/inspiration/youtube-search', requireAuth, async (req: Request, res: Response) => {
   try {
     const { query, limit } = req.body as YoutubeSearchRequest;
 
@@ -90,6 +135,10 @@ router.post('/inspiration/youtube-search', async (req: Request, res: Response) =
 
     res.json({ videos });
   } catch (err) {
+    if (err instanceof YoutubeServiceError) {
+      res.status(502).json(youtubeFailureBody(err.code, 'videos'));
+      return;
+    }
     const message = err instanceof Error ? err.message : 'YouTube search failed';
     res.status(500).json({ error: message, videos: [] });
   }
@@ -99,7 +148,7 @@ router.post('/inspiration/youtube-search', async (req: Request, res: Response) =
  * POST /api/inspiration/youtube-trending
  * Returns trending YouTube videos in HK.
  */
-router.post('/inspiration/youtube-trending', async (req: Request, res: Response) => {
+router.post('/inspiration/youtube-trending', requireAuth, async (req: Request, res: Response) => {
   try {
     const { categoryId, limit } = req.body as YoutubeTrendingRequest;
 
@@ -107,6 +156,10 @@ router.post('/inspiration/youtube-trending', async (req: Request, res: Response)
 
     res.json({ videos });
   } catch (err) {
+    if (err instanceof YoutubeServiceError) {
+      res.status(502).json(youtubeFailureBody(err.code, 'videos'));
+      return;
+    }
     const message = err instanceof Error ? err.message : 'YouTube trending fetch failed';
     res.status(500).json({ error: message, videos: [] });
   }

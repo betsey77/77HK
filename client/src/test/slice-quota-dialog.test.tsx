@@ -48,7 +48,7 @@ function wrapper() {
 
 function QuotaHarness() {
   const { state, dispatch } = useContext(AppContext);
-  const { generate, quotaDialogOpen, closeQuotaDialog } = useGenerate();
+  const { generate, quotaDialogOpen, quotaDialogMessage, closeQuotaDialog } = useGenerate();
 
   return (
     <div>
@@ -66,11 +66,12 @@ function QuotaHarness() {
       <span data-testid="ui-state">{state.uiState}</span>
       <span data-testid="error">{state.error ?? ''}</span>
       <span data-testid="quota-open">{quotaDialogOpen ? 'yes' : 'no'}</span>
+      <span data-testid="quota-message">{quotaDialogMessage}</span>
 
       <ConfirmDialog
         open={quotaDialogOpen}
         title="账户配额不足"
-        message="当前 Free 套餐的生成额度已用完。升级 Pro 后可继续生成，并解锁完整收藏与历史访问。"
+        message={quotaDialogMessage}
         cancelLabel="暂不充值"
         confirmLabel="充值 Pro"
         onCancel={closeQuotaDialog}
@@ -146,6 +147,19 @@ describe('useGenerate 402 quota dialog', () => {
     await waitFor(() => expect(screen.getByTestId('quota-open')).toHaveTextContent('yes'));
     await userEvent.click(screen.getByRole('button', { name: '充值 Pro' }));
     expect(assign).toHaveBeenCalledWith('/app/billing');
+  });
+
+  it('shows expiry-specific copy when the server denies with period_expired', async () => {
+    mockGenerateCopy.mockRejectedValue(
+      new ApiError('Quota exceeded', 402, { reason: 'period_expired' }),
+    );
+
+    render(<QuotaHarness />, { wrapper: wrapper() });
+    await userEvent.click(screen.getByTestId('set-source'));
+    await userEvent.click(screen.getByTestId('generate'));
+
+    await waitFor(() => expect(screen.getByTestId('quota-open')).toHaveTextContent('yes'));
+    expect(screen.getByTestId('quota-message')).toHaveTextContent('会员已到期');
   });
 });
 

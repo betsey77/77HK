@@ -14,6 +14,7 @@ import SourceEditor from './SourceEditor';
 import LanguageToggle from './LanguageToggle';
 import BrandInput from './BrandInput';
 import BrandRedLinesInput from './BrandRedLinesInput';
+import ProductSellingPointsInput from './ProductSellingPointsInput';
 import StructuredBriefToggle from './StructuredBriefToggle';
 import CreativitySliderComponent from './CreativitySlider';
 import PlatformSelector from './PlatformSelector';
@@ -100,7 +101,7 @@ function InputAccordion({
 }
 
 export default function InputPanel() {
-  const { generate, isLoading, canGenerate, quotaDialogOpen, closeQuotaDialog } = useGenerate();
+  const { generate, isLoading, canGenerate, quotaDialogOpen, quotaDialogMessage, closeQuotaDialog } = useGenerate();
   const { state } = useContext(AppContext);
   const hasResults = state.variants !== null;
 
@@ -121,6 +122,7 @@ export default function InputPanel() {
         <CopyTypeSelector />
         <BrandInput />
         <BrandRedLinesInput />
+        <ProductSellingPointsInput />
         <TargetDatePicker />
         <CompetitorSearchInput />
       </InputAccordion>
@@ -198,13 +200,13 @@ export default function InputPanel() {
         </div>
       )}
 
-      {/* Free quota exhausted — only opened when API returns HTTP 402 */}
+      {/* Quota/membership blocked — only opened when API returns HTTP 402 */}
       <ConfirmDialog
         open={quotaDialogOpen}
         title="账户配额不足"
-        message="当前 Free 套餐的生成额度已用完。升级 Pro 后可继续生成，并解锁完整收藏与历史访问。"
+        message={quotaDialogMessage}
         cancelLabel="暂不充值"
-        confirmLabel="充值 Pro"
+        confirmLabel="去充值 / 续费"
         onCancel={closeQuotaDialog}
         onConfirm={() => {
           closeQuotaDialog();

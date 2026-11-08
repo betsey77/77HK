@@ -36,6 +36,7 @@ import {
   favoriteRecordToBookmark,
   configRecordToSavedConfig,
   fetchBootstrap,
+  fetchReviewResultSummary,
   syncFavoriteUp,
   syncFavoriteDelete,
   syncConfigUp,
@@ -320,6 +321,29 @@ describe('fetchBootstrap', () => {
   });
 });
 
+describe('fetchReviewResultSummary', () => {
+  it('uses the lightweight owner-pinned endpoint', async () => {
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: { access_token: 'fake-jwt', user: { id: 'user-a' } } },
+      error: null,
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      mockFetchResponse({ latestUpdatedAt: '2026-07-18T12:30:00.000Z' }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchReviewResultSummary('user-a')).resolves.toEqual({
+      latestUpdatedAt: '2026-07-18T12:30:00.000Z',
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/sync/review-result-summary', {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer fake-jwt',
+      },
+    });
+  });
+});
+
 // ============================================================
 // Tests: syncFavoriteUp
 // ============================================================
@@ -416,7 +440,7 @@ describe('syncFavoriteDelete', () => {
     });
   });
 
-  it('throws on error response', async () => {
+  it('treats 404 as success (idempotent delete)', async () => {
     mockSupabase.auth.getSession.mockResolvedValue({
       data: {
         session: { access_token: 'fake-jwt' },
@@ -429,7 +453,23 @@ describe('syncFavoriteDelete', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(syncFavoriteDelete('nonexistent')).rejects.toThrow('Not found');
+    await expect(syncFavoriteDelete('nonexistent')).resolves.toBeUndefined();
+  });
+
+  it('throws on non-404 error response', async () => {
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: {
+        session: { access_token: 'fake-jwt' },
+      },
+      error: null,
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      mockFetchResponse({ error: 'Internal server error' }, 500, false),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(syncFavoriteDelete('x')).rejects.toThrow('Internal server error');
   });
 });
 

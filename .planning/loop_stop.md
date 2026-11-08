@@ -1,3 +1,64 @@
+# Loop Stop — 2.1 Slice E7b diagnostics alert/collapse
+
+Date: 2026-07-22
+
+## Goal
+
+让 Bad Case 诊断异常对超级管理员可见但不反复打扰，并缩短默认管理页高度。
+
+## Result
+
+- 面板默认折叠，标题保留异常类别数；新摘要有可关闭、可直接展开的非阻塞提醒。
+- 同摘要刷新会话内去重，摘要变化再提醒；普通 admin 不请求、不显示。
+- Client 481/481、前端 typecheck/build、Playwright 12/12 与桌面/390px 视觉门禁通过。
+
+## Stop reason
+
+当前小目标已完成。E8 真实 staging Auth/API/生成 hook/审计/清理仍是下一独立切片；未部署或执行 Git 发布操作。
+
+---
+
+# Loop Stop — 2.1 Slice E8 staging migration
+
+Date: 2026-07-22
+
+## Goal
+
+在用户授权范围内将唯一待处理的 Slice E Migration 应用到 staging，并验证迁移历史、RLS 与 ACL。
+
+## Result
+
+- `20260722100000_slice_e_bad_case_review_packs.sql` 已单次应用到 staging `wzpaghnxlpfjojvuxplx`。
+- 远端历史最终为 `20260722100000 / slice_e_bad_case_review_packs`；四表 RLS 与角色权限符合设计。
+- 本机 CLI 三次 DNS/连接失败后停止，官方 Supabase 连接器完成受限 fallback。
+- 未触碰生产、部署、commit、push、reset/clean 或 Worktree。
+
+## Stop reason
+
+当前授权的小目标已达成。真实角色/API/浏览器验收与发布属于后续清晰切片，本轮不自动扩张权限。
+
+---
+
+# Loop Stop — 2.1 Slice E local completion
+
+Date: 2026-07-22
+
+## Goal
+
+连续完成 2.1 Slice E1-E7 本地开发与自动化验证，待基本完成后统一交付。
+
+## Result
+
+- Client 478/478、Server 805/805、双端 typecheck/build 与 diff check 通过。
+- 版本号显示为 `2.1`；部署更新日志仍未伪装为已上线。
+- 新 Migration 未应用；无部署、commit、push、reset 或 clean。
+
+## Stop reason
+
+本地目标已达成。E8 staging Migration 与 E9 发布均属于需单独授权的高风险动作，因此在此停止自动推进。
+
+---
+
 # Loop Stop — H1 Migration Push
 
 Date: 2026-07-12
@@ -162,3 +223,83 @@ The remaining acceptance step requires a controllable interactive browser or a h
 ## Final Resolution
 
 Resolved on 2026-07-15 by user-performed browser interaction. The supplied user-side screenshot shows the saved `changes_requested` review, whole-copy note, three sentence annotations and red inline highlights. R2/R2.1 is accepted; evidence is archived under `docs/evidence/2026-07-14/r2-inline-review-and-favorite-edit/`.
+
+---
+
+# Loop Stop - Slice D7 staging migration dry-run
+
+Date: 2026-07-19
+
+## Goal
+
+Compare linked staging migration history and complete a no-write dry-run for D1/D4 before requesting final migration-apply approval.
+
+## Attempts
+
+1. Guarded `migration list --linked` failed before execution with `LegacyDbConnectError: PgClient: Failed to connect`.
+2. Retried with Supabase CLI DoH resolution; the direct database hostname had no usable address because the Free-plan endpoint requires IPv6.
+3. Checked WSL only as a read-only alternate network path; WSL is not installed, and no installation was attempted.
+
+## Verification Result
+
+- Focused D1/D4 migration contracts passed 11/11.
+- The linked project is confirmed as staging `wzpaghnxlpfjojvuxplx`, not production.
+- The dry-run never started and no remote write or migration occurred.
+- Evidence: `docs/evidence/2026-07-19/slice-d7-staging-migrations/verification.md`.
+
+## Blocker
+
+The current Windows proxy/DNS returns a Fake-IP for the IPv4 pooler. Bypassing it sends the CLI to the direct IPv6-only database endpoint, but this machine has no usable IPv6 route.
+
+## Needed Decision
+
+The user must choose whether to temporarily disable proxy Fake-IP DNS/use another normal IPv4 network, then authorize one guarded retry. No proxy, DNS, database, or tool installation setting will be changed by Codex without that decision.
+
+## Recommended Next Step
+
+Switch only the network/DNS path, rerun `scripts/supabase-linked-dry-run.ps1`, and return the transcript. If the history comparison and dry-run pass, request explicit approval for migrations `20260719090000` and `20260719120000` before applying either one.
+
+## Final Resolution
+
+Resolved on 2026-07-19 after the shared pooler began resolving to public IPv4 addresses. The guarded third attempt matched all 19 existing Local/Remote migration versions and confirmed that only `20260719090000` and `20260719120000` would be pushed. The dry-run made no remote write; actual application remains paused for explicit migration-name approval.
+
+---
+
+# Loop Stop - V2.1 review-result dialog priority
+
+Date: 2026-07-22
+
+## Goal
+
+修复审核结果通知与每日签到同时出现时，签到遮罩阻断“立即查看”的用户体验问题，并稳定真实 staging 通知验收。
+
+## Result
+
+- 审核结果通知按 owner 发布粘性可见状态；每日签到会暂停显示，通知处理后自动恢复，不会误写“今天不再提醒”。
+- 同时挂载与签到晚挂载回归测试均通过；相关测试 17/17、Client 486/486、前端 typecheck/build 全部通过。
+- staging 桌面与 390px 管理员/用户通知链路通过，通知出现时“每日签到”弹窗计数明确为 0，临时数据已清理。
+- Grok 只读审查发现的晚挂载竞态已修复并由第二条回归测试覆盖。
+
+## Stop reason
+
+当前小目标已完成。仍未部署、commit、push、执行生产 Migration、reset/clean 或创建 Worktree；下一独立切片是 DeepSeek Bad Case/Slice E staging 真实写入、审计与零残留闭环。
+# Loop Stop - V2.1 Slice E8 staging API closure
+
+Date: 2026-07-22
+
+## Goal
+
+证明真实 staging 的 Slice E8 JWT、生成 hook、DeepSeek、审计、提案和清理闭环，并修复验收发现的阻塞问题。
+
+## Result
+
+- 第一次在写入前发现环境加载差异并安全退出；第二次完成 E8-1 至 E8-5 后发现合法提案 400；第三次 E8-1 至 E8-7 全部通过。
+- 修复 manifest hash 合同不一致与成功 hook 假 timeout；Server 809/809、typecheck/build、相关 Client 22/22 通过。
+- 临时账号与业务数据零残留；保留模型遥测已解除 QA job 关联。
+- Grok 两次只读尝试均未产出测试矩阵，按无进展规则停止且未修改文件。
+
+## Stop reason
+
+当前 API/数据闭环小目标已达成。浏览器按钮与桌面/390px 体验并入下一次统一人工验收；未部署或执行 Git/生产 Migration/Worktree 操作。
+
+---

@@ -4,17 +4,25 @@ import { getTrustedSupabase } from './trustedSupabase.js';
 export const FREE_FAVORITE_LIMIT = 10;
 export const FREE_HISTORY_LIMIT = 15;
 
-/** Resolve the trusted active subscription. Any uncertainty falls back to Free. */
+/**
+ * Resolve the trusted active subscription.
+ * Any uncertainty falls back to Free.
+ *
+ * Note: PAYMENT_MODE=mock only disables real Alipay checkout. Manual Pro grants
+ * in `subscriptions` must still unlock history / favorites. Do NOT force Free
+ * solely because payment mode is mock.
+ */
 export async function resolveUserPlanId(userId: string): Promise<PlanId> {
-  if ((process.env.PAYMENT_MODE || 'mock') === 'mock') return 'free';
-
   try {
     const db = getTrustedSupabase();
+    const now = new Date().toISOString();
     const { data, error } = await db
       .from('subscriptions')
       .select('plans(name)')
       .eq('user_id', userId)
       .eq('status', 'active')
+      .lte('current_period_start', now)
+      .gt('current_period_end', now)
       .order('current_period_end', { ascending: false })
       .limit(1);
 

@@ -553,19 +553,18 @@ function derivePersonaVoice(p: ConsumerPersona): string {
 export function buildParsePersonasPrompt(rawText: string): string {
   return `## 任務：從用戶輸入中提取消費者畫像
 
-請分析以下用戶自由輸入嘅文字，從中提取所有提到嘅目標消費者資訊，整理成結構化嘅消費者畫像列表。
+請分析以下用戶自由輸入嘅文字，整理成一個最具代表性嘅結構化消費者畫像。
 
 ### 用戶輸入
 ${rawText}
 
 ### 提取規則
-- 從文字中識別出每個消費者（可能係一個、多個、或一大段描述）
-- 每個消費者一個獨立畫像，要有**獨特性格同視角**（唔好整幾個差唔多嘅人）
+- 即使用戶提到多類消費者，都只選擇最具代表性、資訊最完整嘅一位
+- 畫像要有**獨特性格同視角**
 - 如果文字中冇明確提到某個欄位，根據上下文合理推斷（例如提到「師奶」就推斷年齡約35-50、睇FB）
 - 如果文字信息好少（例如只得一句），根據你對香港市場嘅認識，補充合理細節令畫像完整
-- 每個畫像必須有：name（創作一個地道香港名）、ageRange、occupation、habits（消費習慣）、apps（常用平台）、notes（性格特點及對文案嘅態度）
-- 至少提取 2 個消費者。如果原文信息不足以提取 2 個，根據推斷補充。
-- 最多 5 個消費者。
+- 畫像必須有：name（創作一個地道香港名）、ageRange、occupation、habits（消費習慣）、apps（常用平台）、notes（性格特點及對文案嘅態度）
+- JSON 陣列必須而且只可以包含 1 個消費者。
 
 ### 輸出格式
 
@@ -579,15 +578,6 @@ ${rawText}
     "habits": "精打細算、睇WhatsApp group、重口碑",
     "apps": "Facebook、WhatsApp Group",
     "notes": "對價錢敏感，見到「優惠」「限時」會特別留意。最怕太複雜嘅文字。"
-  },
-  {
-    "id": "ai-gen-2",
-    "name": "中環白領Jason",
-    "ageRange": "25-35",
-    "occupation": "marketing manager",
-    "habits": "追求效率、睇IG多過FB、會因為文案有趣而follow品牌",
-    "apps": "IG、LinkedIn",
-    "notes": "中英夾雜自然，對設計感同文案質素要求高。太hard sell會反感。"
   }
 ]
 \`\`\`

@@ -1,0 +1,102 @@
+# 77hk.net production asset forward-fix verification
+
+Date: 2026-08-06 (Asia/Hong_Kong)
+
+## Scope
+
+- Restore the two image assets served by the 2026-07-23 stable frontend deployment.
+- Keep the existing `robots.txt`, `sitemap.xml`, and homepage canonical changes.
+- Add a deployability regression contract so locally present but untracked assets fail verification.
+- No API, database, auth, billing, DNS, environment-variable, or production mutation.
+
+## Runtime RED
+
+The current `https://77hk.net` production deployment returned HTTP 200 with
+`text/html` for both image URLs instead of image content:
+
+- `/brand/team-collab-preview.jpg`
+- `/brand/whiteboard_exported_image.png`
+
+The previous stable immutable deployment returned the expected JPEG and PNG.
+The local untracked files matched those stable bytes exactly.
+
+## Local RED/GREEN
+
+Focused command:
+
+```powershell
+cd client
+npx vitest run src/test/seo-static-contract.test.ts
+```
+
+- RED: 3 passed, 1 failed because Git did not track
+  `client/public/brand/team-collab-preview.jpg`.
+- GREEN after staging only the two assets: 4 passed, 0 failed.
+
+## Isolated candidate verification
+
+The candidate was exported from the Git index plus `HEAD` to
+`C:\Users\35308\AppData\Local\Temp\77-forward-fix-candidate-20260806-181459`.
+This excluded unrelated Dirty Worktree modifications.
+
+```powershell
+vitest run
+npm run build
+```
+
+- Client: 58 files passed, 491 tests passed.
+- TypeScript and Vite production build: passed; 1,737 modules transformed.
+- Built JPEG: 144,776 bytes, SHA-256
+  `be0a5d1ee8538ef799505deb9ca52d21158a7fce6ebc33668770cb57ed4ba837`.
+- Built PNG: 535,135 bytes, SHA-256
+  `d3d5f1feb2020e08e0652ac61ac454d4979b4b32717018fe4b2a2f3aa2c0a4e5`.
+- File signatures: JPEG `FF-D8-FF`; PNG `89-50-4E-47-0D-0A-1A-0A`.
+
+## Review verdict
+
+- Standards axis: PASS. Only two accepted binary assets and one focused static
+  deployment-contract test are changed; no runtime logic or dependency changes.
+- Spec/incident axis: PASS. The candidate preserves the SEO discovery files and
+  restores the two known production asset paths with the stable accepted bytes.
+- Release status: local candidate ready; production deployment remains a separate
+  explicit approval gate.
+
+## Backup
+
+Pre-change copies with matching SHA-256 hashes are stored at
+`C:\Users\35308\AppData\Local\Temp\77-forward-fix-2026-08-06-prechange`.
+
+## Approved Shorts case-image update
+
+The user supplied `shorts.jpg` and approved replacing the second case card image
+before the same frontend release. The existing component already points to
+`/brand/cases/synear-shorts.webp`, so no React or CSS change was required.
+
+- Source JPEG: 2,145 × 3,421; SHA-256
+  `d960041e18c3a571bd6acbbd12bc320b15fd44d63c5aa43e5949334eeda7a6ae`.
+- Accepted WebP: 1,200 × 1,914; 577,624 bytes; SHA-256
+  `de87efbcf6db18ef3279cd4b94fcff8dfba7b5fc46ca7c6b3f36eed4007e0098`.
+- Conversion preserved the full composition and used Lanczos scaling with WebP
+  quality 90.
+- RED: the focused contract received the old production hash `491fb3…` instead
+  of the accepted new hash.
+- GREEN: focused contract 4/4; isolated candidate 58 files and 491/491 tests;
+  TypeScript/Vite production build passed with 1,737 transformed modules.
+- The built `dist/brand/cases/synear-shorts.webp` hash and dimensions match the
+  accepted WebP exactly.
+
+## Preview and production evidence
+
+- Delivered Git SHA: `1f66b16624106dcaaf33eb7835dbc80f1d12ed6b`.
+- Preview: `dpl_5g2PPQomw855FjfZK3g4Pzrhbcmq`, READY, source Git SHA matched.
+- Production: `dpl_Ga46CnXVc2L2NP1oZ1pHvzBigwaP`, READY, promoted from the
+  Preview above; `77hk.net` resolves to this deployment.
+- Production `/`, `/app`, `/login`, `/pricing`, `robots.txt`, and `sitemap.xml`
+  returned HTTP 200 with their expected content types.
+- All three production image paths returned their expected JPEG/PNG/WebP types,
+  byte sizes, and accepted SHA-256 hashes.
+- Production API health returned 200; the `https://77hk.net` CORS preflight
+  returned 204 with the matching `Access-Control-Allow-Origin` value.
+- The Chrome-backed live-page visual runner was unavailable in this session;
+  the supplied image was visually inspected before conversion, and Preview plus
+  Production served the exact accepted bytes used by the component path.

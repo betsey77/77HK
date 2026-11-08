@@ -13,6 +13,23 @@ const STAGE_LABELS: Record<GenerationStage, string> = {
   feedback: '消费者反馈',
 };
 
+const DEFAULT_QUOTA_MESSAGE =
+  '当前套餐的生成额度已用完，或会员已到期。续费 / 升级 Pro 后可继续生成，并解锁完整收藏与历史访问。';
+
+/** Map the server's machine-readable denial reason to precise copy. */
+function quotaDialogMessageFor(reason?: string): string {
+  switch (reason) {
+    case 'period_expired':
+      return '会员已到期，生成已暂停。续费 Pro 后可继续生成，并恢复收藏与历史访问。';
+    case 'quota_exhausted':
+      return '当前周期的生成额度已用完。升级 / 续费 Pro 后可继续生成。';
+    case 'no_subscription':
+      return '未找到有效订阅。开通 Pro 后可继续生成。';
+    default:
+      return DEFAULT_QUOTA_MESSAGE;
+  }
+}
+
 /** Estimated durations in ms for each stage (for simulated progress) */
 const STAGE_DURATIONS: Record<GenerationStage, { min: number; max: number }> = {
   diagnosis: { min: 800, max: 2500 },
@@ -50,6 +67,7 @@ export function useGenerate() {
   const { planId } = usePlanAccess();
   const stageTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [quotaDialogOpen, setQuotaDialogOpen] = useState(false);
+  const [quotaDialogMessage, setQuotaDialogMessage] = useState(DEFAULT_QUOTA_MESSAGE);
 
   /** Clear all active stage timers */
   function clearAllTimers() {
@@ -158,6 +176,10 @@ export function useGenerate() {
           brandName: state.settings.brandName || undefined,
           productName: state.settings.productName || undefined,
           brandRedLines: state.settings.brandRedLines || undefined,
+          productSellingPoints:
+            state.settings.productSellingPoints.length > 0
+              ? state.settings.productSellingPoints
+              : undefined,
           structuredBriefEnabled: state.settings.structuredBriefEnabled || undefined,
           creativityLevel: state.settings.creativityLevel,
           inputLanguage: state.settings.inputLanguage,
@@ -204,6 +226,7 @@ export function useGenerate() {
       if (err instanceof ApiError && err.status === 402) {
         dispatch({ type: 'CLEAR_PROGRESS' });
         dispatch({ type: 'SET_ERROR', payload: '账户配额不足' });
+        setQuotaDialogMessage(quotaDialogMessageFor(err.reason));
         setQuotaDialogOpen(true);
         return;
       }
@@ -225,6 +248,7 @@ export function useGenerate() {
       state.uiState !== 'loading' &&
       canGenerateWithCopyType(state.settings.copyType, state.settings.customCopyType),
     quotaDialogOpen,
+    quotaDialogMessage,
     closeQuotaDialog: () => setQuotaDialogOpen(false),
   };
 }

@@ -87,6 +87,7 @@ describe('Slice G1 — Admin types', () => {
       generationEngine: 'deepseek',
       createdAt: '2026-07-12T00:00:00Z',
       completedAt: null,
+      ownerReviewGroup: 'group1',
     };
     // Must NOT have 'source', 'variants', 'diagnosis', 'audit', 'body'
     expect('source' in job).toBe(false);
@@ -176,15 +177,22 @@ describe('Slice G1 — Admin security invariants', () => {
     expect(content).toContain('requireAdmin');
   });
 
-  it('admin routes only allow review PUT (no DELETE/PATCH/POST; no other PUT)', () => {
+  it('admin routes only allow the frozen review-pack POSTs and favorite review PUT', () => {
     const fs = require('fs');
     const path = require('path');
     const content = fs.readFileSync(
       path.resolve(__dirname, '../routes/admin.ts'),
       'utf-8',
     );
-    // R1: only PUT /favorites/:id/review is allowed as mutation
-    expect(content).not.toMatch(/router\.(delete|patch|post)\(/);
+    expect(content).not.toMatch(/router\.(delete|patch)\(/);
+    const postPaths = [...content.matchAll(/router\.post\('([^']+)'/g)].map((match) => match[1]);
+    expect(postPaths).toEqual([
+      '/bad-case-review-packs/:id/assign',
+      '/bad-case-review-packs/:id/status',
+      '/bad-case-review-packs/:id/analyze',
+      '/bad-case-findings/:id/review',
+      '/bad-case-findings/:id/proposal',
+    ]);
     const putMatches = content.match(/router\.put\(/g) ?? [];
     expect(putMatches.length).toBe(1);
     expect(content).toMatch(/router\.put\('\/favorites\/:id\/review'/);
@@ -336,7 +344,7 @@ describe('Slice G1 — Admin route registration', () => {
     expect(catchReturnPos).toBeGreaterThan(0);
   });
 
-  it('adminGenerationExists only selects id column (no body read)', () => {
+  it('adminGenerationExists only selects id and owner columns (no body read)', () => {
     const fs = require('fs');
     const path = require('path');
     const content = fs.readFileSync(
@@ -350,7 +358,7 @@ describe('Slice G1 — Admin route registration', () => {
     const fnBody = nextExport > 0 ? content.slice(fnStart, nextExport) : content.slice(fnStart);
 
     // Must use .select('id') — only the existence check, no body
-    expect(fnBody).toContain(".select('id')");
+    expect(fnBody).toContain(".select('id,owner_id')");
     // Must NOT contain columns that would return body content
     expect(fnBody).not.toContain('variants');
     expect(fnBody).not.toContain('source');
@@ -379,6 +387,7 @@ vi.mock('../services/supabase.js', () => ({
 
 // ── Mock adminService to return controlled data for 200 assertions ──
 const mockAdminStats = vi.fn();
+const mockAdminActorReviewGroup = vi.fn();
 const mockAdminUsersOverview = vi.fn();
 const mockAdminGenerationMeta = vi.fn();
 const mockAdminGenerationExists = vi.fn();
@@ -393,6 +402,7 @@ const mockWriteAdminAuditLog = vi.fn();
 
 vi.mock('../services/adminService.js', () => ({
   getAdminStats: (...args: any[]) => mockAdminStats(...args),
+  getAdminActorReviewGroup: (...args: any[]) => mockAdminActorReviewGroup(...args),
   getAdminUsersOverview: (...args: any[]) => mockAdminUsersOverview(...args),
   getAdminGenerationMeta: (...args: any[]) => mockAdminGenerationMeta(...args),
   adminGenerationExists: (...args: any[]) => mockAdminGenerationExists(...args),
@@ -426,6 +436,7 @@ describe('G1-R — Admin route behavior tests (Supertest)', () => {
       totalUsers: 10, activeSubscriptions: 3, totalGenerations: 100,
       totalFeedback: 20, adminUsers: 2,
     });
+    mockAdminActorReviewGroup.mockResolvedValue('group1');
     mockAdminUsersOverview.mockResolvedValue({ data: [], total: 0 });
     mockAdminGenerationMeta.mockResolvedValue({ data: [], total: 0 });
     mockAdminGenerationExists.mockResolvedValue(true);
@@ -565,6 +576,7 @@ describe('G1-R — Admin route behavior tests (Supertest)', () => {
         totalFeedback: 20,
         adminUsers: 2,
         role: 'admin',
+        reviewGroup: 'group1',
       });
     });
 
@@ -607,6 +619,11 @@ describe('G1-R — Admin route behavior tests (Supertest)', () => {
         .get('/api/admin/generations')
         .set('Authorization', token);
       expect(res.status).toBe(200);
+      expect(mockAdminGenerationMeta).toHaveBeenCalledWith(
+        20,
+        0,
+        { actorId: 'admin-user', actorRole: 'admin' },
+      );
     });
 
     it('GET /api/admin/subscriptions returns 200 for admin', async () => {
@@ -628,6 +645,10 @@ describe('G1-R — Admin route behavior tests (Supertest)', () => {
         .set('Authorization', token);
       expect(res.status).toBe(200);
       expect(res.body.id).toBe('job-1');
+      expect(mockAdminGenerationExists).toHaveBeenCalledWith(
+        'job-1',
+        { actorId: 'admin-user', actorRole: 'admin' },
+      );
     });
 
     it('GET /api/admin/favorites returns metadata for ordinary admin', async () => {

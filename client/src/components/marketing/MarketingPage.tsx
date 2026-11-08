@@ -363,7 +363,24 @@ export default function MarketingPage() {
             <article className="price"><p className="who">适合试用与轻量需求</p><h3>Free</h3><div className="amt">¥0 <small>/ 滚动额度</small></div><div className="quota">每 7 天 20 次生成</div><ul><li>完整生成工作流</li><li>基础历史与收藏</li><li>单人使用</li></ul><a className="btn btn-secondary btn-block" href="/app">开始免费创作</a></article>
             <article className="price pro"><span className="tag">推荐</span><p className="who">适合高频运营与个人创作者</p><h3>Pro</h3><div className="amt">¥19 <small>/ 月</small></div><div className="quota">每自然月 250 次生成</div><ul><li>完整收藏与历史</li><li>高频运营产能</li><li>已有 Pro 当前周期立即生效</li></ul><a className="btn btn-primary btn-block" href="/app/billing">充值 Pro</a></article>
             <article className="price team"><span className="tag team-tag">团队</span><p className="who">适合品牌与代理协作</p><h3>团队协作版</h3><div className="amt">¥99 <small>/ 月</small></div><div className="quota">含 Pro 产能 · 团队协作</div><ul><li>审核分组</li><li>管理员句子批注</li><li>待审核队列与提醒</li></ul><button type="button" className="btn btn-secondary btn-block" onClick={() => setTeamContactOpen(true)} aria-label="联系开通团队协作版">联系开通</button></article>
-          </div><div className="pricing-more"><a href="/pricing">了解套餐详情</a></div></div></section>
+          </div>
+          <div className="pricing-more"><a href="/pricing">了解套餐详情</a></div>
+          <div className="team-collab-preview panel-in" style={delayStyle('120ms')}>
+            <div className="team-collab-preview-head">
+              <div className="sec-kicker">Team</div>
+              <h3>团队协作版 · 生成与审核闭环</h3>
+              <p>创作者生成与送审，管理员同组审核批注，超级管理员沉淀批注记录——一图看懂协作节奏。</p>
+            </div>
+            <figure className="team-collab-preview-figure">
+              <img
+                src="/brand/team-collab-preview.jpg"
+                alt="团队协作版流程：用户生成文案、管理员同组待审、需修改再送审、已采纳后沉淀批注记录"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+          </div>
+          </div></section>
 
           <section id="cta" className="snap compact"><div className="wrap"><div className="cta-band panel-in"><h2>从一段原文开始，完成第一轮港式文案</h2><p>进入工作台，把内地腔写回香港节奏。</p><div className="cta-actions"><a className="btn btn-primary" href="/app">进入工作台</a><a className="btn btn-secondary" href="/pricing">查看完整定价与额度</a></div></div></div></section>
         </div>

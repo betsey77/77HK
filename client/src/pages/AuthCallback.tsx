@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
@@ -19,9 +19,20 @@ export default function AuthCallback() {
   const { isDark } = useTheme();
   const [status, setStatus] = useState<'processing' | 'error' | 'success'>('processing');
   const [message, setMessage] = useState('正在验证邮箱…');
+  const handledRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
+
+    async function completeVerification() {
+      if (handledRef.current || cancelled) return;
+      handledRef.current = true;
+      setStatus('success');
+      setMessage('邮箱验证成功！正在返回登录页…');
+      await supabase.auth.signOut({ scope: 'local' });
+      if (cancelled) return;
+      setTimeout(() => { window.location.replace('/login?registered=1'); }, 900);
+    }
 
     // Check if session already exists (Supabase may have processed URL hash
     // before this component mounted via detectSessionInUrl)
@@ -30,9 +41,7 @@ export default function AuthCallback() {
       if (cancelled) return;
 
       if (session?.user?.email_confirmed_at) {
-        setStatus('success');
-        setMessage('邮箱验证成功！正在跳转…');
-        setTimeout(() => { window.location.replace('/app'); }, 1500);
+        await completeVerification();
         return true; // handled
       }
       return false; // no existing confirmed session
@@ -44,9 +53,7 @@ export default function AuthCallback() {
         if (cancelled) return;
 
         if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.email_confirmed_at) {
-          setStatus('success');
-          setMessage('邮箱验证成功！正在跳转…');
-          setTimeout(() => { window.location.replace('/app'); }, 1500);
+          void completeVerification();
         }
       }
     );
@@ -58,7 +65,7 @@ export default function AuthCallback() {
     // within 15 seconds, show error
     const timeout = setTimeout(() => {
       if (cancelled) return;
-      if (status === 'processing') {
+      if (!handledRef.current) {
         setStatus('error');
         setMessage('验证超时，请重新登录');
         setTimeout(() => { window.location.replace('/login'); }, 2000);

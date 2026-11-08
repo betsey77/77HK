@@ -937,6 +937,55 @@
     }
     .pricing-more a { color: var(--accent-2); }
     .pricing-more a:hover { text-decoration: underline; }
+
+    /* —— Team collab preview (after Plans) —— */
+    .team-collab-preview {
+      margin-top: 1.75rem;
+      border-radius: 22px;
+      border: 1px solid color-mix(in srgb, var(--mint) 35%, var(--line));
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, color-mix(in srgb, var(--mint) 12%, transparent), transparent 60%),
+        var(--card);
+      padding: 1.25rem 1.25rem 1.1rem;
+    }
+    .team-collab-preview-head {
+      text-align: center;
+      max-width: 40rem;
+      margin: 0 auto 1rem;
+    }
+    .team-collab-preview-head h3 {
+      margin: 0.35rem 0 0.4rem;
+      font-size: 1.15rem;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .team-collab-preview-head p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--ink-2);
+      line-height: 1.65;
+    }
+    .team-collab-preview-figure {
+      margin: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    [data-theme="dark"] .team-collab-preview-figure {
+      background: color-mix(in srgb, var(--card) 92%, #fff);
+    }
+    .team-collab-preview-figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      vertical-align: middle;
+    }
+    @media (max-width: 640px) {
+      .team-collab-preview { padding: 1rem 0.85rem 0.85rem; margin-top: 1.25rem; }
+      .team-collab-preview-head h3 { font-size: 1rem; }
+      .team-collab-preview-head p { font-size: 12px; }
+    }
     @media (max-width: 920px) { .nav-login { display: none; } }
     @media (max-width: 520px) {
       .intro-inner { width: 100%; }

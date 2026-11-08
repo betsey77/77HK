@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { resolveNextPath } from '../services/nextPath';
 import AuthLayout from '../components/auth/AuthLayout';
+import AuthNoticeDialog from '../components/auth/AuthNoticeDialog';
 
 /**
  * Signup page — real Supabase Auth.
@@ -21,6 +22,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
 
   // Validate ?next= via allowlist before passing to login
   const rawNext = new URLSearchParams(window.location.search).get('next');
@@ -50,6 +52,7 @@ export default function SignupPage() {
     const result = await signup(email.trim(), password);
     if (result.needsConfirmation) {
       setNeedsConfirmation(true);
+      setConfirmationDialogOpen(true);
     }
   }
 
@@ -73,11 +76,11 @@ export default function SignupPage() {
               请检查邮箱
             </h2>
             <p className={`mt-2 text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              请耐心查收邮件，并点击邮件中的链接完成注册。
+              请前往相应邮箱，并点击 Supabase 发送的验证链接完成注册。
               <span className="mt-1 block">验证邮件已发送至 <strong>{email}</strong></span>
             </p>
             <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              完成验证后，请刷新当前网页，或前往登录页使用刚注册的账号。
+              如未看到邮件，请检查垃圾邮件。点击链接后会返回本站登录页。
             </p>
           </div>
           <a
@@ -188,6 +191,14 @@ export default function SignupPage() {
           </p>
         </>
       )}
+      <AuthNoticeDialog
+        open={confirmationDialogOpen}
+        variant="email"
+        title="请验证注册邮箱"
+        description={`请前往 ${email}，点击 Supabase 邮件链接完成验证并登录。\n如未看到邮件，请检查垃圾邮件。`}
+        actionLabel="我知道了"
+        onClose={() => setConfirmationDialogOpen(false)}
+      />
     </AuthLayout>
   );
 }

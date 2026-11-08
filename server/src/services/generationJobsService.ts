@@ -35,6 +35,7 @@ function toCamel(row: Record<string, unknown>): GenerationJob {
     generationEngine: row.generation_engine as string | null,
     errorMessage: row.error_message as string | null,
     errorCode: row.error_code as string | null,
+    traceId: (row.trace_id as string | null | undefined) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
     completedAt: row.completed_at as string | null,
@@ -75,18 +76,25 @@ function toSummary(row: Record<string, unknown>): GenerationJobSummary {
  * - failed → return existing failed job (200, created=false);
  *   caller must use a NEW idempotency key to retry generation
  */
+/** PostgREST reports an unknown column as PGRST204 or in the message. */
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  return error?.code === 'PGRST204'
+    || /trace_id|column .* does not exist|Could not find the '.*' column/i.test(
+      String(error?.message ?? ''),
+    );
+}
+
 export async function upsertJob(
   ownerId: string,
   params: CreateGenerationRequest & { idempotencyKey: string },
+  traceId?: string | null,
 ): Promise<{ job: GenerationJob; created: boolean }> {
   const client = getTrustedSupabase();
 
   // Atomic: INSERT ... ON CONFLICT DO NOTHING.
   // If a row with same (owner_id, idempotency_key) already exists,
   // this is a no-op and returns 0 rows.
-  const { error: insertError } = await client
-    .from('generation_jobs')
-    .insert({
+  const payload: Record<string, unknown> = {
       owner_id: ownerId,
       idempotency_key: params.idempotencyKey,
       status: 'pending',
@@ -115,7 +123,17 @@ export async function upsertJob(
       error_code: null,
       completed_at: null,
       deleted_at: null,
-    });
+  };
+  if (traceId) payload.trace_id = traceId;
+
+  let { error: insertError } = await client.from('generation_jobs').insert(payload);
+
+  // Deploy-order safety: before 20261108120000 is applied the trace_id column
+  // does not exist. Retry once without it so job creation never breaks.
+  if (insertError && traceId && isMissingColumnError(insertError)) {
+    delete payload.trace_id;
+    ({ error: insertError } = await client.from('generation_jobs').insert(payload));
+  }
 
   // If insert failed with unique violation, the job already exists.
   // Otherwise it's a real error.

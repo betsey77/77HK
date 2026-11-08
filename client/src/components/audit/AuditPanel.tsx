@@ -129,7 +129,7 @@ export default function AuditPanel() {
               : generationEngine === 'featherless-cantonese'
               ? 'CantoneseLLMChat-v1.0-32B (Featherless.ai)'
               : generationEngine === 'deepseek'
-                ? 'deepseek-chat'
+                ? 'deepseek-v4-flash'
                 : 'local rules fallback'}
           </p>
         </div>

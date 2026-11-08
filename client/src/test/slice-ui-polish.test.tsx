@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AppProvider } from '../context/AppContext';
 import { AuthContext, type AuthContextValue } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -9,6 +9,7 @@ import { PlanAccessContext } from '../context/PlanAccessContext';
 import FavoritesPanel from '../components/favorites/FavoritesPanel';
 import ReferenceCaseSelector from '../components/input/ReferenceCaseSelector';
 import SignupPage from '../pages/SignupPage';
+import { PublicAuthRoute } from '../App';
 import type { BookmarkedCopy } from '../types';
 
 const OWNER_ID = 'ui-polish-user';
@@ -215,7 +216,57 @@ describe('参考收藏案例折叠面板', () => {
 });
 
 describe('注册确认提示', () => {
-  it('明确提示查收邮件、点击验证链接并刷新页面', async () => {
+  it('注册请求进行中不会卸载表单，完成后仍能显示确认弹窗', async () => {
+    let completeSignup!: () => void;
+
+    function Harness() {
+      const [state, setState] = useState<AuthContextValue['state']>({
+        user: null,
+        session: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+        lastAuthEvent: null,
+      });
+      const authValue: AuthContextValue = {
+        state,
+        login: async () => {},
+        signup: async () => {
+          setState((current) => ({ ...current, isLoading: true }));
+          await new Promise<void>((resolve) => { completeSignup = resolve; });
+          setState((current) => ({ ...current, isLoading: false }));
+          return { needsConfirmation: true };
+        },
+        logout: async () => {},
+        resetPassword: async () => true,
+        updatePassword: async () => true,
+        clearError: () => {},
+      };
+
+      return (
+        <ThemeProvider>
+          <AuthContext.Provider value={authValue}>
+            <PublicAuthRoute><SignupPage /></PublicAuthRoute>
+          </AuthContext.Provider>
+        </ThemeProvider>
+      );
+    }
+
+    render(<Harness />);
+    await userEvent.type(screen.getByLabelText('邮箱 Email'), 'new@example.com');
+    await userEvent.type(screen.getByLabelText('密码 Password'), 'secret123');
+    await userEvent.type(screen.getByLabelText('确认密码 Confirm Password'), 'secret123');
+    await userEvent.click(screen.getByRole('button', { name: /Sign Up/ }));
+
+    expect(screen.getByLabelText('邮箱 Email')).toHaveValue('new@example.com');
+    completeSignup();
+
+    expect(await screen.findByRole('dialog', { name: '请验证注册邮箱' })).toHaveTextContent(
+      'new@example.com',
+    );
+  });
+
+  it('明确提示查收邮件、检查垃圾邮件并通过验证链接返回登录', async () => {
     const authValue: AuthContextValue = {
       state: {
         user: null,
@@ -246,7 +297,9 @@ describe('注册确认提示', () => {
     await userEvent.type(container.querySelector('#signup-confirm-password') as HTMLInputElement, 'secret123');
     await userEvent.click(screen.getByRole('button', { name: /Sign Up/ }));
 
-    expect(await screen.findByText(/请耐心查收邮件/)).toBeInTheDocument();
-    expect(screen.getByText(/刷新当前网页/)).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog', { name: '请验证注册邮箱' });
+    expect(dialog).toHaveTextContent('new@example.com');
+    expect(dialog).toHaveTextContent('垃圾邮件');
+    expect(dialog).toHaveTextContent('完成验证并登录');
   });
 });

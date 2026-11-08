@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { HKPost } from '../../types';
 import PostCard from './PostCard';
 import SkeletonCard from './SkeletonCard';
-import { apiUrl } from '../../services/apiBase';
+import { authApiFetch, getInspirationErrorMessage } from '../../services/api';
 import { SHORTS_TK_LABEL } from '../../constants';
 
 /**
@@ -99,12 +99,11 @@ export default function LanguageVibeTab() {
   const fetchLanguageVibe = () => {
     setLoading(true);
     setError(null);
-    fetch(apiUrl('/inspiration/language-vibe'), {
+    authApiFetch('/inspiration/language-vibe', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error('数据获取失败');
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await getInspirationErrorMessage(res));
         return res.json();
       })
       .then((data) => {

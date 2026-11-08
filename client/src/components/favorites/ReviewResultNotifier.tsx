@@ -1,15 +1,19 @@
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { AppContext } from '../../context/AppContext';
 import type { BookmarkedCopy } from '../../types';
 import {
   OPEN_REVIEWED_FAVORITE_EVENT,
   markReviewResultSeen,
+  publishReviewResultDialogVisibility,
   selectLatestUnseenReview,
 } from '../../services/reviewResultNotifications';
+import { fetchReviewResultSummary } from '../../services/cloudSync';
+import { useVisiblePolling } from '../../hooks/useVisiblePolling';
 
 interface ReviewResultNotifierProps {
   ownerId: string;
+  onReviewVersionChanged?: () => void;
 }
 
 interface PendingResult {
@@ -17,18 +21,48 @@ interface PendingResult {
   resultKey: string;
 }
 
-export default function ReviewResultNotifier({ ownerId }: ReviewResultNotifierProps) {
+export default function ReviewResultNotifier({
+  ownerId,
+  onReviewVersionChanged,
+}: ReviewResultNotifierProps) {
   const { state } = useContext(AppContext);
   const [pending, setPending] = useState<PendingResult | null>(null);
-  const [scanComplete, setScanComplete] = useState(false);
+  const latestReviewUpdatedAt = state.bookmarkedCopies.reduce<string | null>((latest, bookmark) => {
+    const updatedAt = bookmark.adminReview?.updatedAt;
+    return updatedAt && (!latest || updatedAt > latest) ? updatedAt : latest;
+  }, null);
+  const lastReviewVersionRef = useRef<string | null>(latestReviewUpdatedAt);
 
   useEffect(() => {
-    if (scanComplete || state.bookmarkedCopies.length === 0) return;
+    if (state.bookmarkedCopies.length === 0) return;
     setPending(selectLatestUnseenReview(ownerId, state.bookmarkedCopies));
-    setScanComplete(true);
-  }, [ownerId, scanComplete, state.bookmarkedCopies]);
+  }, [ownerId, state.bookmarkedCopies]);
+
+  useEffect(() => {
+    lastReviewVersionRef.current = latestReviewUpdatedAt;
+  }, [ownerId, latestReviewUpdatedAt]);
+
+  const pollReviewVersion = useCallback(async () => {
+    const summary = await fetchReviewResultSummary(ownerId);
+    if (summary.latestUpdatedAt === lastReviewVersionRef.current) return true;
+    lastReviewVersionRef.current = summary.latestUpdatedAt;
+    onReviewVersionChanged?.();
+    return true;
+  }, [onReviewVersionChanged, ownerId]);
+
+  useVisiblePolling(pollReviewVersion, Boolean(onReviewVersionChanged));
 
   const review = pending?.bookmark.adminReview;
+  const dialogOpen = Boolean(pending && review);
+
+  useEffect(() => {
+    publishReviewResultDialogVisibility(ownerId, dialogOpen);
+    return () => {
+      if (!dialogOpen) return;
+      publishReviewResultDialogVisibility(ownerId, false);
+    };
+  }, [dialogOpen, ownerId]);
+
   if (!pending || !review) return null;
 
   const { bookmark, resultKey } = pending;

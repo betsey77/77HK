@@ -17,6 +17,7 @@ const AuditPanel = lazy(() => import('./components/audit/AuditPanel'));
 const InspirationPanel = lazy(() => import('./components/inspiration/InspirationPanel'));
 const FavoritesPanel = lazy(() => import('./components/favorites/FavoritesPanel'));
 const ReviewResultNotifier = lazy(() => import('./components/favorites/ReviewResultNotifier'));
+const CheckInDialog = lazy(() => import('./components/checkin/CheckInDialog'));
 const FeedbackCenter = lazy(() => import('./components/feedback/FeedbackCenter'));
 const MarketingPage = lazy(() => import('./components/marketing/MarketingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -112,7 +113,10 @@ function AppShellWithAuth() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-950 light:bg-white">
+    <div
+      data-testid="workbench-shell"
+      className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-gray-950 light:bg-white"
+    >
       <Header
         onLogout={handleLogout}
         userEmail={authState.user?.email ?? null}
@@ -232,18 +236,34 @@ export function CloudSyncGate({ children }: { children: ReactNode }) {
 
   // Hydration error with retry
   if (cloudSync.syncStatus === 'error' && shouldBlockCloudSync(cloudSync.syncStatus, initialHydrationComplete)) {
+    const showDiscard =
+      typeof cloudSync.syncError === 'string'
+      && cloudSync.syncError.includes('本地数据未同步');
     return (
       <div className="flex h-full items-center justify-center bg-gray-950 light:bg-white">
-        <div className="flex flex-col items-center gap-4 max-w-sm text-center">
+        <div className="flex flex-col items-center gap-4 max-w-sm text-center px-4">
           <p className="text-sm text-red-400">
             {cloudSync.syncError || '云端同步失败'}
           </p>
-          <button
-            onClick={cloudSync.retryHydration}
-            className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500"
-          >
-            重试
-          </button>
+          <p className="text-xs text-gray-500 light:text-gray-600">
+            请使用正式网址：77hk-cantonese-aicopywriter.vercel.app（不要用带随机字符的临时链接）
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              onClick={cloudSync.retryHydration}
+              className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500"
+            >
+              重试
+            </button>
+            {showDiscard && (
+              <button
+                onClick={cloudSync.discardLocalOutboxAndRetry}
+                className="rounded border border-amber-500/40 px-4 py-2 text-sm text-amber-300 hover:bg-amber-500/10"
+              >
+                丢弃本机待同步并拉取云端
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -283,7 +303,13 @@ export function CloudSyncGate({ children }: { children: ReactNode }) {
       )}
 
       {cloudSync.syncStatus === 'ready' && authState.user?.id && (
-        <ReviewResultNotifier ownerId={authState.user.id} />
+        <>
+          <ReviewResultNotifier
+            ownerId={authState.user.id}
+            onReviewVersionChanged={cloudSync.retryHydration}
+          />
+          <CheckInDialog ownerId={authState.user.id} />
+        </>
       )}
 
       {children}
@@ -361,10 +387,15 @@ function LegacyImportBanner({
 // Public route — redirect to /app if already authed
 // ============================================================
 
-function PublicAuthRoute({ children }: { children: ReactNode }) {
+export function PublicAuthRoute({ children }: { children: ReactNode }) {
   const { state } = useAuth();
+  const initialAuthResolvedRef = useRef(!state.isLoading);
 
-  if (state.isLoading) {
+  if (!state.isLoading) {
+    initialAuthResolvedRef.current = true;
+  }
+
+  if (state.isLoading && !initialAuthResolvedRef.current) {
     return <AuthLoading />;
   }
 

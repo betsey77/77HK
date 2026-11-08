@@ -1,4 +1,5 @@
 import express from 'express';
+import { DEFAULT_DEEPSEEK_MODEL, getModelRuntimePolicy } from './services/modelPolicy.js';
 import cors from 'cors';
 import generateRouter from './routes/generate.js';
 import parsePersonasRouter from './routes/parsePersonas.js';
@@ -8,6 +9,7 @@ import calendarRouter from './routes/calendar.js';
 import inspirationRouter from './routes/inspiration.js';
 import competitorRouter from './routes/competitor.js';
 import meRouter from './routes/me.js';
+import checkInRouter from './routes/checkIn.js';
 import generationsRouter from './routes/generations.js';
 import syncRouter from './routes/sync.js';
 import feedbackRouter from './routes/feedback.js';
@@ -90,10 +92,14 @@ app.use((req, res, next) => {
 
 app.get('/api/health', (_req, res) => {
   const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.https_proxy || process.env.http_proxy;
+  const modelPolicy = getModelRuntimePolicy();
   res.json({
     status: 'ok',
     selfHostedConfigured: !!process.env.CANTONESE_API_URL,
     deepseekConfigured: !!process.env.DEEPSEEK_API_KEY,
+    deepseekModel: process.env.DEEPSEEK_MODEL || DEFAULT_DEEPSEEK_MODEL,
+    realModelRequired: modelPolicy.requireRealModel,
+    realModelConfigured: modelPolicy.hasConfiguredRealModel,
     youtubeKeyConfigured: !!process.env.YOUTUBE_API_KEY,
     metaTokenConfigured: !!process.env.META_ACCESS_TOKEN,
     proxyConfigured: !!proxy,
@@ -144,6 +150,7 @@ app.use('/api', calendarRouter);
 app.use('/api', inspirationRouter);
 app.use('/api', competitorRouter);
 app.use('/api', meRouter);
+app.use('/api', checkInRouter);
 app.use('/api', billingRouter);
 app.use('/api', generationsRouter);
 app.use('/api', syncRouter);

@@ -236,7 +236,7 @@ async function main() {
     pass('staging user, temporary admin, and pending favorite prepared');
 
     const tsxCli = path.join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-    server = spawn(process.execPath, [tsxCli, path.join(root, 'server', 'src', 'index.ts')], {
+    server = spawn(process.execPath, [tsxCli, path.join(root, 'server', 'src', 'local.ts')], {
       cwd: path.join(root, 'server'),
       env: { ...process.env, PORT: '3004', ALLOWED_ORIGINS: appOrigin },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -266,7 +266,7 @@ async function main() {
     const adminDesktopPage = await adminDesktop.newPage();
     await login(adminDesktopPage, adminEmail, adminPassword, '/admin');
     const desktopReminder = adminDesktopPage.getByTestId('admin-page-review-reminder');
-    await expect(desktopReminder).toContainText('1 条文案待审核', { timeout: 20_000 });
+    await expect(desktopReminder).toContainText('条文案待审核', { timeout: 20_000 });
     await screenshot(adminDesktopPage, 'admin-pending-reminder-desktop-1440-staging.png');
     await desktopReminder.getByRole('button', { name: '稍后审核' }).click();
     await expect(desktopReminder).toHaveCount(0);
@@ -279,15 +279,17 @@ async function main() {
     const adminMobilePage = await adminMobile.newPage();
     await login(adminMobilePage, adminEmail, adminPassword, '/admin');
     const mobileReminder = adminMobilePage.getByTestId('admin-page-review-reminder');
-    await expect(mobileReminder).toContainText('1 条文案待审核', { timeout: 20_000 });
+    await expect(mobileReminder).toContainText('条文案待审核', { timeout: 20_000 });
     await mobileReminder.getByRole('button', { name: '立刻审核' }).click();
-    await expect(adminMobilePage.getByRole('button', { name: '只看待审核' })).toContainText('1');
-    const pendingRow = adminMobilePage.getByTestId('admin-pending-row');
-    await expect(pendingRow).toBeVisible();
+    // The staging account may already have older pending rows; the API orders newest first,
+    // so the seeded favorite is the first pending row. The detail assertion below verifies it.
+    const pendingRow = adminMobilePage.getByTestId('admin-pending-row').first();
+    await expect(pendingRow).toBeVisible({ timeout: 20_000 });
     await assertNoHorizontalOverflow(adminMobilePage);
     await screenshot(adminMobilePage, 'admin-pending-queue-mobile-390-staging.png');
     await pendingRow.getByRole('button', { name: '查看收藏详情' }).click();
     await expect(adminMobilePage.getByTestId('favorite-review-dialog')).toBeVisible();
+    await expect(adminMobilePage.getByTestId('favorite-review-dialog')).toContainText(content, { timeout: 20_000 });
     await adminMobilePage.getByTestId('review-status-adopted').click();
     await adminMobilePage.getByTestId('review-save-btn').click();
     await expect(adminMobilePage.getByTestId('review-success')).toHaveText('审核已保存');
@@ -300,6 +302,7 @@ async function main() {
     await login(userDesktopPage, realSecrets.REAL_TEST_EMAIL, realSecrets.REAL_TEST_PASSWORD_NEW, '/app');
     const adoptedDialog = userDesktopPage.getByRole('dialog', { name: '文案审核结果' });
     await expect(adoptedDialog).toContainText(`你的「${brandName}」文案已通过审核，请立即查看`, { timeout: 20_000 });
+    await expect(userDesktopPage.getByRole('dialog', { name: '每日签到' })).toHaveCount(0);
     await screenshot(userDesktopPage, 'user-review-adopted-desktop-1440-staging.png');
     await adoptedDialog.getByRole('button', { name: '立即查看' }).click();
     await expect(userDesktopPage.getByRole('heading', { name: '文案收藏库' })).toBeVisible();
@@ -335,6 +338,7 @@ async function main() {
     await login(userMobilePage, realSecrets.REAL_TEST_EMAIL, realSecrets.REAL_TEST_PASSWORD_NEW, '/app');
     const changesDialog = userMobilePage.getByRole('dialog', { name: '文案审核结果' });
     await expect(changesDialog).toContainText(`你的「${brandName}」文案未通过审核，请立即查看`, { timeout: 20_000 });
+    await expect(userMobilePage.getByRole('dialog', { name: '每日签到' })).toHaveCount(0);
     await expect(changesDialog).toContainText('请把开场写得更直接。');
     const box = await changesDialog.boundingBox();
     assert(box && box.x >= 0 && box.x + box.width <= 391, 'mobile review dialog exceeds the viewport');

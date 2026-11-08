@@ -172,7 +172,7 @@ describe('BillingPage', () => {
     );
 
     expect(await screen.findByText('套餐与结算')).toBeInTheDocument();
-    expect(screen.getByText(/此为演示结算页/)).toBeInTheDocument();
+    expect(screen.getByText(/用量来自实际账号记录/)).toBeInTheDocument();
     const logo = screen.getByRole('link', { name: /77港话通社媒文案器/ }).querySelector('img');
     expect(logo?.parentElement).toHaveClass('overflow-hidden', 'bg-black');
   });
@@ -245,6 +245,44 @@ describe('BillingPage', () => {
 
     expect(await screen.findByRole('dialog', { name: '支付成功' })).toBeInTheDocument();
     expect(screen.getByText(/Pro 套餐已开通/)).toBeInTheDocument();
+  });
+
+  it('renders an expired Pro as expired with a renewal CTA instead of usable quota', async () => {
+    setSignedIn();
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/api/me/entitlements')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            planId: 'pro', planName: '专业版', quotaUsed: 5, quotaTotal: 250,
+            cycleStart: '2026-08-23T01:31:24.000Z', cycleEnd: '2026-09-22T01:31:24.000Z',
+            expired: true, isMock: false,
+          }),
+        });
+      }
+      if (url.includes('/api/billing/plans')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ plans: [], paymentMode: 'alipay_sandbox', isMock: false }),
+        });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ orders: [], total: 0 }) });
+    }));
+
+    render(
+      <AuthProvider>
+        <AppProvider ownerId="user-001">
+          <BillingPage />
+        </AppProvider>
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('已过期')).toBeInTheDocument();
+    expect(screen.getByText(/会员已于/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '续费 Pro' })).toBeInTheDocument();
   });
 });
 
