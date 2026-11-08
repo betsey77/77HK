@@ -35,6 +35,7 @@ const MODEL_CALL_ERROR_CLASSES = [
 const MODEL_CALL_INPUT_KEYS = new Set([
   'jobId',
   'requestId',
+  'traceId',
   'operation',
   'provider',
   'model',
@@ -42,6 +43,11 @@ const MODEL_CALL_INPUT_KEYS = new Set([
   'errorClass',
   'latencyMs',
   'attempt',
+  'httpStatus',
+  'finishReason',
+  'requestHash',
+  'promptVersion',
+  'isFallback',
   'promptTokens',
   'completionTokens',
   'totalTokens',
@@ -61,6 +67,8 @@ export type ModelCallErrorClass = typeof MODEL_CALL_ERROR_CLASSES[number];
 export interface ModelCallContext {
   jobId: string | null;
   requestId: string;
+  /** Correlation id shared with the generation job and review pack. */
+  traceId?: string | null;
 }
 
 export interface ModelCallAttemptMeta {
@@ -89,6 +97,13 @@ export interface ModelCallLogInput {
   errorClass: ModelCallErrorClass | null;
   latencyMs: number;
   attempt: number;
+  /** Optional observability fields (2026-11-08 migration); omitted = legacy row. */
+  traceId?: string | null;
+  httpStatus?: number | null;
+  finishReason?: string | null;
+  requestHash?: string | null;
+  promptVersion?: string | null;
+  isFallback?: boolean;
   promptTokens: number | null;
   completionTokens: number | null;
   totalTokens: number | null;
@@ -107,6 +122,12 @@ interface ModelCallLogRow {
   error_class: ModelCallErrorClass | null;
   latency_ms: number;
   attempt: number;
+  trace_id?: string;
+  http_status?: number;
+  finish_reason?: string;
+  request_hash?: string;
+  prompt_version?: string;
+  is_fallback?: boolean;
   prompt_tokens: number | null;
   completion_tokens: number | null;
   total_tokens: number | null;
@@ -197,6 +218,17 @@ export function classifyModelError(error: unknown): ModelCallErrorClass {
   return 'unknown';
 }
 
+/** Extract an allowlisted HTTP status from a provider error, if present. */
+function modelErrorHttpStatus(error: unknown): number | null {
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status === 'number'
+    && Number.isSafeInteger(status)
+    && status >= 100
+    && status <= 599
+    ? status
+    : null;
+}
+
 function toModelCallRow(input: ModelCallLogInput): ModelCallLogRow {
   if (!input || typeof input !== 'object' || Array.isArray(input)) invalidPayload();
 
@@ -229,7 +261,33 @@ function toModelCallRow(input: ModelCallLogInput): ModelCallLogRow {
   if (input.usageSource === 'unavailable' && usageValues.some((value) => value !== null)) invalidPayload();
   if (input.usageSource === 'provider' && usageValues.every((value) => value === null)) invalidPayload();
 
-  return {
+  const traceId = input.traceId ?? null;
+  if (traceId !== null && !UUID_PATTERN.test(traceId)) invalidPayload();
+
+  const httpStatus = input.httpStatus ?? null;
+  if (
+    httpStatus !== null
+    && (!Number.isSafeInteger(httpStatus) || httpStatus < 100 || httpStatus > 599)
+  ) invalidPayload();
+
+  const finishReason = input.finishReason ?? null;
+  if (
+    finishReason !== null
+    && (typeof finishReason !== 'string'
+      || finishReason.length === 0
+      || finishReason.length > 80
+      || SECRET_LIKE_PATTERN.test(finishReason))
+  ) invalidPayload();
+
+  const requestHash = input.requestHash ?? null;
+  if (requestHash !== null && !/^[a-f0-9]{64}$/i.test(requestHash)) invalidPayload();
+
+  const promptVersion = input.promptVersion ?? null;
+  if (promptVersion !== null && !/^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(promptVersion)) invalidPayload();
+
+  if (input.isFallback !== undefined && typeof input.isFallback !== 'boolean') invalidPayload();
+
+  const row: ModelCallLogRow = {
     job_id: input.jobId,
     request_id: input.requestId,
     operation: input.operation,
@@ -246,6 +304,17 @@ function toModelCallRow(input: ModelCallLogInput): ModelCallLogRow {
     cache_miss_tokens: input.cacheMissTokens,
     usage_source: input.usageSource,
   };
+
+  // Only include extended fields when provided, so legacy callers keep writing
+  // exactly the historical row shape (and old DBs keep accepting it).
+  if (traceId !== null) row.trace_id = traceId;
+  if (httpStatus !== null) row.http_status = httpStatus;
+  if (finishReason !== null) row.finish_reason = finishReason;
+  if (requestHash !== null) row.request_hash = requestHash;
+  if (promptVersion !== null) row.prompt_version = promptVersion;
+  if (input.isFallback !== undefined) row.is_fallback = input.isFallback;
+
+  return row;
 }
 
 /** Record a server-owned daily activity event. The database derives the HK date. */
@@ -259,18 +328,67 @@ export async function recordAppActivity(userId: string): Promise<void> {
   if (error) throw new Error('Failed to record app activity');
 }
 
+const EXTENDED_MODEL_CALL_KEYS = [
+  'trace_id',
+  'http_status',
+  'finish_reason',
+  'request_hash',
+  'prompt_version',
+  'is_fallback',
+] as const;
+
+/** Set once a pre-migration database rejects the extended columns. */
+let extendedModelColumnsUnsupported = false;
+
+function hasExtendedModelColumns(row: ModelCallLogRow): boolean {
+  return EXTENDED_MODEL_CALL_KEYS.some((key) => row[key] !== undefined);
+}
+
+function withoutExtendedModelColumns(row: ModelCallLogRow): ModelCallLogRow {
+  const legacy = { ...row };
+  for (const key of EXTENDED_MODEL_CALL_KEYS) delete legacy[key];
+  return legacy;
+}
+
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  const message = String(error?.message ?? '');
+  return error?.code === 'PGRST204'
+    || /column .* does not exist|Could not find the '.*' column/i.test(message);
+}
+
+async function insertModelCallRow(
+  db: ReturnType<typeof getTrustedSupabase>,
+  row: ModelCallLogRow,
+): Promise<boolean> {
+  const { error } = await db.from('model_call_logs').insert(row);
+  if (!error) return true;
+
+  // Deploy-order safety: the extended columns arrive with migration
+  // 20261108120000. Until then, retry the legacy shape once and keep
+  // telemetry working instead of dropping every attempt.
+  if (!extendedModelColumnsUnsupported && hasExtendedModelColumns(row) && isMissingColumnError(error)) {
+    extendedModelColumnsUnsupported = true;
+    const retry = await db.from('model_call_logs').insert(withoutExtendedModelColumns(row));
+    return retry.error === null;
+  }
+  return false;
+}
+
 /**
  * Best-effort model-attempt telemetry for D5 callers.
  * Invalid programmer input fails loudly; database/timeout failures return false.
  */
 export async function recordModelCall(input: ModelCallLogInput): Promise<boolean> {
   const row = toModelCallRow(input);
+  const effectiveRow = extendedModelColumnsUnsupported
+    ? withoutExtendedModelColumns(row)
+    : row;
 
   let write: Promise<boolean>;
   try {
     const db = getTrustedSupabase();
-    write = Promise.resolve(db.from('model_call_logs').insert(row)).then(
-      ({ error }) => error === null,
+    write = Promise.resolve(insertModelCallRow(db, effectiveRow)).then(
+      (ok) => ok,
       () => false,
     );
   } catch {
@@ -320,12 +438,14 @@ export async function observeModelAttempt<T>(
     return value;
   } catch (error) {
     try {
+      const httpStatus = modelErrorHttpStatus(error);
       await recordModelCall({
         ...context,
         ...meta,
         status: 'error',
         errorClass: classifyModelError(error),
         latencyMs: Math.max(0, Date.now() - startedAt),
+        ...(httpStatus !== null ? { httpStatus } : {}),
         ...normalizeProviderUsage(providerUsage),
       });
     } catch {

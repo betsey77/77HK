@@ -340,6 +340,8 @@ export interface GenerationJob {
   scores?: { generated: AuditScores; source: AuditScores | null } | null;
   consumerFeedback?: ConsumerFeedback[] | null;
   generationEngine?: string | null;
+  /** Correlation id for this request across job / model calls / review pack. */
+  traceId?: string | null;
   // Error
   errorMessage?: string | null;
   errorCode?: string | null;

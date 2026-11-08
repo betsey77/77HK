@@ -101,7 +101,7 @@ function InputAccordion({
 }
 
 export default function InputPanel() {
-  const { generate, isLoading, canGenerate, quotaDialogOpen, closeQuotaDialog } = useGenerate();
+  const { generate, isLoading, canGenerate, quotaDialogOpen, quotaDialogMessage, closeQuotaDialog } = useGenerate();
   const { state } = useContext(AppContext);
   const hasResults = state.variants !== null;
 
@@ -204,7 +204,7 @@ export default function InputPanel() {
       <ConfirmDialog
         open={quotaDialogOpen}
         title="账户配额不足"
-        message="当前套餐的生成额度已用完，或会员已到期。续费 / 升级 Pro 后可继续生成，并解锁完整收藏与历史访问。"
+        message={quotaDialogMessage}
         cancelLabel="暂不充值"
         confirmLabel="去充值 / 续费"
         onCancel={closeQuotaDialog}
