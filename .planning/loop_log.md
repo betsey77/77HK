@@ -371,3 +371,16 @@
 - Goal state: achieved locally
 - Boundary: D1/D4 migrations unapplied; no real provider call, database/staging write, deployment, commit, push, reset, clean or worktree
 - Evidence: `docs/evidence/2026-07-19/slice-d5-model-telemetry/verification.md`
+
+## 2026-11-08 - 生产 Pro 周期恢复 + 权益/坏包归因修复
+
+- Phase: 生产只读诊断 → 用户批准 A/B/C → 生产单账号续期 + 本地代码修复 + 验证
+- Root cause: 截图 Pro 来自 8/23 签到 7 天奖励的 30 天 Pro（8/23–9/22）；付费计划过期后 reserve_quota 按设计返回 null，无 cron/无支付续期；entitlements 与 planAccess 只看 status='active'，把过期订阅当有效展示
+- Data evidence: 12 条订阅全部过期（8 Free + 4 Pro）；5 次 QUOTA_EXHAUSTED 全为 Pro；8 条 Free 均为 WOULD_lazy_renew；payment_orders=0
+- A: 仅续 subscription d7310890…（user 883c13d2…）30 天并清零 quota_used；其余 3 Pro 未动；未写 usage_ledger
+- B: entitlements expired 标记、PlanAccess 过期降级、BillingPage 已过期/续费 CTA、planAccessService 周期校验、402 文案通用化、QUOTA_EXHAUSTED 不再生成坏包、坏包分析带 errorCode/evidence、summary 加 error=
+- C: 根 .env 对齐生产 wzpaghnxlpfjojvuxplx；server/.env secret 指向已验证 service_role.txt；原 secret 文件 401；明文 secret 待用户轮换
+- Focused verification: Server 51/51 (4 files); Client 31/31
+- Full verification: Client 494/494; Server 831/832（既有 alipayAdapter BAD_BASE64_DECODE，环境性，文件未改）；client/server typecheck 0；npm run build 通过
+- Boundary: 未 commit/push/部署；未改 migration；未改其他账号；未 reset/clean Dirty Worktree
+- Evidence: `docs/plans/2026-11-08-trace-and-quota-observability.md`
