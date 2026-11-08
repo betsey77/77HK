@@ -49,6 +49,14 @@ describe('E6 release notes static data', () => {
     expect(deployed.every((n) => n.status === 'deployed')).toBe(true);
   });
 
+  it('ships the deployed 2.2.0 release note', () => {
+    const note = RELEASE_NOTES.find(
+      (item) => item.version === '2.2.0' && item.status === 'deployed',
+    );
+    expect(note?.releasedAt).toBe('2026-11-08');
+    expect(note?.sections.flatMap((section) => section.items).length).toBeGreaterThan(0);
+  });
+
   it('ships the concise deployed 2.1.1 release note', () => {
     const note = RELEASE_NOTES.find(
       (item) => item.version === '2.1.1' && item.status === 'deployed',
@@ -84,7 +92,7 @@ describe('E6 HeaderMenu release notes dialog', () => {
 
     const dialog = await screen.findByRole('dialog', { name: '更新日志' });
     expect(dialog).toBeInTheDocument();
-    expect(screen.getByText('版本 2.1.1')).toBeInTheDocument();
+    expect(screen.getByText('版本 2.2.0')).toBeInTheDocument();
     expect(screen.getByText('修复 Windows 浏览器中发布日期弹框位置偏移的问题。')).toBeInTheDocument();
     expect(document.body.style.overflow).toBe('hidden');
     expect(window.location.pathname).not.toMatch(/release|changelog/i);
@@ -120,8 +128,8 @@ describe('E6 HeaderMenu release notes dialog', () => {
 });
 
 describe('E6 Footer version', () => {
-  it('shows product version 2.1.1', () => {
+  it('shows product version 2.2.0', () => {
     render(<Footer />);
-    expect(screen.getByText('v2.1.1')).toBeInTheDocument();
+    expect(screen.getByText('v2.2.0')).toBeInTheDocument();
   });
 });

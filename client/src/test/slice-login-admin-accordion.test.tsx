@@ -366,7 +366,7 @@ describe('工作台左侧四大折叠页', () => {
     render(<Footer />, { wrapper: InputWrapper });
 
     expect(screen.getByText('Powered by CANTONESE API')).toBeInTheDocument();
-    expect(screen.getByText('v2.1.1')).toBeInTheDocument();
+    expect(screen.getByText('v2.2.0')).toBeInTheDocument();
     expect(screen.queryByText(/DeepSeek API/)).not.toBeInTheDocument();
   });
 

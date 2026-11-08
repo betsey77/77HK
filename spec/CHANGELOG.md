@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v2.2.0 - 2026-11-08
+
+- 会员权益：`/api/me/entitlements` 返回 `expired`，套餐页显示「已过期」并提供续费入口；`planAccessService` 增加 `current_period_start/end` 约束，过期 Pro 不再解锁收藏与历史（P1-B）。
+- 配额提示：402 弹窗按 `period_expired` / `quota_exhausted` 区分文案，不再把过期会员误报为「Free 额度用完」。
+- 坏包归因：`QUOTA_EXHAUSTED` 等前置条件失败不再生成 generation bad case；真实失败包 summary 带 `error=`，分析输入带 `runtime.errorCode` 与 criteria evidence。
+- 可观测性：新增 `quota_denial_events`、`reserve_quota_v2`（返回 reason）、`trace_id` 与 `model_call_logs` 归因字段；迁移 `20261108120000` 已应用。
+- 生产基线：补齐此前只在 Dirty Worktree 的运行时文件、`traditionalizeHk` 与 `opencc-js` 依赖，修复 Vercel 从 Git 构建缺模块；`supabase/.temp` 移出 Git 索引。
+- 验证：server 844/845（既有 alipay 环境失败）、client 495/495、双端 typecheck 0、build 通过；生产 API `api.77hk.net` 与 Web `77hk.net` 已发布。
+
 ## v2.1.1 - 2026-08-07
 
 - 修复 Windows 浏览器中发布日期弹框严重偏移的问题。
