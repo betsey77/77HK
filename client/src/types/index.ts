@@ -756,6 +756,8 @@ export interface GenerationJob extends GenerationJobSummary {
   scores?: { generated: AuditScores; source: AuditScores | null } | null;
   consumerFeedback?: ConsumerFeedback[] | null;
   generationEngine?: string | null;
+  /** Correlation id for this request across job / model calls / review pack. */
+  traceId?: string | null;
   errorMessage?: string | null;
   errorCode?: string | null;
   updatedAt: string;

@@ -19,6 +19,30 @@ export interface UserEntitlement {
   remaining: number;
 }
 
+/** Machine-readable reasons why a reservation was denied. */
+export type QuotaDenialReason =
+  | 'no_subscription'
+  | 'inactive_subscription'
+  | 'period_not_started'
+  | 'period_expired'
+  | 'quota_exhausted'
+  | 'unknown';
+
+const KNOWN_DENIAL_REASONS: ReadonlySet<string> = new Set([
+  'no_subscription',
+  'inactive_subscription',
+  'period_not_started',
+  'period_expired',
+  'quota_exhausted',
+]);
+
+export interface QuotaReserveOutcome {
+  reservation: QuotaReservation | null;
+  reason: QuotaDenialReason | null;
+  planName: string | null;
+  periodEnd: string | null;
+}
+
 // ============================================================
 // Parsing helpers
 // ============================================================
@@ -78,6 +102,90 @@ export async function reserveQuota(
   }
 
   return parseReservationResult(data);
+}
+
+// ============================================================
+// reserveQuotaWithReason
+// ============================================================
+
+/**
+ * Detect "the v2 RPC is not deployed in this database yet". The 2026-11-08
+ * migration is additive, so the API must keep working (via v1) until it is
+ * applied. PostgREST reports a missing function as PGRST202 / schema cache.
+ */
+function isMissingV2Function(error: unknown): boolean {
+  const details = error as { code?: string; message?: string } | null;
+  const message = String(details?.message ?? '');
+  return details?.code === 'PGRST202'
+    || (message.includes('reserve_quota_v2') && (
+      message.includes('Could not find the function')
+      || message.includes('schema cache')
+      || message.includes('does not exist')
+      || message.includes('Unknown RPC')
+    ));
+}
+
+/**
+ * Reserve one quota unit and explain a denial.
+ *
+ * Calls `reserve_quota_v2` when available; otherwise falls back to the legacy
+ * `reserve_quota` and reports reason 'unknown'. Accounting is unchanged: both
+ * functions use the same append-only ledger and idempotency key.
+ */
+export async function reserveQuotaWithReason(
+  userId: string,
+  idempotencyKey: string,
+): Promise<QuotaReserveOutcome> {
+  const db = getTrustedSupabase();
+
+  const { data, error } = await db.rpc('reserve_quota_v2', {
+    _user_id: userId,
+    _idempotency_key: idempotencyKey,
+  });
+
+  if (error) {
+    if (!isMissingV2Function(error)) {
+      throw new Error(`Quota reserve failed: ${(error as any)?.message ?? 'unknown error'}`);
+    }
+    const reservation = await reserveQuota(userId, idempotencyKey);
+    return {
+      reservation,
+      reason: reservation ? null : 'unknown',
+      planName: null,
+      periodEnd: null,
+    };
+  }
+
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+
+    // v1-shaped result (no `reserved` flag) is still a success payload.
+    if (obj.reserved !== false) {
+      const reservation = parseReservationResult(data);
+      if (reservation) {
+        return { reservation, reason: null, planName: null, periodEnd: null };
+      }
+    } else {
+      const reason = typeof obj.reason === 'string' && KNOWN_DENIAL_REASONS.has(obj.reason)
+        ? (obj.reason as QuotaDenialReason)
+        : 'unknown';
+      return {
+        reservation: null,
+        reason,
+        planName: typeof obj.plan_name === 'string' ? obj.plan_name : null,
+        periodEnd: typeof obj.period_end === 'string' ? obj.period_end : null,
+      };
+    }
+  }
+
+  // Unexpected null from v2 — keep legacy behaviour so no reservation is lost.
+  const reservation = await reserveQuota(userId, idempotencyKey);
+  return {
+    reservation,
+    reason: reservation ? null : 'unknown',
+    planName: null,
+    periodEnd: null,
+  };
 }
 
 // ============================================================

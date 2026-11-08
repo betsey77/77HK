@@ -12,12 +12,23 @@ import { resolvePersonas } from '../services/personaService.js';
 import { HK_CALENDAR } from '../services/calendarData.js';
 import { requireAuth } from '../middleware/auth.js';
 import { upsertJob, markProcessing, completeJob, failJob } from '../services/generationJobsService.js';
-import { reserveQuota, consumeQuota, releaseQuota } from '../services/quotaService.js';
+import {
+  reserveQuota,
+  reserveQuotaWithReason,
+  consumeQuota,
+  releaseQuota,
+  type QuotaDenialReason,
+} from '../services/quotaService.js';
+import { recordQuotaDenial } from '../services/quotaDenialService.js';
 import {
   validateDiagnoseGenerateResult,
   validateAuditResult,
 } from '../parsers/parseResponse.js';
 import { validateCalendarCoverage, ensureCalendarCoverage } from '../services/calendarValidation.js';
+import {
+  traditionalizeVariantMeta,
+  traditionalizeVariants,
+} from '../services/traditionalizeHk.js';
 import type { GenerateRequest, GenerationEngine, InputLanguage } from '../types/index.js';
 import { resolveW1Fields, VALID_PRIMARY_TONES } from '../prompts/w1Constraints.js';
 import { createUserClient } from '../services/supabase.js';
@@ -235,11 +246,31 @@ function validateRequest(body: unknown): GenerateRequest {
 // POST /api/generate — authenticated generation with persistence
 // ============================================================
 
+/** Map a machine-readable denial to a stable, non-PII message. */
+function quotaDenialMessage(reason: QuotaDenialReason | null): string {
+  switch (reason) {
+    case 'period_expired':
+      return 'Your membership period has expired. Renew Pro to continue generating.';
+    case 'quota_exhausted':
+      return 'You have used all generation quota for the current period.';
+    case 'no_subscription':
+      return 'No active subscription was found for this account.';
+    case 'inactive_subscription':
+      return 'The subscription is not active.';
+    case 'period_not_started':
+      return 'The subscription period has not started yet.';
+    default:
+      return 'You have no remaining generation quota. Please upgrade your plan to continue.';
+  }
+}
+
 router.post('/generate', requireAuth, async (req: Request, res: Response) => {
   const userId = req.userId as string;
   const userJwt = req.userJwt as string;
   let jobId: string | undefined;
   let reservation: Awaited<ReturnType<typeof reserveQuota>> = null;
+  // One correlation id for this request: job row, model attempts and review pack.
+  const traceId = randomUUID();
 
   try {
     const params = validateRequest(req.body);
@@ -321,7 +352,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       productName: params.productName,
       brandRedLines: params.brandRedLines,
       brief,
-    });
+    }, traceId);
 
     // Duplicate request handling:
     // - completed → return existing result (200)
@@ -340,6 +371,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
           scores: existingJob.scores ?? undefined,
           consumerFeedback: existingJob.consumerFeedback ?? undefined,
           jobId: existingJob.id,
+          traceId: existingJob.traceId ?? traceId,
           idempotent: true,
         });
         return;
@@ -348,6 +380,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       if (existingJob.status === 'processing' || existingJob.status === 'pending') {
         res.status(202).json({
           jobId: existingJob.id,
+          traceId: existingJob.traceId ?? traceId,
           status: existingJob.status,
           message: existingJob.status === 'processing'
             ? 'Generation is already in progress. Poll for results.'
@@ -360,6 +393,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       // failed — return error info, client must use new idempotency key to retry
       res.status(200).json({
         jobId: existingJob.id,
+        traceId: existingJob.traceId ?? traceId,
         status: 'failed',
         error: existingJob.errorMessage ?? 'Previous generation failed',
         errorCode: existingJob.errorCode,
@@ -375,12 +409,31 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
     // @C2a-TRUSTED-WRITE: Quota is checked and reserved server-side using the
     // trusted Supabase client (service_role). The browser cannot forge quota.
     // Uses the same idempotencyKey as the job for coordinated idempotency.
-    reservation = await reserveQuota(userId, idempotencyKey);
+    // reserve_quota_v2 also reports WHY a denial happened; it falls back to v1
+    // until migration 20261108120000 is applied.
+    const outcome = await reserveQuotaWithReason(userId, idempotencyKey);
+    reservation = outcome.reservation;
     if (!reservation) {
       // No active subscription or quota exhausted — do NOT call any model.
-      // Mark the job as failed (no quota) and return 402.
+      // Record the precise reason (2026-11-08 incident: "expired Pro" and
+      // "quota used up" used to be indistinguishable) and fail the job.
+      const reason: QuotaDenialReason = outcome.reason ?? 'unknown';
+      await recordQuotaDenial({
+        userId,
+        jobId: jobId ?? null,
+        traceId,
+        reason,
+        planName: outcome.planName,
+        periodEnd: outcome.periodEnd,
+      });
+      const denialMessage = quotaDenialMessage(reason);
       try {
-        await failJob(jobId, userId, 'Insufficient quota. Please upgrade your plan.', 'QUOTA_EXHAUSTED');
+        await failJob(
+          jobId,
+          userId,
+          `Insufficient quota (reason=${reason}). ${denialMessage}`,
+          'QUOTA_EXHAUSTED',
+        );
       } catch (e) {
         console.error('[Generate] Failed to persist quota-exhausted state:', e);
       }
@@ -401,8 +454,10 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       }
       res.status(402).json({
         error: 'Insufficient quota',
-        message: 'You have no remaining generation quota. Please upgrade your plan to continue.',
+        message: denialMessage,
+        reason,
         jobId,
+        traceId,
       });
       return;
     }
@@ -412,6 +467,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
     const modelCallContext: ModelCallContext = {
       jobId,
       requestId: randomUUID(),
+      traceId,
     };
 
     // ---- Step 1: Generate ----
@@ -513,6 +569,21 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
         validatedGen.variants.shorts = patched.shorts;
       } else {
         console.log('[Generate] Calendar coverage: all 5 platforms covered');
+      }
+    }
+
+    // ---- Last-mile: simplified → HK traditional (no model call) ----
+    // Prompts already require 繁體; models still leak 简体. Normalize before
+    // audit / feedback / persist so users never see residual simplified glyphs
+    // that our map can fix.
+    {
+      const before = validatedGen.variants.shorts;
+      validatedGen.variants = traditionalizeVariants(validatedGen.variants);
+      if (validatedGen.variantMeta) {
+        validatedGen.variantMeta = traditionalizeVariantMeta(validatedGen.variantMeta);
+      }
+      if (before !== validatedGen.variants.shorts) {
+        console.log('[Generate] Traditionalize pass adjusted at least one variant glyph');
       }
     }
 
@@ -668,6 +739,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
         : undefined,
       consumerFeedback,
       jobId,
+      traceId,
       // W3: generic notice only — no existence leak for foreign/deleted IDs
       ...(caseResolve.partialUnavailable
         ? { warnings: [CASE_LIBRARY_PARTIAL_NOTICE] }
@@ -695,6 +767,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
       console.warn(`[Generate] Uncertain error — keeping job ${jobId} as processing, reservation alive: ${message}`);
       res.status(202).json({
         jobId,
+        traceId,
         status: 'processing',
         message: 'Generation may still be in progress. Poll for results.',
         retryable: true,
@@ -757,6 +830,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
     res.status(status).json({
       error: message,
       jobId,
+      traceId,
       ...(err instanceof RealModelUnavailableError ? { code: err.code } : {}),
     });
   }

@@ -15,11 +15,14 @@ import type {
  */
 export class ApiError extends Error {
   readonly status: number;
+  /** Machine-readable reason, e.g. quota denial `period_expired`. */
+  readonly reason?: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, options?: { reason?: string }) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.reason = options?.reason;
   }
 }
 
@@ -184,6 +187,9 @@ export async function generateCopy(
     throw new ApiError(
       (json.error as string) ?? `Generation failed (${res.status})`,
       res.status,
+      {
+        reason: typeof json.reason === 'string' ? json.reason : undefined,
+      },
     );
   }
 

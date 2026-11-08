@@ -384,3 +384,14 @@
 - Full verification: Client 494/494; Server 831/832（既有 alipayAdapter BAD_BASE64_DECODE，环境性，文件未改）；client/server typecheck 0；npm run build 通过
 - Boundary: 未 commit/push/部署；未改 migration；未改其他账号；未 reset/clean Dirty Worktree
 - Evidence: `docs/plans/2026-11-08-trace-and-quota-observability.md`
+
+## 2026-11-08 - 配额拒绝原因与 trace 可观测性 wiring
+
+- Phase: 迁移草案 dry-run 后，按用户"直接开始写"实现代码链路（迁移仍未应用）
+- Goal: 新请求能区分 no_subscription/inactive/period_not_started/period_expired/quota_exhausted，并把 trace 串起 job → model_call_logs → 坏包
+- Implementation: `reserveQuotaWithReason`（v2，函数缺失回退 v1）；`quota_denial_events` 最佳努力写入；generate 每请求 traceId，402 带 reason/traceId；job/telemetry 写 trace_id，扩展列缺失时自动降级；客户端 ApiError.reason 驱动精确文案
+- Bad case: 配额拒绝不建包；真实失败包 summary 带 `error=`，分析输入带 runtime.errorCode + criteria evidence；通过 job 关联 trace
+- Focused verification: 141/141（4 files，含新 402 reason 路由测试）
+- Full verification: Server 844/845（既有 alipayAdapter 环境失败）；Client 495/495（首轮 2 个并发超时抖动，单独复跑通过）；client/server typecheck 0；npm run build 通过
+- Boundary: 迁移未应用、未部署；未迁移旧坏包；未改其他账号；未 reset/clean Dirty Worktree
+- Evidence: `docs/plans/2026-11-08-trace-and-quota-observability.md`

@@ -542,6 +542,42 @@ describe('Atomic idempotency', () => {
     expect([200, 500]).toContain(res.status);
   });
 
+  it('returns 402 with the precise quota denial reason and a traceId', async () => {
+    const { trustedClient } = setupWithQuota();
+    const dbJob = makeDbJob({ status: 'pending' });
+    mockFromSequence(trustedClient, [
+      { data: dbJob },  // upsertJob insert
+      { data: dbJob },  // upsertJob select
+      { data: null },   // quota_denial_events insert
+      { data: { ...dbJob, status: 'failed' } }, // failJob update
+    ]);
+    trustedClient.rpc.mockImplementation(async (fnName: string) => {
+      if (fnName === 'reserve_quota_v2') {
+        return {
+          data: {
+            reserved: false,
+            reason: 'period_expired',
+            plan_name: 'Pro',
+            period_end: '2026-09-22T01:31:24.000Z',
+          },
+          error: null,
+        };
+      }
+      return { data: null, error: { message: `Unknown RPC: ${fnName}` } };
+    });
+
+    const res = await request(app)
+      .post('/api/generate')
+      .set('Authorization', VALID_TOKEN)
+      .send({ source: 'test', idempotencyKey: 'ik-expired', platform: 'ig', tone: '活潑' });
+
+    expect(res.status).toBe(402);
+    expect(res.body.reason).toBe('period_expired');
+    expect(res.body.jobId).toBe(JOB_UUID);
+    expect(typeof res.body.traceId).toBe('string');
+    expect(res.body.message).toMatch(/expired/i);
+  });
+
   it('returns existing completed job without regenerating (idempotent hit)', async () => {
     const { trustedClient: client } = setupWithQuota();
     const completedJob = makeDbJob({

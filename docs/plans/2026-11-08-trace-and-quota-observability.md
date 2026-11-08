@@ -1,6 +1,6 @@
 # 2026-11-08 Trace 与配额可观测性升级（草案）
 
-> 状态：迁移草案已编写，未应用；代码 wiring 未实施
+> 状态：迁移草案已编写 + dry-run 通过；代码 wiring 已实现（未应用迁移、未部署）
 > 关联：`supabase/migrations/20261108120000_quota_denial_reason_and_trace.sql`
 > 触发事件：2026-11-08 Pro 周期过期导致全量 402，但系统只能记录 `QUOTA_EXHAUSTED`，无法区分原因
 
@@ -23,17 +23,17 @@
   `{reserved:false, reason}`；v1 不动，旧部署继续可用。
 - `bad_case_review_packs` 增加 `error_code text`（可选，用于列表过滤；当前 summary 已带 `error=`）。
 
-## 3. 代码 wiring（下一 PR）
+## 3. 代码 wiring（本次已实现）
 
 | 层 | 文件 | 变更 |
 |---|---|---|
-| 配额服务 | `server/src/services/quotaService.ts` | 新增 `reserveQuotaWithReason()` 调 v2；保留 v1 包装 |
-| 生成路由 | `server/src/routes/generate.ts` | 生成 `traceId`；拒绝时写 `quota_denial_events`、`failJob` 带 reason、402 body 带 `reason` |
-| 任务 | `server/src/services/generationJobsService.ts` | insert/select 带 `trace_id` |
-| 遥测 | `server/src/services/telemetryService.ts` | `model_call_logs` 写 trace/HTTP/finish/ hash/version/fallback |
-| 坏包 | `server/src/services/badCaseReviewPackService.ts` | pack 写入 `trace_id`、`error_code`；分析输入已有 `runtime.errorCode` |
-| 前端 | `client/src/hooks/useGenerate.ts`、`InputPanel.tsx` | 402 body 的 `reason` 决定文案（到期 vs 用完）并上报事件 |
-| 指标 | `server/src/services/adminMetricsService.ts` | 增加 `quotaDenials`（按 reason/日） |
+| 配额服务 | `server/src/services/quotaService.ts` | `reserveQuotaWithReason()` 调 v2；函数缺失时回退 v1，reason='unknown' |
+| 配额证据 | `server/src/services/quotaDenialService.ts` | `recordQuotaDenial()` 写 `quota_denial_events`，表不存在时静默失败 |
+| 生成路由 | `server/src/routes/generate.ts` | 每请求生成 `traceId`；拒绝时写事件、failJob 带 reason、402 body 带 `reason/traceId` |
+| 任务 | `server/src/services/generationJobsService.ts` | insert/select `trace_id`；列不存在时自动降级重试 |
+| 遥测 | `server/src/services/telemetryService.ts` | `trace_id/http_status/finish_reason/request_hash/prompt_version/is_fallback`；旧库自动降级 |
+| 客户端 | `client/src/services/api.ts`、`hooks/useGenerate.ts`、`InputPanel.tsx` | `ApiError.reason`；402 文案按 `period_expired/quota_exhausted` 精确展示 |
+| 坏包 | `badCaseReviewPackAssembler` / `badCaseAnalysis` | 配额拒绝不建包；真实失败包带 `error=`、`runtime.errorCode`、criteria evidence；通过 `generation_job_id` 关联 job 的 `trace_id` |
 
 ## 4. 发布顺序（关键）
 
